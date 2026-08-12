@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"guardianId":{"$numberInt":"1"},"studentId":{"$numberInt":"1"}},"name":"guardianId_1_studentId_1","unique":true}],"uuid":"db8c7c85e4614fe995299c5959336367","collectionName":"guardianstudentlinks","type":"collection"}

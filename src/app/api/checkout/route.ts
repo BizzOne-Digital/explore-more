@@ -1,0 +1,93 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import connectDB from "@/lib/db";
+import { Order } from "@/models";
+import { generateOrderNumber } from "@/lib/password";
+import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stripe";
+import { auth } from "@/lib/auth";
+
+const checkoutSchema = z.object({
+  items: z.array(
+    z.object({
+      bookId: z.string(),
+      title: z.string(),
+      quantity: z.number().min(1),
+      priceCents: z.number(),
+    })
+  ),
+  customerName: z.string().min(2),
+  customerEmail: z.string().email(),
+  shippingAddress: z.object({
+    name: z.string(),
+    line1: z.string(),
+    line2: z.string().optional(),
+    city: z.string(),
+    state: z.string(),
+    postalCode: z.string(),
+    country: z.string().default("US"),
+  }),
+});
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const data = checkoutSchema.parse(body);
+    await connectDB();
+
+    const session = await auth();
+    const subtotalCents = data.items.reduce((s, i) => s + i.priceCents * i.quantity, 0);
+    const shippingCents = subtotalCents >= 5000 ? 0 : 599;
+    const totalCents = subtotalCents + shippingCents;
+    const orderNumber = generateOrderNumber();
+
+    const order = await Order.create({
+      userId: session?.user?.id,
+      orderNumber,
+      items: data.items.map((i) => ({
+        bookId: i.bookId,
+        title: i.title,
+        quantity: i.quantity,
+        priceCents: i.priceCents,
+      })),
+      subtotalCents,
+      taxCents: 0,
+      shippingCents,
+      totalCents,
+      paymentStatus: "pending",
+      shippingAddress: data.shippingAddress,
+      customerEmail: data.customerEmail,
+      customerName: data.customerName,
+    });
+
+    const stripe = getStripe();
+    if (!stripe) {
+      await Order.findByIdAndUpdate(order._id, { paymentStatus: "manual" });
+      return NextResponse.json({ success: true, orderNumber, manual: true });
+    }
+
+    const checkoutSession = await createCheckoutSession({
+      lineItems: data.items.map((item) => ({
+        price_data: {
+          currency: "usd",
+          product_data: { name: item.title },
+          unit_amount: item.priceCents,
+        },
+        quantity: item.quantity,
+      })),
+      mode: "payment",
+      metadata: { type: "order", orderId: order._id.toString(), orderNumber },
+      customerEmail: data.customerEmail,
+      successUrl: `${getAppUrl()}/order-success?order=${orderNumber}`,
+      cancelUrl: `${getAppUrl()}/checkout`,
+    });
+
+    await Order.findByIdAndUpdate(order._id, { stripeSessionId: checkoutSession.id });
+
+    return NextResponse.json({ checkoutUrl: checkoutSession.url, orderNumber });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Invalid checkout data" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
+  }
+}

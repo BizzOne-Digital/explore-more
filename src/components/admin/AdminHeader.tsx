@@ -11,7 +11,7 @@ export function AdminHeader({ title }: AdminHeaderProps) {
   const { data: session } = useSession();
 
   return (
-    <header className="flex items-center justify-between border-b border-white/10 bg-explore-black/40 px-4 py-3 backdrop-blur-sm lg:px-6">
+    <header className="flex shrink-0 items-center justify-between border-b border-white/10 bg-explore-black/40 px-4 py-3 backdrop-blur-sm lg:px-6">
       <div className="pl-10 lg:pl-0">
         {title && (
           <p className="text-sm font-medium text-white/50 lg:hidden">{title}</p>

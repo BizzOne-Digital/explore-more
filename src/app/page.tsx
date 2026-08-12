@@ -388,8 +388,8 @@ export default async function HomePage() {
       </section>
 
       {/* Newsletter */}
-      <section className="w-full overflow-x-clip py-20 bg-explore-teal text-white">
-        <div className="mx-auto w-full min-w-0 max-w-2xl px-3 sm:px-4 text-center">
+      <section className="w-full overflow-x-clip py-16 sm:py-20 bg-explore-teal text-white">
+        <div className="mx-auto w-full min-w-0 max-w-3xl px-3 sm:px-4 text-center">
           <SectionHeading
             eyebrow="Stay Connected"
             title="Join the Adventure"

@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
-const LOGO_HEADER = "/uploads/settings/logo-header.png";
-const LOGO_FOOTER = "/uploads/settings/logo-footer.png";
+const LOGO_VERSION = "3";
+
+const LOGO_HEADER = `/uploads/settings/logo-header.png?v=${LOGO_VERSION}`;
+const LOGO_FOOTER = `/uploads/settings/logo-footer.png?v=${LOGO_VERSION}`;
 
 interface LogoProps {
   variant?: "header" | "footer";
@@ -17,11 +19,11 @@ export function Logo({ variant = "header", className, href = "/", plate = false 
   const src = variant === "footer" ? LOGO_FOOTER : LOGO_HEADER;
   const sizes =
     variant === "footer"
-      ? { width: 180, height: 180, className: "h-24 w-auto max-w-[200px] sm:h-32 sm:max-w-[240px]" }
+      ? { width: 360, height: 160, className: "h-20 w-auto max-w-[280px] sm:h-28 sm:max-w-[340px]" }
       : {
-          width: 160,
-          height: 56,
-          className: "h-9 w-auto max-w-[118px] sm:h-11 sm:max-w-[150px] md:h-12 md:max-w-[168px]",
+          width: 320,
+          height: 80,
+          className: "h-10 w-auto max-w-[160px] sm:h-12 sm:max-w-[220px] md:h-14 md:max-w-[260px]",
         };
 
   const image = (
@@ -39,6 +41,7 @@ export function Logo({ variant = "header", className, href = "/", plate = false 
         height={sizes.height}
         className={cn(sizes.className, "object-contain object-left")}
         priority={variant === "header"}
+        unoptimized
       />
     </span>
   );

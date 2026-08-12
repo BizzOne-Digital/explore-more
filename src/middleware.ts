@@ -28,6 +28,12 @@ const publicPaths = [
   "/unsubscribe",
 ];
 
+function withPathname(request: NextRequest, pathname: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = await auth();
@@ -38,12 +44,12 @@ export async function middleware(request: NextRequest) {
       if (session?.user?.role === "administrator") {
         return NextResponse.redirect(new URL("/admin", request.url));
       }
-      return NextResponse.next();
+      return withPathname(request, pathname);
     }
     if (!session || session.user.role !== "administrator") {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
-    return NextResponse.next();
+    return withPathname(request, pathname);
   }
 
   // Student portal
@@ -51,7 +57,7 @@ export async function middleware(request: NextRequest) {
     if (!session || !["student", "administrator"].includes(session.user.role)) {
       return NextResponse.redirect(new URL("/login?callbackUrl=" + encodeURIComponent(pathname), request.url));
     }
-    return NextResponse.next();
+    return withPathname(request, pathname);
   }
 
   // Parent portal
@@ -59,7 +65,7 @@ export async function middleware(request: NextRequest) {
     if (!session || !["parent", "administrator"].includes(session.user.role)) {
       return NextResponse.redirect(new URL("/login?callbackUrl=" + encodeURIComponent(pathname), request.url));
     }
-    return NextResponse.next();
+    return withPathname(request, pathname);
   }
 
   // API admin protection
@@ -69,9 +75,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return withPathname(request, pathname);
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/student/:path*", "/parent/:path*", "/api/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };

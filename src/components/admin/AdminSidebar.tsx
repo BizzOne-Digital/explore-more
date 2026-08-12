@@ -29,7 +29,7 @@ export function AdminSidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-4" data-lenis-prevent>
         {adminNavGroups.map((group) => (
           <div key={group.title} className="mb-5">
             <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-white/35">
@@ -108,7 +108,7 @@ export function AdminSidebar() {
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r border-white/10 bg-explore-charcoal lg:block">
+      <aside className="hidden h-full min-h-0 w-64 shrink-0 border-r border-white/10 bg-explore-charcoal lg:block">
         {navContent}
       </aside>
     </>

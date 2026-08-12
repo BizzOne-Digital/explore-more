@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { CinematicIntro } from "@/components/intro/CinematicIntro";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { CartProvider } from "@/components/providers/CartProvider";
@@ -54,12 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SessionProvider>
           <CartProvider>
             <SmoothScrollProvider>
-              <CinematicIntro />
-              <Header />
-              <main id="main-content" className="w-full min-w-0 overflow-x-clip">
-                {children}
-              </main>
-              <Footer />
+              <SiteChrome>{children}</SiteChrome>
             </SmoothScrollProvider>
           </CartProvider>
         </SessionProvider>

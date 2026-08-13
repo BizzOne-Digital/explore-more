@@ -93,15 +93,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
             <Link href="/parent" className="hover:text-explore-lime transition-colors">
               Parent Portal
             </Link>
-            {session ? (
-              <>
-                {isAdmin && (
-                  <Link href="/admin" className="hover:text-explore-lime transition-colors">
-                    Admin
-                  </Link>
-                )}
-              </>
-            ) : (
+            {session ? null : (
               <>
                 <Link href="/login" className="hover:text-explore-lime transition-colors">
                   Login

@@ -87,16 +87,17 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                 Upcoming Events
               </Link>
             )}
+            <Link href="/student" className="hover:text-explore-lime transition-colors">
+              Student Portal
+            </Link>
+            <Link href="/parent" className="hover:text-explore-lime transition-colors">
+              Parent Portal
+            </Link>
             {session ? (
               <>
-                {session.user.role === "student" && (
-                  <Link href="/student" className="hover:text-explore-lime transition-colors">
-                    Student Portal
-                  </Link>
-                )}
-                {session.user.role === "parent" && (
-                  <Link href="/parent" className="hover:text-explore-lime transition-colors">
-                    Parent Portal
+                {isAdmin && (
+                  <Link href="/admin" className="hover:text-explore-lime transition-colors">
+                    Admin
                   </Link>
                 )}
               </>
@@ -197,16 +198,12 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                         Admin Portal
                       </Link>
                     )}
-                    {session.user.role === "student" && (
-                      <Link href="/student" className="block px-4 py-2 text-sm hover:bg-explore-cream">
-                        Student Portal
-                      </Link>
-                    )}
-                    {session.user.role === "parent" && (
-                      <Link href="/parent" className="block px-4 py-2 text-sm hover:bg-explore-cream">
-                        Parent Portal
-                      </Link>
-                    )}
+                    <Link href="/student" className="block px-4 py-2 text-sm hover:bg-explore-cream">
+                      Student Portal
+                    </Link>
+                    <Link href="/parent" className="block px-4 py-2 text-sm hover:bg-explore-cream">
+                      Parent Portal
+                    </Link>
                     <button
                       onClick={() => signOut({ callbackUrl: "/" })}
                       className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -256,6 +253,24 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/student"
+              className={cn(
+                "block py-3 text-base font-medium border-b border-explore-charcoal/5",
+                pathname.startsWith("/student") ? "text-explore-teal" : "text-explore-charcoal"
+              )}
+            >
+              Student Portal
+            </Link>
+            <Link
+              href="/parent"
+              className={cn(
+                "block py-3 text-base font-medium border-b border-explore-charcoal/5",
+                pathname.startsWith("/parent") ? "text-explore-teal" : "text-explore-charcoal"
+              )}
+            >
+              Parent Portal
+            </Link>
             {navigation.showProgramsCta && (
               <Link
                 href="/programs"

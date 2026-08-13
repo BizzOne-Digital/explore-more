@@ -18,20 +18,23 @@ import {
 import { Logo } from "@/components/layout/Logo";
 import { useCart } from "@/components/providers/CartProvider";
 import { COMPANY } from "@/lib/constants";
+import { HEADER_NAV, type NavLink, type SiteNavigation } from "@/lib/navigation";
 import { cn } from "@/lib/cn";
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/events", label: "Events" },
-  { href: "/books", label: "Books" },
-  { href: "/courses", label: "Courses" },
-  { href: "/programs", label: "Programs" },
-  { href: "/sponsor-a-kid", label: "Sponsor a Kid" },
-  { href: "/contact", label: "Contact" },
-];
+const defaultNavigation: SiteNavigation = {
+  headerLinks: HEADER_NAV,
+  footerLinks: {},
+  showEventsUtility: true,
+  showBooksSearch: true,
+  showProgramsCta: true,
+};
 
-export function Header() {
+interface HeaderProps {
+  navigation?: SiteNavigation;
+}
+
+export function Header({ navigation = defaultNavigation }: HeaderProps) {
+  const navLinks: NavLink[] = navigation.headerLinks;
   const pathname = usePathname();
   const { data: session } = useSession();
   const { itemCount } = useCart();
@@ -79,9 +82,11 @@ export function Header() {
             </a>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/events" className="hover:text-explore-lime transition-colors">
-              Upcoming Events
-            </Link>
+            {navigation.showEventsUtility && (
+              <Link href="/events" className="hover:text-explore-lime transition-colors">
+                Upcoming Events
+              </Link>
+            )}
             {session ? (
               <>
                 {session.user.role === "student" && (
@@ -143,16 +148,18 @@ export function Header() {
           </div>
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
-            <Link
-              href="/books"
-              className={cn(
-                "hidden sm:flex p-2 rounded-lg transition-colors",
-                transparent ? "text-white/80 hover:bg-white/10" : "text-explore-charcoal/70 hover:bg-explore-charcoal/5"
-              )}
-              aria-label="Search books"
-            >
-              <Search className="h-5 w-5" />
-            </Link>
+            {navigation.showBooksSearch && (
+              <Link
+                href="/books"
+                className={cn(
+                  "hidden sm:flex p-2 rounded-lg transition-colors",
+                  transparent ? "text-white/80 hover:bg-white/10" : "text-explore-charcoal/70 hover:bg-explore-charcoal/5"
+                )}
+                aria-label="Search books"
+              >
+                <Search className="h-5 w-5" />
+              </Link>
+            )}
             <Link
               href="/cart"
               className={cn(
@@ -212,12 +219,14 @@ export function Header() {
               </div>
             ) : null}
 
-            <Link
-              href="/programs"
-              className="hidden md:inline-flex items-center gap-1 rounded-full bg-explore-orange px-4 py-2 text-sm font-semibold text-white hover:bg-explore-orange/90 transition-colors shadow-md"
-            >
-              Start Your Adventure
-            </Link>
+            {navigation.showProgramsCta && (
+              <Link
+                href="/programs"
+                className="hidden md:inline-flex items-center gap-1 rounded-full bg-explore-orange px-4 py-2 text-sm font-semibold text-white hover:bg-explore-orange/90 transition-colors shadow-md"
+              >
+                Start Your Adventure
+              </Link>
+            )}
 
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
@@ -247,12 +256,14 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/programs"
-              className="mt-4 block w-full text-center rounded-full bg-explore-orange px-4 py-3 text-sm font-semibold text-white"
-            >
-              Start Your Adventure
-            </Link>
+            {navigation.showProgramsCta && (
+              <Link
+                href="/programs"
+                className="mt-4 block w-full text-center rounded-full bg-explore-orange px-4 py-3 text-sm font-semibold text-white"
+              >
+                Start Your Adventure
+              </Link>
+            )}
           </div>
         )}
       </nav>

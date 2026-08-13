@@ -260,6 +260,7 @@ async function main() {
     title: key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, " "),
     slug: key === "home" ? "home" : key,
     status: "draft" as const,
+    navVisible: true,
     sections:
       key === "home"
         ? [

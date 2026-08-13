@@ -18,6 +18,8 @@ const statusStyles: Record<string, string> = {
   in_stock: "bg-explore-lime/20 text-explore-lime",
   low_stock: "bg-explore-orange/20 text-explore-orange",
   out_of_stock: "bg-red-500/20 text-red-400",
+  visible: "bg-explore-lime/20 text-explore-lime",
+  hidden: "bg-white/10 text-white/50",
 };
 
 export function StatusBadge({ status }: { status: string }) {

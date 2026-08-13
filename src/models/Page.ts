@@ -28,6 +28,8 @@ export interface IPage extends Document {
   metaDescription?: string;
   sections: IPageSection[];
   status: "draft" | "published";
+  /** When false, page is hidden from header and footer navigation. */
+  navVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +65,7 @@ const PageSchema = new Schema<IPage>(
     metaDescription: String,
     sections: [PageSectionSchema],
     status: { type: String, enum: ["draft", "published"], default: "draft" },
+    navVisible: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

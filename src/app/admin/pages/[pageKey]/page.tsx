@@ -21,7 +21,7 @@ export default async function EditPagePage({
   return (
     <PageForm
       pageKey={pageKey}
-      initialData={page ? serialize(page) : { key: pageKey, slug: pageKey, title: pageKey, status: "draft" }}
+      initialData={page ? serialize(page) : { key: pageKey, slug: pageKey, title: pageKey, status: "draft", navVisible: true }}
       sections={page?.sections ?? []}
     />
   );

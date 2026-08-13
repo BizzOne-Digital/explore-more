@@ -10,6 +10,7 @@ import {
   TextInput,
   TextArea,
   SelectInput,
+  CheckboxInput,
   FormActions,
   FormSection,
 } from "@/components/admin/forms";
@@ -22,6 +23,7 @@ const schema = z.object({
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   status: z.enum(["draft", "published"]),
+  navVisible: z.boolean(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -50,6 +52,7 @@ export function PageForm({
       metaTitle: initialData?.metaTitle ?? "",
       metaDescription: initialData?.metaDescription ?? "",
       status: initialData?.status ?? "draft",
+      navVisible: initialData?.navVisible !== false,
     },
   });
 
@@ -104,6 +107,12 @@ export function PageForm({
               ]}
             />
           </FormField>
+          <div className="sm:col-span-2">
+            <CheckboxInput
+              registration={register("navVisible")}
+              label="Show in header and footer navigation"
+            />
+          </div>
         </FormSection>
         <FormActions isSubmitting={isSubmitting} cancelHref="/admin/pages" />
       </form>

@@ -2,32 +2,13 @@ import Link from "next/link";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
 import { COMPANY } from "@/lib/constants";
+import { FOOTER_NAV, type NavLink } from "@/lib/navigation";
 
-const footerLinks = {
-  Explore: [
-    { href: "/about", label: "About Us" },
-    { href: "/programs", label: "Programs" },
-    { href: "/events", label: "Events" },
-    { href: "/courses", label: "Courses" },
-    { href: "/gallery", label: "Gallery" },
-  ],
-  Resources: [
-    { href: "/books", label: "Bookstore" },
-    { href: "/faqs", label: "FAQs" },
-    { href: "/testimonials", label: "Testimonials" },
-    { href: "/sponsor-a-kid", label: "Sponsor a Kid" },
-    { href: "/contact", label: "Contact" },
-  ],
-  Account: [
-    { href: "/login", label: "Login" },
-    { href: "/register", label: "Register" },
-    { href: "/student", label: "Student Portal" },
-    { href: "/privacy", label: "Privacy Policy" },
-    { href: "/terms", label: "Terms of Service" },
-  ],
-};
+interface FooterProps {
+  footerLinks?: Record<string, NavLink[]>;
+}
 
-export function Footer() {
+export function Footer({ footerLinks = FOOTER_NAV }: FooterProps) {
   return (
     <footer className="w-full overflow-x-clip bg-explore-charcoal text-white border-t border-white/10">
       <div className="mx-auto w-full min-w-0 max-w-7xl px-3 py-10 sm:px-4 sm:py-12">

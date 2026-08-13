@@ -1,12 +1,19 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_SIZE, UPLOAD_DIRS } from "@/lib/constants";
+import {
+  ALLOWED_IMAGE_TYPES,
+  ALLOWED_PORTFOLIO_EXTENSIONS,
+  MAX_PORTFOLIO_UPLOAD_SIZE,
+  MAX_UPLOAD_SIZE,
+  UPLOAD_DIRS,
+} from "@/lib/constants";
 
 const PUBLIC_UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
 const PRIVATE_STORAGE_ROOT = path.join(process.cwd(), "storage", "private");
 
 export type UploadCategory = keyof typeof UPLOAD_DIRS;
+export type PrivateUploadFolder = "results" | "certificates" | "documents" | "portfolio" | "messages";
 
 export async function ensureUploadDirs(): Promise<void> {
   const dirs = [
@@ -16,6 +23,8 @@ export async function ensureUploadDirs(): Promise<void> {
     path.join(PRIVATE_STORAGE_ROOT, "results"),
     path.join(PRIVATE_STORAGE_ROOT, "certificates"),
     path.join(PRIVATE_STORAGE_ROOT, "documents"),
+    path.join(PRIVATE_STORAGE_ROOT, "portfolio"),
+    path.join(PRIVATE_STORAGE_ROOT, "messages"),
   ];
   await Promise.all(dirs.map((d) => fs.mkdir(d, { recursive: true })));
 }
@@ -29,9 +38,9 @@ function validateImage(file: { type: string; size: number }): void {
   }
 }
 
-function safeFilename(original: string): string {
+function safeFilename(original: string, allowedExts?: string[]): string {
   const ext = path.extname(original).toLowerCase();
-  const allowed = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"];
+  const allowed = allowedExts ?? [".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"];
   if (!allowed.includes(ext)) {
     throw new Error("Invalid file extension");
   }
@@ -65,13 +74,19 @@ export async function uploadPublicImage(
 
 export async function uploadPrivateFile(
   file: File,
-  subfolder: "results" | "certificates" | "documents"
-): Promise<{ path: string; filename: string }> {
-  if (file.size > 10 * 1024 * 1024) {
-    throw new Error("File too large. Maximum size is 10MB");
+  subfolder: PrivateUploadFolder,
+  maxSize = 10 * 1024 * 1024
+): Promise<{ path: string; filename: string; originalName: string; mimeType: string; size: number }> {
+  if (file.size > maxSize) {
+    throw new Error(`File too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB`);
   }
 
-  const filename = safeFilename(file.name);
+  const allowedExts =
+    subfolder === "portfolio" || subfolder === "messages"
+      ? ALLOWED_PORTFOLIO_EXTENSIONS
+      : [".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"];
+
+  const filename = safeFilename(file.name, allowedExts);
   const dir = path.join(PRIVATE_STORAGE_ROOT, subfolder);
   await fs.mkdir(dir, { recursive: true });
 
@@ -86,7 +101,20 @@ export async function uploadPrivateFile(
   return {
     path: `${subfolder}/${filename}`,
     filename,
+    originalName: file.name,
+    mimeType: file.type || "application/octet-stream",
+    size: file.size,
   };
+}
+
+export async function uploadPortfolioFiles(
+  files: File[]
+): Promise<Array<{ path: string; filename: string; originalName: string; mimeType: string; size: number }>> {
+  const uploads = [];
+  for (const file of files) {
+    uploads.push(await uploadPrivateFile(file, "portfolio", MAX_PORTFOLIO_UPLOAD_SIZE));
+  }
+  return uploads;
 }
 
 export async function deletePublicImage(url: string): Promise<void> {

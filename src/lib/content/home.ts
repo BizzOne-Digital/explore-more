@@ -123,7 +123,7 @@ export const DIFFERENTIATORS = [
     icon: "📅",
   },
   {
-    title: "Sponsor-A-Kid Impact",
+    title: "Become a Sponsor Impact",
     description: "Donations directly fund scholarships so cost never blocks a child from exploring more.",
     icon: "💚",
   },

@@ -41,6 +41,75 @@ export async function queueEmail(params: {
   return job._id.toString();
 }
 
+async function deliverEmailJob(jobId: string): Promise<void> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    throw new Error("SMTP is not configured");
+  }
+
+  await connectDB();
+  const job = await EmailJob.findById(jobId);
+  if (!job) {
+    throw new Error("Email job not found");
+  }
+
+  const from = `"${process.env.SMTP_SENDER_NAME || "Explore More Academy"}" <${process.env.SMTP_SENDER_EMAIL || process.env.SMTP_USERNAME}>`;
+
+  job.status = "sending";
+  job.attempts += 1;
+  await job.save();
+
+  try {
+    await transporter.sendMail({
+      from,
+      to: job.to,
+      replyTo: process.env.SMTP_REPLY_TO,
+      subject: job.subject,
+      html: job.htmlBody,
+      text: job.textBody,
+    });
+
+    job.status = "sent";
+    job.sentAt = new Date();
+    await job.save();
+  } catch (error) {
+    job.status = job.attempts >= 3 ? "failed" : "queued";
+    job.lastError = error instanceof Error ? error.message : "Unknown error";
+    await job.save();
+    throw error;
+  }
+}
+
+/** Queue and attempt immediate delivery for transactional mail (signup, password reset, etc.). */
+export async function sendTransactionalEmail(params: {
+  to: string;
+  subject: string;
+  htmlBody: string;
+  textBody?: string;
+  template: string;
+  metadata?: Record<string, string>;
+}): Promise<{ jobId: string; sent: boolean; error?: string }> {
+  const jobId = await queueEmail(params);
+
+  if (!isSmtpConfigured()) {
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[email] SMTP not configured — queued only: ${params.subject} → ${params.to}`);
+      if (params.textBody) {
+        console.info(`[email] ${params.textBody}`);
+      }
+    }
+    return { jobId, sent: false, error: "SMTP is not configured" };
+  }
+
+  try {
+    await deliverEmailJob(jobId);
+    return { jobId, sent: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Email delivery failed";
+    return { jobId, sent: false, error: message };
+  }
+}
+
 export async function processEmailQueue(limit = 20): Promise<{ sent: number; failed: number }> {
   const transporter = getTransporter();
   if (!transporter) {
@@ -59,27 +128,9 @@ export async function processEmailQueue(limit = 20): Promise<{ sent: number; fai
 
   for (const job of jobs) {
     try {
-      job.status = "sending";
-      job.attempts += 1;
-      await job.save();
-
-      await transporter.sendMail({
-        from,
-        to: job.to,
-        replyTo: process.env.SMTP_REPLY_TO,
-        subject: job.subject,
-        html: job.htmlBody,
-        text: job.textBody,
-      });
-
-      job.status = "sent";
-      job.sentAt = new Date();
-      await job.save();
+      await deliverEmailJob(job._id.toString());
       sent++;
-    } catch (error) {
-      job.status = job.attempts >= 3 ? "failed" : "queued";
-      job.lastError = error instanceof Error ? error.message : "Unknown error";
-      await job.save();
+    } catch {
       failed++;
     }
   }
@@ -111,13 +162,18 @@ export function wrapEmailTemplate(content: string, unsubscribeUrl?: string): str
 }
 
 export const emailTemplates = {
-  verification: (name: string, url: string) => ({
+  verification: (name: string, url: string, code: string) => ({
     subject: "Verify your Explore More Academy account",
     html: wrapEmailTemplate(`
       <h2 style="color:#101315">Welcome, ${name}!</h2>
       <p>Please verify your email address to activate your account.</p>
+      <p style="margin:24px 0 8px;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.08em">Your verification code</p>
+      <p style="margin:0 0 24px;font-size:32px;font-weight:700;letter-spacing:0.2em;color:#0c8991">${code}</p>
+      <p style="margin-bottom:16px">Enter this code on the verification page, or click the button below:</p>
       <a href="${url}" style="display:inline-block;background:#ff5a16;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Verify Email</a>
+      <p style="margin-top:24px;font-size:13px;color:#666">This code expires in 24 hours.</p>
     `),
+    textBody: `Welcome, ${name}!\n\nYour Explore More Academy verification code is: ${code}\n\nOr verify here: ${url}\n\nThis code expires in 24 hours.`,
   }),
   passwordReset: (name: string, url: string) => ({
     subject: "Reset your password",

@@ -85,6 +85,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     title: "Students",
     items: [
       { label: "Students", href: "/admin/students", icon: Users },
+      { label: "Guardian Links", href: "/admin/guardian-links", icon: UserCheck },
+      { label: "Portfolio Reviews", href: "/admin/portfolio-reviews", icon: FileText },
       { label: "Results", href: "/admin/results", icon: Trophy },
       { label: "Attendance", href: "/admin/attendance", icon: CalendarCheck },
       { label: "Certificates", href: "/admin/certificates", icon: Award },
@@ -107,6 +109,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     items: [
       { label: "Email Campaigns", href: "/admin/email-campaigns", icon: Mail },
       { label: "Messages", href: "/admin/messages", icon: MessagesSquare },
+      { label: "Send Notification", href: "/admin/notifications", icon: Bell },
       { label: "Subscribers", href: "/admin/subscribers", icon: Bell },
     ],
   },

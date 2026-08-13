@@ -16,3 +16,14 @@ export {
   Message,
 } from "./Content";
 export { EmailCampaign, EmailJob, ActivityLog } from "./Email";
+export {
+  HomeschoolPortfolio,
+  PortfolioWorkSample,
+  PortfolioReadingEntry,
+  PortfolioActivity,
+  PortfolioAttendance,
+  PortfolioCurriculum,
+  PortfolioReviewRequest,
+} from "./Portfolio";
+export { StaffProfile, Conversation, ConversationMessage } from "./Messaging";
+export { ParentNotification, ParentNotificationRead } from "./ParentNotification";

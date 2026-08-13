@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getAllTestimonials } from "@/lib/queries/public";
+import { createSectionChecker, getPageSectionVisibility } from "@/lib/queries/pages";
 import { PageHero } from "@/components/ui/PageHero";
 import { TestimonialCard } from "@/components/cards/TestimonialCard";
 
@@ -18,25 +19,30 @@ const FALLBACK = [
 ];
 
 export default async function TestimonialsPage() {
+  const show = createSectionChecker(await getPageSectionVisibility("testimonials"));
   const testimonials = await getAllTestimonials().catch(() => [] as Awaited<ReturnType<typeof getAllTestimonials>>);
   const items = testimonials.length > 0 ? testimonials : FALLBACK;
 
   return (
     <>
-      <PageHero
-        title="Community Stories"
-        subtitle="Hear from families, students, partners, and sponsors who've walked the trail with us."
-        eyebrow="Testimonials"
-      />
-      <section className="w-full overflow-x-clip py-16 bg-explore-cream min-h-[50vh]">
-        <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((t, i) => (
-              <TestimonialCard key={"_id" in t ? String(t._id) : i} testimonial={t} />
-            ))}
+      {show("hero") && (
+        <PageHero
+          title="Community Stories"
+          subtitle="Hear from families, students, partners, and sponsors who've walked the trail with us."
+          eyebrow="Testimonials"
+        />
+      )}
+      {show("list") && (
+        <section className="w-full overflow-x-clip py-16 bg-explore-cream min-h-[50vh]">
+          <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((t, i) => (
+                <TestimonialCard key={"_id" in t ? String(t._id) : i} testimonial={t} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </>
   );
 }

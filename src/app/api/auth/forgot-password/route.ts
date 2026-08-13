@@ -3,7 +3,7 @@ import { z } from "zod";
 import connectDB from "@/lib/db";
 import { User } from "@/models";
 import { generateToken } from "@/lib/password";
-import { queueEmail, emailTemplates } from "@/lib/services/email";
+import { sendTransactionalEmail, emailTemplates } from "@/lib/services/email";
 import { getAppUrl } from "@/lib/services/stripe";
 
 const schema = z.object({
@@ -28,12 +28,12 @@ export async function POST(request: Request) {
 
     const resetUrl = `${getAppUrl()}/reset-password?token=${token}`;
     const tpl = emailTemplates.passwordReset(user.name, resetUrl);
-    await queueEmail({
+    await sendTransactionalEmail({
       to: user.email,
       subject: tpl.subject,
       htmlBody: tpl.html,
       template: "passwordReset",
-    }).catch(() => {});
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

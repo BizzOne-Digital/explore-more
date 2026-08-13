@@ -18,6 +18,7 @@ import {
   getFeaturedTestimonials,
   getFeaturedFAQs,
 } from "@/lib/queries/public";
+import { createSectionChecker, getPageSectionVisibility } from "@/lib/queries/pages";
 import type { PublicEvent, PublicCourse, PublicBook, PublicGalleryImage, PublicTestimonial, PublicFAQ } from "@/types/public";
 import { Button } from "@/components/ui/Button";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -31,6 +32,7 @@ import { NewsletterForm } from "@/components/forms/NewsletterForm";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function HomePage() {
+  const show = createSectionChecker(await getPageSectionVisibility("home"));
   const [events, courses, books, gallery, testimonials, faqs] = await Promise.all([
     getUpcomingEvents(3).catch((): PublicEvent[] => []),
     getFeaturedCourses(4).catch((): PublicCourse[] => []),
@@ -42,7 +44,7 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero */}
+      {show("hero") && (
       <section className="relative flex min-h-screen w-full items-center overflow-x-clip bg-explore-charcoal">
         <Image
           src={HERO_IMAGES.home}
@@ -93,8 +95,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* Program Pathways */}
+      {show("pathways") && (
       <section className="w-full overflow-x-clip py-20 bg-explore-cream topo-bg">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
           <SectionHeading
@@ -125,8 +128,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* Mission */}
+      {show("mission") && (
       <section className="w-full overflow-x-clip py-20 bg-explore-forest text-white">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4 grid lg:grid-cols-2 gap-12 items-center">
           <div>
@@ -151,8 +155,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* Six Core Programs */}
+      {show("core-programs") && (
       <section className="w-full overflow-x-clip py-20 bg-white">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
           <SectionHeading
@@ -181,8 +186,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* Upcoming Events */}
+      {show("events") && (
       <section className="w-full overflow-x-clip py-20 bg-explore-sand/50">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
@@ -205,8 +211,9 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+      )}
 
-      {/* Featured Courses */}
+      {show("courses") && (
       <section className="w-full overflow-x-clip py-20 bg-explore-cream">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
@@ -224,8 +231,9 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+      )}
 
-      {/* Bookstore Preview */}
+      {show("books") && (
       <section className="w-full overflow-x-clip py-20 bg-white">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
@@ -243,8 +251,9 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+      )}
 
-      {/* Adventure Feed */}
+      {show("adventure-feed") && (
       <section className="w-full overflow-x-clip py-20 bg-explore-charcoal text-white">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
           <SectionHeading
@@ -295,8 +304,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* What Makes Us Different */}
+      {show("differentiators") && (
       <section className="w-full overflow-x-clip py-20 bg-explore-cream topo-bg">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
           <SectionHeading
@@ -316,8 +326,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* Testimonials */}
+      {show("testimonials") && (
       <section className="w-full overflow-x-clip py-20 bg-white">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
           <SectionHeading
@@ -348,13 +359,14 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* Sponsor CTA */}
+      {show("sponsor-cta") && (
       <section className="w-full overflow-x-clip py-20 bg-explore-orange text-white relative overflow-hidden">
         <div className="absolute inset-0 topo-bg opacity-20" />
         <div className="relative mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4 text-center">
           <Compass className="h-12 w-12 mx-auto text-explore-lime mb-6" />
-          <h2 className="font-display text-3xl sm:text-4xl font-bold">Sponsor a Kid&apos;s Adventure</h2>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold">Become a Sponsor</h2>
           <p className="mt-4 text-lg text-white/80 max-w-2xl mx-auto">
             Your gift opens doors to outdoor education, mentorship, and life-changing experiences for youth who need it most.
           </p>
@@ -364,8 +376,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* FAQs Preview */}
+      {show("faqs") && (
       <section className="w-full overflow-x-clip py-20 bg-explore-cream">
         <div className="mx-auto w-full min-w-0 max-w-3xl px-3 sm:px-4">
           <SectionHeading eyebrow="Questions" title="FAQs" align="center" className="mb-10 mx-auto" />
@@ -386,8 +399,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* Newsletter */}
+      {show("newsletter") && (
       <section className="w-full overflow-x-clip py-16 sm:py-20 bg-explore-teal text-white">
         <div className="mx-auto w-full min-w-0 max-w-3xl px-3 sm:px-4 text-center">
           <SectionHeading
@@ -401,8 +415,9 @@ export default async function HomePage() {
           <NewsletterForm variant="inline" dark />
         </div>
       </section>
+      )}
 
-      {/* Final CTA */}
+      {show("final-cta") && (
       <section className="w-full overflow-x-clip py-16 bg-explore-forest text-white text-center">
         <div className="mx-auto w-full min-w-0 max-w-3xl px-3 sm:px-4">
           <h2 className="break-anywhere font-display text-3xl font-bold sm:text-4xl lg:text-5xl">
@@ -419,6 +434,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
     </>
   );
 }

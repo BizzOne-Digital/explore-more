@@ -29,7 +29,15 @@ export function RegisterForm() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Registration failed");
-      router.push(`/verify-email?email=${encodeURIComponent(String(data.email))}&callbackUrl=${encodeURIComponent(callbackUrl)}`);
+
+      const params = new URLSearchParams({
+        email: String(data.email),
+        callbackUrl,
+      });
+      if (json.devVerificationCode) {
+        params.set("token", json.devVerificationCode);
+      }
+      router.push(`/verify-email?${params.toString()}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

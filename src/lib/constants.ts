@@ -26,7 +26,13 @@ export const UPLOAD_DIRS = {
 } as const;
 
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
+export const MAX_PORTFOLIO_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+export const ALLOWED_PORTFOLIO_EXTENSIONS = [
+  ".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic",
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+  ".mp4", ".mov", ".mp3", ".wav", ".zip",
+];
 
 export const PAGE_KEYS = [
   "home",

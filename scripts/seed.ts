@@ -15,6 +15,7 @@ config();
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { COMPANY, PAGE_KEYS } from "../src/lib/constants";
+import { getPageSectionCatalog } from "../src/lib/content/page-sections";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const RESET_DB = process.env.RESET_DB === "true";
@@ -261,31 +262,13 @@ async function main() {
     slug: key === "home" ? "home" : key,
     status: "draft" as const,
     navVisible: true,
-    sections:
-      key === "home"
-        ? [
-            {
-              internalName: "hero",
-              eyebrow: "EDUCATION BEYOND THE CLASSROOM",
-              heading: "Learn Wild. Live Big.",
-              subheading: COMPANY.supportingLine,
-              body: "Hands-on learning, real-world adventures, and bold opportunities designed to help every young explorer discover what they can become.",
-              ctaLabel: "Start Your Adventure",
-              ctaLink: "/programs",
-              visible: true,
-              order: 0,
-              status: "draft" as const,
-            },
-            {
-              internalName: "mission",
-              heading: "Our Mission",
-              body: COMPANY.mission,
-              visible: true,
-              order: 1,
-              status: "draft" as const,
-            },
-          ]
-        : [],
+    sections: getPageSectionCatalog(key).map((section) => ({
+      internalName: section.internalName,
+      heading: section.label,
+      visible: true,
+      order: section.order,
+      status: "published" as const,
+    })),
   }));
   await Page.insertMany(pageRecords);
   console.log(`✓ ${PAGE_KEYS.length} pages`);
@@ -480,7 +463,7 @@ async function main() {
       allowAnonymous: true,
     },
     {
-      title: "Sponsor a Kid",
+      title: "Become a Sponsor",
       slug: "sponsor-a-kid",
       description:
         "Help a young explorer access programs, field trips, and learning adventures. Legal wording and tax-deductibility pending verification.",

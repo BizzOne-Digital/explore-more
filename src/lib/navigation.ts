@@ -18,7 +18,7 @@ export const HEADER_NAV: NavLink[] = [
   { pageKey: "books", href: "/books", label: "Books" },
   { pageKey: "courses", href: "/courses", label: "Courses" },
   { pageKey: "programs", href: "/programs", label: "Programs" },
-  { pageKey: "sponsor-a-kid", href: "/sponsor-a-kid", label: "Sponsor a Kid" },
+  { pageKey: "sponsor-a-kid", href: "/sponsor-a-kid", label: "Become a Sponsor" },
   { pageKey: "contact", href: "/contact", label: "Contact" },
 ];
 
@@ -35,7 +35,7 @@ export const FOOTER_NAV: Record<string, NavLink[]> = {
     { pageKey: "books", href: "/books", label: "Bookstore" },
     { pageKey: "faqs", href: "/faqs", label: "FAQs" },
     { pageKey: "testimonials", href: "/testimonials", label: "Testimonials" },
-    { pageKey: "sponsor-a-kid", href: "/sponsor-a-kid", label: "Sponsor a Kid" },
+    { pageKey: "sponsor-a-kid", href: "/sponsor-a-kid", label: "Become a Sponsor" },
     { pageKey: "contact", href: "/contact", label: "Contact" },
   ],
   Account: [

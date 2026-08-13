@@ -3,8 +3,7 @@ import { z } from "zod";
 import connectDB from "@/lib/db";
 import { User, StudentProfile } from "@/models";
 import { hashPassword, generateVerificationCode } from "@/lib/password";
-import { queueEmail, emailTemplates } from "@/lib/services/email";
-import { getAppUrl } from "@/lib/services/stripe";
+import { sendVerificationEmail } from "@/lib/auth/verification-email";
 import type { Role } from "@/lib/constants";
 
 const schema = z.object({
@@ -42,16 +41,22 @@ export async function POST(request: Request) {
       await StudentProfile.create({ userId: user._id });
     }
 
-    const verifyUrl = `${getAppUrl()}/verify-email?email=${encodeURIComponent(data.email)}&token=${token}`;
-    const tpl = emailTemplates.verification(data.name, verifyUrl);
-    await queueEmail({
-      to: data.email,
-      subject: tpl.subject,
-      htmlBody: tpl.html,
-      template: "verification",
-    }).catch(() => {});
+    const emailResult = await sendVerificationEmail({
+      name: data.name,
+      email: data.email,
+      token,
+    });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      emailSent: emailResult.sent,
+      ...(process.env.NODE_ENV === "development" && !emailResult.sent
+        ? { devVerificationCode: token, emailError: emailResult.error }
+        : {}),
+      ...(!emailResult.sent && process.env.NODE_ENV === "production"
+        ? { message: "Account created, but we could not send the verification email. Use resend on the next screen." }
+        : {}),
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid registration data" }, { status: 400 });

@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { PageNavManager } from "@/components/admin/PageNavManager";
+import { PageSectionManager } from "@/components/admin/PageSectionManager";
 import { serialize, formatDate } from "@/lib/admin/serialize";
 
 async function getData() {
@@ -22,6 +23,7 @@ export default async function AdminPagesPage() {
         description="Manage website page content and navigation visibility"
       />
       <PageNavManager />
+      <PageSectionManager />
       <DataTable
         columns={[
           { key: "title", header: "Title" },

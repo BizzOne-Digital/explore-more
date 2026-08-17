@@ -2,6 +2,11 @@ export function serialize<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/** JSON clone for passing Mongo documents to client components. */
+export function serializeAdmin<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export type AdminRecord = Record<string, unknown> & { _id?: string };
 
 export function toAdminRecord<T>(value: T): AdminRecord {

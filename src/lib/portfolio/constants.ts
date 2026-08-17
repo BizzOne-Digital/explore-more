@@ -123,8 +123,8 @@ export type NotificationPriority = (typeof NOTIFICATION_PRIORITIES)[number];
 
 export const NOTIFICATION_AUDIENCES = [
   "all_parents",
-  "homeschool_families",
-  "tutoring_families",
+  "portfolio_parents",
+  "tutoring_parents",
   "custom",
 ] as const;
 

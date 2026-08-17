@@ -83,7 +83,7 @@ async function main() {
   console.log("✓ Site settings");
 
   // ── Admin User ──
-  const adminEmail = (process.env.ADMIN_EMAIL ?? "admin@exploremoreacademy.com").toLowerCase();
+  const adminEmail = (process.env.ADMIN_EMAIL ?? "chris@exploremoreacademy.com").toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD ?? "ChangeMe123!";
   const adminHash = await hashPassword(adminPassword);
 

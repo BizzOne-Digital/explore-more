@@ -6,13 +6,16 @@ export interface IDonationCampaign extends Document {
   description: string;
   coverImage?: string;
   gallery: string[];
-  goalCents: number;
-  raisedCents: number;
+  goalAmount: number;
+  raisedAmount: number;
   suggestedAmounts: number[];
   customAmountEnabled: boolean;
   startDate?: Date;
   endDate?: Date;
+  callToAction?: string;
+  campaignInfo?: string;
   status: "draft" | "published" | "completed" | "archived";
+  publishedToWebsite: boolean;
   featured: boolean;
   showDonorCount: boolean;
   allowAnonymous: boolean;
@@ -30,17 +33,20 @@ const DonationCampaignSchema = new Schema<IDonationCampaign>(
     description: { type: String, required: true },
     coverImage: String,
     gallery: [String],
-    goalCents: { type: Number, required: true },
-    raisedCents: { type: Number, default: 0 },
+    goalAmount: { type: Number, required: true, default: 0 },
+    raisedAmount: { type: Number, default: 0 },
     suggestedAmounts: [Number],
     customAmountEnabled: { type: Boolean, default: true },
     startDate: Date,
     endDate: Date,
+    callToAction: String,
+    campaignInfo: String,
     status: {
       type: String,
       enum: ["draft", "published", "completed", "archived"],
       default: "draft",
     },
+    publishedToWebsite: { type: Boolean, default: false },
     featured: { type: Boolean, default: false },
     showDonorCount: { type: Boolean, default: true },
     allowAnonymous: { type: Boolean, default: true },

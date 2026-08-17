@@ -3,8 +3,7 @@ import { DonationCampaign } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { serialize, formatDate, formatDateTime } from "@/lib/admin/serialize";
-import { formatCents } from "@/lib/utils";
+import { serialize } from "@/lib/admin/serialize";
 
 async function getData() {
   await connectDB();
@@ -24,10 +23,31 @@ export default async function Page() {
       />
       <DataTable
         columns={[
-    { key: "title", header: "Title" },
-    { key: "goalCents", header: "Goal", render: (row) => formatCents(row.goalCents as number) },
-    { key: "raisedCents", header: "Raised", render: (row) => formatCents(row.raisedCents as number) },
-    { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
+          { key: "title", header: "Title" },
+          { key: "goalAmount", header: "Goal", render: (row) => `$${Number(row.goalAmount).toFixed(2)}` },
+          { key: "raisedAmount", header: "Raised", render: (row) => `$${Number(row.raisedAmount || 0).toFixed(2)}` },
+          { 
+            key: "progress", 
+            header: "Progress", 
+            render: (row) => {
+              const goal = Number(row.goalAmount) || 1;
+              const raised = Number(row.raisedAmount) || 0;
+              const percent = Math.min(100, Math.round((raised / goal) * 100));
+              return `${percent}%`;
+            }
+          },
+          { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
+          { 
+            key: "publishedToWebsite", 
+            header: "Website", 
+            render: (row) => (
+              row.publishedToWebsite ? (
+                <span className="text-xs text-green-400">✓ Published</span>
+              ) : (
+                <span className="text-xs text-white/40">Not published</span>
+              )
+            )
+          },
         ]}
         data={data}
         rowHref={(row) => "/admin/campaigns/" + String(row._id)}

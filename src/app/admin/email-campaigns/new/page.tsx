@@ -1,5 +1,5 @@
 import { EmailCampaignForm } from "@/components/admin/forms/EmailCampaignForm";
 
-export default function NewEmailCampaignPage() {
-  return <EmailCampaignForm isNew />;
+export default function Page() {
+  return <EmailCampaignForm isNew={true} />;
 }

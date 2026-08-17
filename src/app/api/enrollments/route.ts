@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { Course, Enrollment } from "@/models";
 import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stripe";
+import { getCoursePriceCents } from "@/lib/pricing";
 
 const schema = z.object({
   courseId: z.string(),
@@ -35,7 +36,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Already enrolled" }, { status: 409 });
     }
 
-    const isFree = course.isFree || course.priceCents === 0;
+    const priceCents = getCoursePriceCents(course);
+    const isFree = priceCents === 0;
 
     if (isFree) {
       await Enrollment.create({
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
           price_data: {
             currency: "usd",
             product_data: { name: course.title, description: course.shortDescription },
-            unit_amount: course.priceCents,
+            unit_amount: priceCents,
           },
           quantity: 1,
         },

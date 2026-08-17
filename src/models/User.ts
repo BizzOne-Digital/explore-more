@@ -6,6 +6,8 @@ export interface IUser extends Document {
   email: string;
   passwordHash: string;
   role: Role;
+  studentId?: string;
+  staffId?: string;
   emailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
@@ -36,6 +38,8 @@ const UserSchema = new Schema<IUser>(
       enum: ["student", "parent", "instructor", "administrator"],
       required: true,
     },
+    studentId: { type: String, unique: true, sparse: true },
+    staffId: { type: String, unique: true, sparse: true },
     emailVerified: { type: Boolean, default: false },
     emailVerificationToken: String,
     emailVerificationExpires: Date,
@@ -58,6 +62,20 @@ const UserSchema = new Schema<IUser>(
 
 UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1 });
+UserSchema.index({ studentId: 1 });
+UserSchema.index({ staffId: 1 });
+
+// Auto-generate IDs based on role
+UserSchema.pre("save", function () {
+  if (this.role === "student" && !this.studentId) {
+    this.studentId = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+  }
+
+  if ((this.role === "administrator" || this.role === "instructor") && !this.staffId) {
+    const prefix = this.role === "administrator" ? "ADM" : "INS";
+    this.staffId = `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+  }
+});
 
 export const User: Model<IUser> =
   mongoose.models.User ?? mongoose.model<IUser>("User", UserSchema);

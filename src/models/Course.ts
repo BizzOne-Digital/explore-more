@@ -33,8 +33,10 @@ export interface ICourse extends Document {
   endDate?: Date;
   schedule?: string;
   capacity?: number;
-  priceCents: number;
+  materials?: string;
+  priceAmount: number;
   isFree: boolean;
+  courseType: "free" | "paid";
   prerequisites?: string;
   learningOutcomes: string[];
   modules: ICourseModule[];
@@ -42,6 +44,7 @@ export interface ICourse extends Document {
   featured: boolean;
   enrollmentStatus: "open" | "closed" | "waitlist";
   status: "draft" | "published" | "archived";
+  publishedToWebsite: boolean;
   metaTitle?: string;
   metaDescription?: string;
   createdAt: Date;
@@ -86,8 +89,10 @@ const CourseSchema = new Schema<ICourse>(
     endDate: Date,
     schedule: String,
     capacity: Number,
-    priceCents: { type: Number, default: 0 },
+    materials: String,
+    priceAmount: { type: Number, default: 0 },
     isFree: { type: Boolean, default: false },
+    courseType: { type: String, enum: ["free", "paid"], default: "free" },
     prerequisites: String,
     learningOutcomes: [String],
     modules: [CourseModuleSchema],
@@ -103,6 +108,7 @@ const CourseSchema = new Schema<ICourse>(
       enum: ["draft", "published", "archived"],
       default: "draft",
     },
+    publishedToWebsite: { type: Boolean, default: false },
     metaTitle: String,
     metaDescription: String,
   },

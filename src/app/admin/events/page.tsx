@@ -23,10 +23,20 @@ export default async function Page() {
       />
       <DataTable
         columns={[
-    { key: "title", header: "Title" },
-    { key: "startDate", header: "Start", render: (row) => formatDate(row.startDate) },
-    { key: "location", header: "Location" },
-    { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
+          { key: "title", header: "Title" },
+          { key: "startDate", header: "Start", render: (row) => formatDate(row.startDate) },
+          { key: "location", header: "Location" },
+          { key: "eventType", header: "Type", render: (row) => (
+            <span className="capitalize">{String(row.eventType)}</span>
+          )},
+          { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
+          { key: "publishedToWebsite", header: "Website", render: (row) => (
+            row.publishedToWebsite ? (
+              <span className="text-xs text-green-400">✓ Published</span>
+            ) : (
+              <span className="text-xs text-white/40">Not published</span>
+            )
+          )},
         ]}
         data={data}
         rowHref={(row) => "/admin/events/" + String(row._id)}

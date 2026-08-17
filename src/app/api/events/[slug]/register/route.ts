@@ -1,9 +1,10 @@
-import { z } from "zod";
 import connectDB from "@/lib/db";
 import { Event, EventRegistration } from "@/models";
 import { queueEmail, emailTemplates } from "@/lib/services/email";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
+import { getEventPriceCents } from "@/lib/pricing";
+import { z } from "zod";
 
 const registerSchema = z.object({
   studentName: z.string().min(1),
@@ -55,7 +56,7 @@ export async function POST(request: Request, context: RouteContext) {
     return jsonError("Registration deadline has passed", 400);
   }
 
-  if (event.priceCents > 0) {
+  if (getEventPriceCents(event) > 0) {
     return jsonError("This is a paid event. Use checkout instead.", 400);
   }
 
@@ -68,16 +69,22 @@ export async function POST(request: Request, context: RouteContext) {
     return jsonError("You are already registered for this event", 409);
   }
 
+  const guardianName = parsed.data.guardianName || sessionResult.user.name;
+  const guardianEmail = parsed.data.guardianEmail || sessionResult.user.email;
+  const guardianPhone = parsed.data.guardianPhone || "N/A";
+
   const registration = await EventRegistration.create({
     eventId: event._id,
     userId: sessionResult.user.id,
+    registrationId: `REG-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
     studentName: parsed.data.studentName,
     studentAge: parsed.data.studentAge,
-    guardianName: parsed.data.guardianName,
-    guardianEmail: parsed.data.guardianEmail,
-    guardianPhone: parsed.data.guardianPhone,
-    consentGiven: parsed.data.consentGiven,
+    guardianName,
+    guardianEmail,
+    guardianPhone,
+    registrationType: "free",
     paymentStatus: "free",
+    status: "confirmed",
     notes: parsed.data.notes,
   });
 

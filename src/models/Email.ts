@@ -6,10 +6,18 @@ export interface IEmailCampaign extends Document {
   htmlBody: string;
   textBody?: string;
   relatedId?: mongoose.Types.ObjectId;
+  deliveryMethod: "email" | "notification" | "both";
+  audience: "all_parents" | "portfolio_parents" | "tutoring_parents" | "custom";
+  recipientIds?: mongoose.Types.ObjectId[];
+  priority: "normal" | "important" | "urgent";
+  attachmentUrl?: string;
+  attachmentName?: string;
   status: "draft" | "queued" | "sending" | "sent" | "failed";
   recipientCount: number;
   sentCount: number;
   failedCount: number;
+  openedCount: number;
+  clickedCount: number;
   createdBy: mongoose.Types.ObjectId;
   sentAt?: Date;
   createdAt: Date;
@@ -27,6 +35,24 @@ const EmailCampaignSchema = new Schema<IEmailCampaign>(
     htmlBody: { type: String, required: true },
     textBody: String,
     relatedId: Schema.Types.ObjectId,
+    deliveryMethod: {
+      type: String,
+      enum: ["email", "notification", "both"],
+      default: "email",
+    },
+    audience: {
+      type: String,
+      enum: ["all_parents", "portfolio_parents", "tutoring_parents", "custom"],
+      default: "all_parents",
+    },
+    recipientIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    priority: {
+      type: String,
+      enum: ["normal", "important", "urgent"],
+      default: "normal",
+    },
+    attachmentUrl: String,
+    attachmentName: String,
     status: {
       type: String,
       enum: ["draft", "queued", "sending", "sent", "failed"],
@@ -35,6 +61,8 @@ const EmailCampaignSchema = new Schema<IEmailCampaign>(
     recipientCount: { type: Number, default: 0 },
     sentCount: { type: Number, default: 0 },
     failedCount: { type: Number, default: 0 },
+    openedCount: { type: Number, default: 0 },
+    clickedCount: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     sentAt: Date,
   },
@@ -89,27 +117,36 @@ export const EmailJob: Model<IEmailJob> =
 
 export interface IActivityLog extends Document {
   userId?: mongoose.Types.ObjectId;
+  performedBy?: mongoose.Types.ObjectId;
   action: string;
   entity: string;
   entityId?: string;
+  changes?: Record<string, { old: unknown; new: unknown }>;
   details?: string;
   ipAddress?: string;
+  userAgent?: string;
   createdAt: Date;
 }
 
 const ActivityLogSchema = new Schema<IActivityLog>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User" },
+    performedBy: { type: Schema.Types.ObjectId, ref: "User" },
     action: { type: String, required: true },
     entity: { type: String, required: true },
     entityId: String,
+    changes: Schema.Types.Mixed,
     details: String,
     ipAddress: String,
+    userAgent: String,
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
 ActivityLogSchema.index({ createdAt: -1 });
+ActivityLogSchema.index({ userId: 1 });
+ActivityLogSchema.index({ performedBy: 1 });
+ActivityLogSchema.index({ entity: 1, entityId: 1 });
 
 export const ActivityLog: Model<IActivityLog> =
   mongoose.models.ActivityLog ??

@@ -82,12 +82,17 @@ export const Attendance: Model<IAttendance> =
 export interface ICertificate extends Document {
   studentId: mongoose.Types.ObjectId;
   title: string;
+  description?: string;
   courseId?: mongoose.Types.ObjectId;
   programId?: mongoose.Types.ObjectId;
+  eventId?: mongoose.Types.ObjectId;
   issueDate: Date;
   filePath: string;
+  fileType: "image" | "pdf";
   verificationCode?: string;
   isShareable: boolean;
+  notificationSent: boolean;
+  notificationSentAt?: Date;
   issuedBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -97,12 +102,17 @@ const CertificateSchema = new Schema<ICertificate>(
   {
     studentId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true },
+    description: String,
     courseId: { type: Schema.Types.ObjectId, ref: "Course" },
     programId: { type: Schema.Types.ObjectId, ref: "Program" },
+    eventId: { type: Schema.Types.ObjectId, ref: "Event" },
     issueDate: { type: Date, required: true },
     filePath: { type: String, required: true },
+    fileType: { type: String, enum: ["image", "pdf"], default: "pdf" },
     verificationCode: String,
     isShareable: { type: Boolean, default: false },
+    notificationSent: { type: Boolean, default: false },
+    notificationSentAt: Date,
     issuedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

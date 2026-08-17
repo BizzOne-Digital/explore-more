@@ -3,6 +3,7 @@ import { Course, Enrollment } from "@/models";
 import { queueEmail, emailTemplates } from "@/lib/services/email";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
+import { getCoursePriceCents } from "@/lib/pricing";
 
 type RouteContext = { params: Promise<{ slug: string }> };
 
@@ -28,7 +29,7 @@ export async function POST(_request: Request, context: RouteContext) {
     return jsonError("Enrollment is closed for this course", 400);
   }
 
-  if (!course.isFree && course.priceCents > 0) {
+  if (getCoursePriceCents(course) > 0) {
     return jsonError("This is a paid course. Use checkout instead.", 400);
   }
 

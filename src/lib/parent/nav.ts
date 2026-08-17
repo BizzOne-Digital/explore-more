@@ -1,6 +1,8 @@
 export const PARENT_NAV_ITEMS = [
   { href: "/parent", label: "Dashboard", icon: "dashboard" },
   { href: "/parent/students", label: "My Students", icon: "students" },
+  { href: "/parent/attendance", label: "Attendance", icon: "attendance" },
+  { href: "/parent/books", label: "My Books", icon: "books" },
   { href: "/parent/portfolio", label: "Homeschool Portfolio", icon: "portfolio" },
   { href: "/parent/messages", label: "Messages", icon: "messages" },
   { href: "/parent/tutors", label: "Tutors & Staff", icon: "tutors" },

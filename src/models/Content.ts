@@ -26,12 +26,14 @@ export const GalleryCategory: Model<IGalleryCategory> =
 export interface IGalleryImage extends Document {
   title: string;
   caption?: string;
+  description?: string;
   imageUrl: string;
   altText?: string;
   categoryId?: mongoose.Types.ObjectId;
   featured: boolean;
   order: number;
   status: "draft" | "published";
+  publishedToWebsite: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,15 +42,20 @@ const GalleryImageSchema = new Schema<IGalleryImage>(
   {
     title: { type: String, required: true },
     caption: String,
+    description: String,
     imageUrl: { type: String, required: true },
     altText: String,
     categoryId: { type: Schema.Types.ObjectId, ref: "GalleryCategory" },
     featured: { type: Boolean, default: false },
     order: { type: Number, default: 0 },
     status: { type: String, enum: ["draft", "published"], default: "draft" },
+    publishedToWebsite: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
+GalleryImageSchema.index({ order: 1, publishedToWebsite: 1 });
+GalleryImageSchema.index({ categoryId: 1 });
 
 export const GalleryImage: Model<IGalleryImage> =
   mongoose.models.GalleryImage ??
@@ -171,8 +178,12 @@ export interface IMessage extends Document {
   subject: string;
   body: string;
   isAnnouncement: boolean;
+  recipientType: "individual" | "group";
+  recipientGroup?: "all_parents" | "all_staff" | "all_tutors";
   read: boolean;
   readAt?: Date;
+  replyToId?: mongoose.Types.ObjectId;
+  hasReplies: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -184,13 +195,27 @@ const MessageSchema = new Schema<IMessage>(
     subject: { type: String, required: true },
     body: { type: String, required: true },
     isAnnouncement: { type: Boolean, default: false },
+    recipientType: {
+      type: String,
+      enum: ["individual", "group"],
+      default: "individual",
+    },
+    recipientGroup: {
+      type: String,
+      enum: ["all_parents", "all_staff", "all_tutors"],
+    },
     read: { type: Boolean, default: false },
     readAt: Date,
+    replyToId: { type: Schema.Types.ObjectId, ref: "Message" },
+    hasReplies: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
 MessageSchema.index({ recipientId: 1, read: 1 });
+MessageSchema.index({ senderId: 1 });
+MessageSchema.index({ replyToId: 1 });
+MessageSchema.index({ createdAt: -1 });
 
 export const Message: Model<IMessage> =
   mongoose.models.Message ?? mongoose.model<IMessage>("Message", MessageSchema);

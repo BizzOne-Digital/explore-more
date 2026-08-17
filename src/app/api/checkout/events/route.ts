@@ -4,6 +4,7 @@ import { Event, EventRegistration } from "@/models";
 import { createCheckoutSession, getAppUrl, isStripeConfigured } from "@/lib/services/stripe";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
+import { getEventPriceCents } from "@/lib/pricing";
 
 const checkoutSchema = z.object({
   eventSlug: z.string().min(1),
@@ -51,7 +52,8 @@ export async function POST(request: Request) {
     return jsonError("Registration deadline has passed", 400);
   }
 
-  if (event.priceCents === 0) {
+  const priceCents = getEventPriceCents(event);
+  if (priceCents === 0) {
     return jsonError("This event is free. Use the register endpoint instead.", 400);
   }
 
@@ -68,16 +70,23 @@ export async function POST(request: Request) {
     return jsonError("Payment system is not configured", 503);
   }
 
+  const guardianName = parsed.data.guardianName || sessionResult.user.name;
+  const guardianEmail = parsed.data.guardianEmail || sessionResult.user.email;
+  const guardianPhone = parsed.data.guardianPhone || "N/A";
+
   const registration = await EventRegistration.create({
     eventId: event._id,
     userId: sessionResult.user.id,
+    registrationId: `REG-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
     studentName: parsed.data.studentName,
     studentAge: parsed.data.studentAge,
-    guardianName: parsed.data.guardianName,
-    guardianEmail: parsed.data.guardianEmail,
-    guardianPhone: parsed.data.guardianPhone,
-    consentGiven: parsed.data.consentGiven,
+    guardianName,
+    guardianEmail,
+    guardianPhone,
+    registrationType: "paid",
     paymentStatus: "pending",
+    paymentAmount: event.priceAmount,
+    status: "pending",
   });
 
   const appUrl = getAppUrl();
@@ -87,7 +96,7 @@ export async function POST(request: Request) {
         price_data: {
           currency: "usd",
           product_data: { name: event.title, description: event.shortDescription },
-          unit_amount: event.priceCents,
+          unit_amount: priceCents,
         },
         quantity: 1,
       },

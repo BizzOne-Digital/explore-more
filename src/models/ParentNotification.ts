@@ -23,7 +23,7 @@ const ParentNotificationSchema = new Schema<IParentNotification>(
     message: { type: String, required: true },
     audience: {
       type: String,
-      enum: ["all_parents", "homeschool_families", "tutoring_families", "custom"],
+      enum: ["all_parents", "portfolio_parents", "tutoring_parents", "custom"],
       default: "all_parents",
     },
     recipientIds: [{ type: Schema.Types.ObjectId, ref: "User" }],

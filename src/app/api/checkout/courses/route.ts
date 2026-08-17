@@ -4,6 +4,7 @@ import { Course, Enrollment } from "@/models";
 import { createCheckoutSession, getAppUrl, isStripeConfigured } from "@/lib/services/stripe";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
+import { getCoursePriceCents } from "@/lib/pricing";
 
 const checkoutSchema = z.object({
   courseSlug: z.string().min(1),
@@ -49,7 +50,9 @@ export async function POST(request: Request) {
     return jsonError("You are already enrolled in this course", 409);
   }
 
-  if (course.isFree || course.priceCents === 0) {
+  const priceCents = getCoursePriceCents(course);
+
+  if (course.isFree || priceCents === 0) {
     return jsonError("This course is free. Use the enroll endpoint instead.", 400);
   }
 
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
         price_data: {
           currency: "usd",
           product_data: { name: course.title, description: course.shortDescription },
-          unit_amount: course.priceCents,
+          unit_amount: priceCents,
         },
         quantity: 1,
       },

@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { serialize } from "@/lib/admin/serialize";
-import { formatCents } from "@/lib/utils";
 
 async function getData() {
   await connectDB();
@@ -44,13 +43,22 @@ export default async function Page() {
           },
           { key: "title", header: "Title" },
           { key: "author", header: "Author" },
-          { key: "priceCents", header: "Price", render: (row) => formatCents(row.priceCents as number) },
+          { key: "priceAmount", header: "Price", render: (row) => `$${Number(row.priceAmount).toFixed(2)}` },
           {
-            key: "published",
+            key: "status",
             header: "Status",
+            render: (row) => <StatusBadge status={String(row.status)} />,
+          },
+          { 
+            key: "publishedToWebsite", 
+            header: "Website", 
             render: (row) => (
-              <StatusBadge status={row.published ? "published" : "draft"} />
-            ),
+              row.publishedToWebsite ? (
+                <span className="text-xs text-green-400">✓ Published</span>
+              ) : (
+                <span className="text-xs text-white/40">Not published</span>
+              )
+            )
           },
           { key: "stockStatus", header: "Stock", render: (row) => <StatusBadge status={String(row.stockStatus)} /> },
           { key: "inventory", header: "Qty" },

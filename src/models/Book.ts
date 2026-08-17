@@ -9,8 +9,8 @@ export interface IBook extends Document {
   images: string[];
   shortDescription: string;
   fullDescription: string;
-  priceCents: number;
-  salePriceCents?: number;
+  priceAmount: number;
+  salePriceAmount?: number;
   isbn?: string;
   format?: string;
   pageCount?: number;
@@ -19,9 +19,18 @@ export interface IBook extends Document {
   inventory: number;
   featured: boolean;
   category?: string;
-  published: boolean;
+  status: "draft" | "published" | "archived";
+  publishedToWebsite: boolean;
   metaTitle?: string;
   metaDescription?: string;
+  digitalFile?: {
+    enabled: boolean;
+    r2Key: string;
+    fileName: string;
+    fileSizeBytes: number;
+    fileType: string;
+    uploadedAt: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,8 +45,8 @@ const BookSchema = new Schema<IBook>(
     images: [String],
     shortDescription: { type: String, required: true },
     fullDescription: { type: String, required: true },
-    priceCents: { type: Number, required: true },
-    salePriceCents: Number,
+    priceAmount: { type: Number, required: true, default: 0 },
+    salePriceAmount: Number,
     isbn: String,
     format: String,
     pageCount: Number,
@@ -50,9 +59,22 @@ const BookSchema = new Schema<IBook>(
     inventory: { type: Number, default: 0 },
     featured: { type: Boolean, default: false },
     category: String,
-    published: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ["draft", "published", "archived"],
+      default: "draft",
+    },
+    publishedToWebsite: { type: Boolean, default: false },
     metaTitle: String,
     metaDescription: String,
+    digitalFile: {
+      enabled: { type: Boolean, default: false },
+      r2Key: String,
+      fileName: String,
+      fileSizeBytes: Number,
+      fileType: String,
+      uploadedAt: Date,
+    },
   },
   { timestamps: true }
 );
@@ -133,3 +155,78 @@ const OrderSchema = new Schema<IOrder>(
 
 export const Order: Model<IOrder> =
   mongoose.models.Order ?? mongoose.model<IOrder>("Order", OrderSchema);
+
+export interface IOrderModificationRequest extends Document {
+  orderId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  requestType: "add_item" | "remove_item" | "cancel_order" | "change_address";
+  status: "pending" | "approved" | "rejected";
+  requestDetails: {
+    itemsToAdd?: Array<{
+      bookId: mongoose.Types.ObjectId;
+      title: string;
+      quantity: number;
+    }>;
+    itemsToRemove?: mongoose.Types.ObjectId[];
+    newAddress?: {
+      name: string;
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
+    };
+    reason?: string;
+  };
+  adminNotes?: string;
+  processedBy?: mongoose.Types.ObjectId;
+  processedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const OrderModificationRequestSchema = new Schema<IOrderModificationRequest>(
+  {
+    orderId: { type: Schema.Types.ObjectId, ref: "Order", required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    requestType: {
+      type: String,
+      enum: ["add_item", "remove_item", "cancel_order", "change_address"],
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    requestDetails: {
+      itemsToAdd: [
+        {
+          bookId: { type: Schema.Types.ObjectId, ref: "Book" },
+          title: String,
+          quantity: Number,
+        },
+      ],
+      itemsToRemove: [{ type: Schema.Types.ObjectId }],
+      newAddress: {
+        name: String,
+        line1: String,
+        line2: String,
+        city: String,
+        state: String,
+        postalCode: String,
+        country: String,
+      },
+      reason: String,
+    },
+    adminNotes: String,
+    processedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    processedAt: Date,
+  },
+  { timestamps: true }
+);
+
+export const OrderModificationRequest: Model<IOrderModificationRequest> =
+  mongoose.models.OrderModificationRequest ??
+  mongoose.model<IOrderModificationRequest>("OrderModificationRequest", OrderModificationRequestSchema);

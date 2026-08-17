@@ -3,9 +3,10 @@ import { cn } from "@/lib/cn";
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  helperText?: string;
 }
 
-export function Input({ label, error, className, id, ...props }: InputProps) {
+export function Input({ label, error, helperText, className, id, ...props }: InputProps) {
   const inputId = id || props.name;
 
   return (
@@ -26,6 +27,7 @@ export function Input({ label, error, className, id, ...props }: InputProps) {
         {...props}
       />
       {error && <p className="text-xs text-red-600">{error}</p>}
+      {!error && helperText && <p className="text-xs text-explore-charcoal/50">{helperText}</p>}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import connectDB from "@/lib/db";
 import { Order, Donation } from "@/models";
 import { formatCents } from "@/lib/utils";
+import { OrderModificationButton } from "@/components/parent/OrderModificationButton";
 
 export default async function ParentReceiptsPage() {
   const session = await auth();
@@ -36,6 +37,7 @@ export default async function ParentReceiptsPage() {
               <th className="px-4 py-3">Description</th>
               <th className="px-4 py-3">Amount</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -45,7 +47,23 @@ export default async function ParentReceiptsPage() {
                 <td className="px-4 py-3">{new Date(o.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">{o.items.map((i) => i.title).join(", ")}</td>
                 <td className="px-4 py-3 font-semibold">{formatCents(o.totalCents)}</td>
-                <td className="px-4 py-3 capitalize">{o.paymentStatus}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                    o.paymentStatus === "paid" ? "bg-green-100 text-green-800" :
+                    o.paymentStatus === "refunded" ? "bg-red-100 text-red-800" :
+                    "bg-yellow-100 text-yellow-800"
+                  }`}>
+                    {o.paymentStatus}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  {["paid", "pending"].includes(o.paymentStatus) && (
+                    <OrderModificationButton
+                      orderId={o._id.toString()}
+                      orderNumber={o.orderNumber}
+                    />
+                  )}
+                </td>
               </tr>
             ))}
             {donations.map((d) => (
@@ -54,7 +72,12 @@ export default async function ParentReceiptsPage() {
                 <td className="px-4 py-3">{new Date(d.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">Donation</td>
                 <td className="px-4 py-3 font-semibold">{formatCents(d.amountCents)}</td>
-                <td className="px-4 py-3 capitalize">{d.paymentStatus}</td>
+                <td className="px-4 py-3">
+                  <span className="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                    {d.paymentStatus}
+                  </span>
+                </td>
+                <td className="px-4 py-3">-</td>
               </tr>
             ))}
           </tbody>

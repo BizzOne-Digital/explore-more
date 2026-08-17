@@ -80,7 +80,7 @@ export default function AdminLoginPage() {
               error={errors.email}
               type="email"
               autoComplete="email"
-              placeholder="admin@exploremoreacademy.com"
+              placeholder="chris@exploremoreacademy.com"
             />
           </FormField>
 

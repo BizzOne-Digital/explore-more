@@ -1,36 +1,40 @@
+import type { ComponentProps } from "react";
 import connectDB from "@/lib/db";
-import { Certificate } from "@/models";
+import { Certificate, User } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { DataTable } from "@/components/admin/DataTable";
-import { StatusBadge } from "@/components/admin/StatusBadge";
-import { serialize, formatDate } from "@/lib/admin/serialize";
+import { CertificatesTable } from "@/components/admin/CertificatesTable";
+import { serializeAdmin } from "@/lib/admin/serialize";
 
 async function getData() {
   await connectDB();
-  const items = await Certificate.find().sort({ createdAt: -1 }).lean();
-  return serialize(items);
+  const certificates = await Certificate.find()
+    .populate("studentId", "name studentId")
+    .sort({ createdAt: -1 })
+    .lean();
+  
+  const students = await User.find({ role: "student" }, "name studentId")
+    .sort({ name: 1 })
+    .lean();
+  
+  return {
+    certificates: serializeAdmin(certificates),
+    students: serializeAdmin(students),
+  };
 }
 
 export default async function Page() {
-  const data = await getData();
+  const { certificates, students } = await getData();
 
   return (
     <div>
       <PageHeader
         title="Certificates"
-        description="Issued certificates"
-        
+        description="Issue and manage student certificates"
+        action={{ label: "New Certificate", href: "/admin/certificates/new" }}
       />
-      <DataTable
-        columns={[
-    { key: "title", header: "Title" },
-    { key: "studentId", header: "Student ID" },
-    { key: "issueDate", header: "Issued", render: (row) => formatDate(row.issueDate) },
-    { key: "isShareable", header: "Shareable", render: (row) => row.isShareable ? "Yes" : "No" },
-        ]}
-        data={data}
-        
-        emptyMessage="No records found."
+      <CertificatesTable
+        certificates={serializeAdmin(certificates) as unknown as ComponentProps<typeof CertificatesTable>["certificates"]}
+        students={serializeAdmin(students) as unknown as ComponentProps<typeof CertificatesTable>["students"]}
       />
     </div>
   );

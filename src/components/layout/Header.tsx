@@ -87,19 +87,25 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                 Upcoming Events
               </Link>
             )}
-            <Link href="/student" className="hover:text-explore-lime transition-colors">
-              Student Portal
-            </Link>
-            <Link href="/parent" className="hover:text-explore-lime transition-colors">
-              Parent Portal
-            </Link>
-            {session ? null : (
+            {session ? (
               <>
-                <Link href="/login" className="hover:text-explore-lime transition-colors">
-                  Login
+                <Link href="/student" className="hover:text-explore-lime transition-colors">
+                  Student Portal
+                </Link>
+                <Link href="/parent" className="hover:text-explore-lime transition-colors">
+                  Parent Portal
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/student/login" className="hover:text-explore-lime transition-colors">
+                  Student Login
+                </Link>
+                <Link href="/parent/login" className="hover:text-explore-lime transition-colors">
+                  Parent Login
                 </Link>
                 <Link href="/register" className="hover:text-explore-lime transition-colors">
-                  Register
+                  Sign Up
                 </Link>
               </>
             )}

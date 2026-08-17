@@ -1,7 +1,7 @@
 export { User, StudentProfile, GuardianStudentLink, InstructorProfile } from "./User";
 export { Page, SiteSettings } from "./Page";
 export { Event, EventRegistration } from "./Event";
-export { Book, Order } from "./Book";
+export { Book, Order, OrderModificationRequest } from "./Book";
 export { Course, Enrollment } from "./Course";
 export { Program, ServiceRequest } from "./Program";
 export { DonationCampaign, Donation } from "./Donation";
@@ -27,3 +27,4 @@ export {
 } from "./Portfolio";
 export { StaffProfile, Conversation, ConversationMessage } from "./Messaging";
 export { ParentNotification, ParentNotificationRead } from "./ParentNotification";
+export { AccountNote } from "./Note";

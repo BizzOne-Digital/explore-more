@@ -8,23 +8,35 @@ import { FormField, TextInput, TextArea, SelectInput, CheckboxInput, FormActions
 import { PageHeader } from "@/components/admin/PageHeader";
 import { safeSlug } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1),
-  shortDescription: z.string().min(1),
-  fullDescription: z.string().min(1),
-  location: z.string().min(1),
-  startDate: z.string().min(1),
-  endDate: z.string().min(1),
+  shortDescription: z.string().min(1, "Short description is required"),
+  fullDescription: z.string().min(1, "Full description is required"),
+  location: z.string().min(1, "Location is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
   timezone: z.string(),
-  priceCents: z.coerce.number().min(0),
+  coverImage: z.string().optional(),
+  eventType: z.enum(["free", "paid"]),
+  priceAmount: z.coerce.number().min(0),
   capacity: z.coerce.number().optional(),
+  registrationDeadline: z.string().optional(),
+  contactName: z.string().optional(),
+  contactEmail: z.string().email().optional().or(z.literal("")),
+  contactPhone: z.string().optional(),
+  instructions: z.string().optional(),
   isOnline: z.boolean(),
   parentRequired: z.boolean(),
   registrationEnabled: z.boolean(),
   featured: z.boolean(),
   status: z.enum(["draft", "published", "cancelled", "completed", "archived"]),
+  publishedToWebsite: z.boolean(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -32,6 +44,7 @@ type FormData = z.infer<typeof schema>;
 export function EventForm({ initialData, isNew = false }: { initialData?: Record<string, unknown> & { _id?: string }; isNew?: boolean }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -40,42 +53,117 @@ export function EventForm({ initialData, isNew = false }: { initialData?: Record
       shortDescription: (initialData?.shortDescription as string) ?? "",
       fullDescription: (initialData?.fullDescription as string) ?? "",
       location: (initialData?.location as string) ?? "",
-      startDate: initialData?.startDate ? new Date(initialData.startDate as string).toISOString().slice(0, 16) : "",
-      endDate: initialData?.endDate ? new Date(initialData.endDate as string).toISOString().slice(0, 16) : "",
+      startDate: initialData?.startDate ? new Date(initialData.startDate as string).toISOString().slice(0, 10) : "",
+      endDate: initialData?.endDate ? new Date(initialData.endDate as string).toISOString().slice(0, 10) : "",
+      startTime: (initialData?.startTime as string) ?? "",
+      endTime: (initialData?.endTime as string) ?? "",
       timezone: (initialData?.timezone as string) ?? "America/New_York",
-      priceCents: (initialData?.priceCents as number) ?? 0,
+      coverImage: (initialData?.coverImage as string) ?? "",
+      eventType: (initialData?.eventType as FormData["eventType"]) ?? "free",
+      priceAmount: (initialData?.priceAmount as number) ?? 0,
       capacity: initialData?.capacity as number | undefined,
+      registrationDeadline: initialData?.registrationDeadline ? new Date(initialData.registrationDeadline as string).toISOString().slice(0, 10) : "",
+      contactName: (initialData?.contactName as string) ?? "",
+      contactEmail: (initialData?.contactEmail as string) ?? "",
+      contactPhone: (initialData?.contactPhone as string) ?? "",
+      instructions: (initialData?.instructions as string) ?? "",
       isOnline: (initialData?.isOnline as boolean) ?? false,
       parentRequired: (initialData?.parentRequired as boolean) ?? false,
       registrationEnabled: (initialData?.registrationEnabled as boolean) ?? true,
       featured: (initialData?.featured as boolean) ?? false,
       status: (initialData?.status as FormData["status"]) ?? "draft",
+      publishedToWebsite: (initialData?.publishedToWebsite as boolean) ?? false,
     },
   });
 
   const title = watch("title");
+  const eventType = watch("eventType");
+  const status = watch("status");
+
   useEffect(() => {
     if (isNew && title) setValue("slug", safeSlug(title));
   }, [isNew, title, setValue]);
 
-  async function onSubmit(data: FormData) {
+  async function onSubmit(data: FormData, action: "save" | "publish" | "unpublish" = "save") {
     setError(null);
-    const payload = { ...data, startDate: new Date(data.startDate), endDate: new Date(data.endDate) };
+    
+    const finalData = { 
+      ...data, 
+      startDate: new Date(data.startDate), 
+      endDate: new Date(data.endDate),
+      registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : undefined,
+    };
+
+    // Handle publish/unpublish actions
+    if (action === "publish") {
+      finalData.status = "published";
+      finalData.publishedToWebsite = true;
+    } else if (action === "unpublish") {
+      finalData.publishedToWebsite = false;
+    }
+
     const url = isNew ? "/api/admin/events" : `/api/admin/events/${initialData?._id}`;
-    const res = await fetch(url, { method: isNew ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await fetch(url, { 
+      method: isNew ? "POST" : "PUT", 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify(finalData) 
+    });
     const json = await res.json();
-    if (!json.success) { setError(json.error ?? "Save failed"); return; }
+    if (!json.success) { 
+      setError(json.error ?? "Save failed"); 
+      return; 
+    }
     router.push("/admin/events");
     router.refresh();
+  }
+
+  async function handleDuplicate() {
+    if (!initialData?._id) return;
+    setIsDuplicating(true);
+    setError(null);
+    
+    try {
+      const res = await fetch(`/api/admin/events/${initialData._id}/duplicate`, { method: "POST" });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error ?? "Duplicate failed");
+        setIsDuplicating(false);
+        return;
+      }
+      router.push(`/admin/events/${json.data._id}`);
+      router.refresh();
+    } catch (err) {
+      setError("Duplicate failed");
+      setIsDuplicating(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!initialData?._id) return;
+    if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
+    
+    try {
+      const res = await fetch(`/api/admin/events/${initialData._id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error ?? "Delete failed");
+        return;
+      }
+      router.push("/admin/events");
+      router.refresh();
+    } catch (err) {
+      setError("Delete failed");
+    }
   }
 
   return (
     <div>
       <PageHeader title={isNew ? "New Event" : "Edit Event"} />
       {error && <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit((data) => onSubmit(data, "save"))} className="space-y-6">
+        
         <FormSection title="Event Details">
-          <FormField label="Title" error={errors.title} required className="sm:col-span-2">
+          <FormField label="Event Name" error={errors.title} required className="sm:col-span-2">
             <TextInput registration={register("title")} error={errors.title} />
           </FormField>
           <FormField label="Slug" error={errors.slug} required>
@@ -83,42 +171,168 @@ export function EventForm({ initialData, isNew = false }: { initialData?: Record
           </FormField>
           <FormField label="Status" error={errors.status}>
             <SelectInput registration={register("status")} error={errors.status} options={[
-              { value: "draft", label: "Draft" }, { value: "published", label: "Published" },
-              { value: "cancelled", label: "Cancelled" }, { value: "completed", label: "Completed" }, { value: "archived", label: "Archived" },
+              { value: "draft", label: "Draft" }, 
+              { value: "published", label: "Published" },
+              { value: "cancelled", label: "Cancelled" }, 
+              { value: "completed", label: "Completed" }, 
+              { value: "archived", label: "Archived" },
             ]} />
           </FormField>
           <FormField label="Short Description" error={errors.shortDescription} required className="sm:col-span-2">
-            <TextArea registration={register("shortDescription")} error={errors.shortDescription} />
+            <TextArea registration={register("shortDescription")} error={errors.shortDescription} rows={3} />
           </FormField>
           <FormField label="Full Description" error={errors.fullDescription} required className="sm:col-span-2">
             <TextArea registration={register("fullDescription")} error={errors.fullDescription} rows={6} />
           </FormField>
-          <FormField label="Location" error={errors.location} required>
-            <TextInput registration={register("location")} error={errors.location} />
-          </FormField>
-          <FormField label="Timezone" error={errors.timezone}>
-            <TextInput registration={register("timezone")} error={errors.timezone} />
-          </FormField>
+        </FormSection>
+
+        <FormSection title="Date & Time">
           <FormField label="Start Date" error={errors.startDate} required>
-            <TextInput registration={register("startDate")} error={errors.startDate} type="datetime-local" />
+            <TextInput registration={register("startDate")} error={errors.startDate} type="date" />
           </FormField>
           <FormField label="End Date" error={errors.endDate} required>
-            <TextInput registration={register("endDate")} error={errors.endDate} type="datetime-local" />
+            <TextInput registration={register("endDate")} error={errors.endDate} type="date" />
           </FormField>
-          <FormField label="Price (cents)" error={errors.priceCents}>
-            <TextInput registration={register("priceCents")} error={errors.priceCents} type="number" />
+          <FormField label="Start Time" error={errors.startTime} required>
+            <TextInput registration={register("startTime")} error={errors.startTime} type="time" placeholder="09:00" />
           </FormField>
-          <FormField label="Capacity" error={errors.capacity}>
-            <TextInput registration={register("capacity")} error={errors.capacity} type="number" />
+          <FormField label="End Time" error={errors.endTime} required>
+            <TextInput registration={register("endTime")} error={errors.endTime} type="time" placeholder="17:00" />
           </FormField>
-          <div className="flex flex-col gap-3 sm:col-span-2">
-            <CheckboxInput registration={register("isOnline")} label="Online event" />
-            <CheckboxInput registration={register("parentRequired")} label="Parent required" />
-            <CheckboxInput registration={register("registrationEnabled")} label="Registration enabled" />
-            <CheckboxInput registration={register("featured")} label="Featured" />
+          <FormField label="Timezone" error={errors.timezone} className="sm:col-span-2">
+            <TextInput registration={register("timezone")} error={errors.timezone} placeholder="America/New_York" />
+          </FormField>
+        </FormSection>
+
+        <FormSection title="Location">
+          <FormField label="Location" error={errors.location} required className="sm:col-span-2">
+            <TextInput registration={register("location")} error={errors.location} placeholder="123 Main St, City, State 12345" />
+          </FormField>
+          <div className="sm:col-span-2">
+            <CheckboxInput registration={register("isOnline")} label="This is an online event" />
           </div>
         </FormSection>
-        <FormActions isSubmitting={isSubmitting} cancelHref="/admin/events" />
+
+        <FormSection title="Image">
+          <div className="sm:col-span-2">
+            <ImageUpload
+              label="Cover Image"
+              value={watch("coverImage") || ""}
+              onChange={(url) => setValue("coverImage", url)}
+              folder="events"
+            />
+          </div>
+        </FormSection>
+
+        <FormSection title="Pricing">
+          <FormField label="Event Type" error={errors.eventType} required>
+            <SelectInput registration={register("eventType")} error={errors.eventType} options={[
+              { value: "free", label: "Free Event" },
+              { value: "paid", label: "Paid Event" },
+            ]} />
+          </FormField>
+          {eventType === "paid" && (
+            <FormField label="Price (USD)" error={errors.priceAmount} required>
+              <TextInput registration={register("priceAmount")} error={errors.priceAmount} type="number" step="0.01" placeholder="25.00" />
+            </FormField>
+          )}
+        </FormSection>
+
+        <FormSection title="Registration">
+          <FormField label="Capacity" error={errors.capacity} hint="Leave empty for unlimited">
+            <TextInput registration={register("capacity")} error={errors.capacity} type="number" placeholder="50" />
+          </FormField>
+          <FormField label="Registration Deadline" error={errors.registrationDeadline}>
+            <TextInput registration={register("registrationDeadline")} error={errors.registrationDeadline} type="date" />
+          </FormField>
+          <FormField label="Instructions" error={errors.instructions} hint="Special instructions for attendees" className="sm:col-span-2">
+            <TextArea registration={register("instructions")} error={errors.instructions} rows={4} placeholder="What to bring, how to prepare, etc." />
+          </FormField>
+          <div className="flex flex-col gap-3 sm:col-span-2">
+            <CheckboxInput registration={register("registrationEnabled")} label="Registration enabled" />
+            <CheckboxInput registration={register("parentRequired")} label="Parent/Guardian required" />
+            <CheckboxInput registration={register("featured")} label="Featured event" />
+          </div>
+        </FormSection>
+
+        <FormSection title="Contact Information">
+          <FormField label="Contact Name" error={errors.contactName}>
+            <TextInput registration={register("contactName")} error={errors.contactName} placeholder="John Doe" />
+          </FormField>
+          <FormField label="Contact Email" error={errors.contactEmail}>
+            <TextInput registration={register("contactEmail")} error={errors.contactEmail} type="email" placeholder="contact@example.com" />
+          </FormField>
+          <FormField label="Contact Phone" error={errors.contactPhone} className="sm:col-span-2">
+            <TextInput registration={register("contactPhone")} error={errors.contactPhone} type="tel" placeholder="+1 (555) 123-4567" />
+          </FormField>
+        </FormSection>
+
+        <FormSection title="Website Publishing">
+          <div className="sm:col-span-2">
+            <CheckboxInput registration={register("publishedToWebsite")} label="Published to Website" />
+            <p className="mt-2 text-xs text-white/40">
+              When checked, this event will be visible on the public website. Unchecking will hide it without deleting.
+            </p>
+          </div>
+        </FormSection>
+
+        <div className="flex items-center gap-3 border-t border-white/10 pt-6">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-lg bg-explore-lime px-5 py-2 text-sm font-semibold text-explore-black transition hover:bg-explore-lime/90 disabled:opacity-50"
+          >
+            {isSubmitting ? "Saving…" : "Save as Draft"}
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => handleSubmit((data) => onSubmit(data, "publish"))()}
+            disabled={isSubmitting}
+            className="rounded-lg bg-explore-teal px-5 py-2 text-sm font-semibold text-white transition hover:bg-explore-teal/90 disabled:opacity-50"
+          >
+            {isSubmitting ? "Publishing…" : "Publish to Website"}
+          </button>
+
+          {!isNew && status === "published" && (
+            <button
+              type="button"
+              onClick={() => handleSubmit((data) => onSubmit(data, "unpublish"))()}
+              disabled={isSubmitting}
+              className="rounded-lg bg-orange-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50"
+            >
+              {isSubmitting ? "Unpublishing…" : "Unpublish"}
+            </button>
+          )}
+
+          {!isNew && (
+            <button
+              type="button"
+              onClick={handleDuplicate}
+              disabled={isDuplicating}
+              className="rounded-lg border border-white/10 px-5 py-2 text-sm font-medium text-white/80 transition hover:text-white disabled:opacity-50"
+            >
+              {isDuplicating ? "Duplicating…" : "Duplicate"}
+            </button>
+          )}
+
+          {!isNew && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="rounded-lg border border-red-500/30 px-5 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+            >
+              Delete
+            </button>
+          )}
+
+          <Link
+            href="/admin/events"
+            className="rounded-lg border border-white/10 px-5 py-2 text-sm font-medium text-white/60 transition hover:text-white"
+          >
+            Cancel
+          </Link>
+        </div>
       </form>
     </div>
   );

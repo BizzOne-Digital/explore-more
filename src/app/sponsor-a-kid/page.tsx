@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Heart, Users, Gift } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { COMPANY } from "@/lib/constants";
 import { HERO_IMAGES } from "@/lib/content/home";
 import { getPublishedCampaigns } from "@/lib/queries/public";
@@ -19,6 +20,26 @@ export const metadata: Metadata = {
 export default async function SponsorAKidPage() {
   const show = createSectionChecker(await getPageSectionVisibility("sponsor-a-kid"));
   const campaigns = await getPublishedCampaigns().catch(() => [] as Awaited<ReturnType<typeof getPublishedCampaigns>>);
+  
+  // Get recent donations
+  const { Donation } = await import("@/models");
+  const connectDB = (await import("@/lib/db")).default;
+  await connectDB();
+  const recentDonations = (await Donation.find({
+    paymentStatus: "paid",
+    isAnonymous: false,
+  })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .populate("campaignId", "title")
+    .lean()
+    .catch(() => [])) as Array<{
+    _id: { toString(): string };
+    donorName: string;
+    amountCents: number;
+    createdAt: Date;
+    campaignId?: { title?: string } | null;
+  }>;
 
   return (
     <>
@@ -105,6 +126,70 @@ export default async function SponsorAKidPage() {
           </div>
         </section>
       )}
+
+      {/* Recent Donations Section */}
+      <section className="w-full overflow-x-clip py-16 bg-explore-cream">
+        <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
+          <div className="flex items-center justify-between mb-8">
+            <SectionHeading eyebrow="Community" title="Recent Donations" />
+            <Button href="/donate" variant="secondary" size="sm">
+              Donate
+            </Button>
+          </div>
+
+          {recentDonations.length > 0 ? (
+            <div className="space-y-3">
+              {recentDonations.map((donation) => (
+                <div
+                  key={donation._id.toString()}
+                  className="flex items-center gap-4 rounded-xl bg-white p-4 border border-explore-charcoal/5 shadow-sm hover:shadow-md transition-all"
+                >
+                  {/* Avatar */}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-explore-teal/20">
+                    <span className="text-lg font-semibold text-explore-teal">
+                      {donation.donorName.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Donor Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-explore-charcoal">
+                      {donation.donorName}
+                    </p>
+                    <p className="text-sm text-explore-charcoal/60">
+                      donated{" "}
+                      <span className="font-semibold text-explore-teal">
+                        {formatCents(donation.amountCents)}
+                      </span>
+                      {donation.campaignId && (
+                        <>
+                          {" "}to{" "}
+                          <span className="font-medium">
+                            {donation.campaignId.title}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Time */}
+                  <div className="text-right">
+                    <p className="text-xs text-explore-charcoal/50">
+                      {formatDistanceToNow(new Date(donation.createdAt), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 rounded-xl bg-white border border-explore-charcoal/5">
+              <p className="text-explore-charcoal/60">
+                No donations yet. Be the first to support our cause!
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
     </>
   );
 }

@@ -9,6 +9,8 @@ export interface IEvent extends Document {
   gallery: string[];
   startDate: Date;
   endDate: Date;
+  startTime: string;
+  endTime: string;
   timezone: string;
   location: string;
   mapLink?: string;
@@ -18,11 +20,17 @@ export interface IEvent extends Document {
   ageRange?: string;
   parentRequired: boolean;
   whatToBring?: string;
-  priceCents: number;
+  instructions?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  eventType: "free" | "paid";
+  priceAmount: number;
   registrationEnabled: boolean;
   featured: boolean;
   category?: string;
   status: "draft" | "published" | "cancelled" | "completed" | "archived";
+  publishedToWebsite: boolean;
   metaTitle?: string;
   metaDescription?: string;
   createdAt: Date;
@@ -39,6 +47,8 @@ const EventSchema = new Schema<IEvent>(
     gallery: [String],
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
     timezone: { type: String, default: "America/New_York" },
     location: { type: String, required: true },
     mapLink: String,
@@ -48,7 +58,12 @@ const EventSchema = new Schema<IEvent>(
     ageRange: String,
     parentRequired: { type: Boolean, default: false },
     whatToBring: String,
-    priceCents: { type: Number, default: 0 },
+    instructions: String,
+    contactName: String,
+    contactEmail: String,
+    contactPhone: String,
+    eventType: { type: String, enum: ["free", "paid"], default: "free" },
+    priceAmount: { type: Number, default: 0 },
     registrationEnabled: { type: Boolean, default: true },
     featured: { type: Boolean, default: false },
     category: String,
@@ -57,6 +72,7 @@ const EventSchema = new Schema<IEvent>(
       enum: ["draft", "published", "cancelled", "completed", "archived"],
       default: "draft",
     },
+    publishedToWebsite: { type: Boolean, default: false },
     metaTitle: String,
     metaDescription: String,
   },
@@ -71,18 +87,52 @@ export const Event: Model<IEvent> =
 
 export interface IEventRegistration extends Document {
   eventId: mongoose.Types.ObjectId;
-  userId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId;
+  registrationId: string;
+  
+  // Student Information
   studentName: string;
   studentAge?: number;
-  guardianName?: string;
-  guardianEmail?: string;
-  guardianPhone?: string;
-  consentGiven: boolean;
+  studentGrade?: string;
+  studentDateOfBirth?: Date;
+  
+  // Parent/Guardian Information
+  guardianName: string;
+  guardianEmail: string;
+  guardianPhone: string;
+  guardianRelationship?: string;
+  
+  // Emergency Contact
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelationship?: string;
+  
+  // Medical Information
+  medicalConditions?: string;
+  allergies?: string;
+  medications?: string;
+  
+  // Registration Details
+  registrationType: "free" | "paid";
   paymentStatus: "free" | "pending" | "paid" | "failed" | "refunded";
+  paymentAmount?: number;
   stripeSessionId?: string;
+  
+  // Custom Questions/Options
+  customResponses?: Record<string, unknown>;
+  
+  // Status
+  status: "pending" | "confirmed" | "cancelled" | "waitlist";
   checkedIn: boolean;
   checkedInAt?: Date;
+  
+  // Communication
+  confirmationEmailSent: boolean;
+  confirmationEmailSentAt?: Date;
+  
+  // Admin Notes
   notes?: string;
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -90,27 +140,78 @@ export interface IEventRegistration extends Document {
 const EventRegistrationSchema = new Schema<IEventRegistration>(
   {
     eventId: { type: Schema.Types.ObjectId, ref: "Event", required: true },
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    registrationId: { type: String, required: true, unique: true },
+    
+    // Student Information
     studentName: { type: String, required: true },
     studentAge: Number,
-    guardianName: String,
-    guardianEmail: String,
-    guardianPhone: String,
-    consentGiven: { type: Boolean, default: false },
+    studentGrade: String,
+    studentDateOfBirth: Date,
+    
+    // Parent/Guardian Information
+    guardianName: { type: String, required: true },
+    guardianEmail: { type: String, required: true },
+    guardianPhone: { type: String, required: true },
+    guardianRelationship: String,
+    
+    // Emergency Contact
+    emergencyContactName: String,
+    emergencyContactPhone: String,
+    emergencyContactRelationship: String,
+    
+    // Medical Information
+    medicalConditions: String,
+    allergies: String,
+    medications: String,
+    
+    // Registration Details
+    registrationType: {
+      type: String,
+      enum: ["free", "paid"],
+      default: "free",
+    },
     paymentStatus: {
       type: String,
       enum: ["free", "pending", "paid", "failed", "refunded"],
       default: "free",
     },
+    paymentAmount: Number,
     stripeSessionId: String,
+    
+    // Custom Questions/Options
+    customResponses: Schema.Types.Mixed,
+    
+    // Status
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "cancelled", "waitlist"],
+      default: "confirmed",
+    },
     checkedIn: { type: Boolean, default: false },
     checkedInAt: Date,
+    
+    // Communication
+    confirmationEmailSent: { type: Boolean, default: false },
+    confirmationEmailSentAt: Date,
+    
+    // Admin Notes
     notes: String,
   },
   { timestamps: true }
 );
 
 EventRegistrationSchema.index({ eventId: 1, userId: 1 });
+EventRegistrationSchema.index({ registrationId: 1 });
+EventRegistrationSchema.index({ guardianEmail: 1 });
+EventRegistrationSchema.index({ guardianPhone: 1 });
+
+// Generate unique registration ID before saving
+EventRegistrationSchema.pre("save", function () {
+  if (!this.registrationId) {
+    this.registrationId = `REG-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  }
+});
 
 export const EventRegistration: Model<IEventRegistration> =
   mongoose.models.EventRegistration ??

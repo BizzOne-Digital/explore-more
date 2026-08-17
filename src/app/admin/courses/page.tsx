@@ -3,8 +3,7 @@ import { Course } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { serialize, formatDate, formatDateTime } from "@/lib/admin/serialize";
-import { formatCents } from "@/lib/utils";
+import { serialize } from "@/lib/admin/serialize";
 
 async function getData() {
   await connectDB();
@@ -24,10 +23,26 @@ export default async function Page() {
       />
       <DataTable
         columns={[
-    { key: "title", header: "Title" },
-    { key: "instructor", header: "Instructor" },
-    { key: "priceCents", header: "Price", render: (row) => (row.isFree as boolean) ? "Free" : formatCents(row.priceCents as number) },
-    { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
+          { key: "title", header: "Title" },
+          { key: "instructor", header: "Instructor" },
+          { 
+            key: "priceAmount", 
+            header: "Price", 
+            render: (row) => row.courseType === "free" ? "Free" : `$${Number(row.priceAmount).toFixed(2)}`
+          },
+          { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
+          { 
+            key: "publishedToWebsite", 
+            header: "Website", 
+            render: (row) => (
+              row.publishedToWebsite ? (
+                <span className="text-xs text-green-400">✓ Published</span>
+              ) : (
+                <span className="text-xs text-white/40">Not published</span>
+              )
+            )
+          },
+          { key: "enrollmentStatus", header: "Enrollment", render: (row) => <StatusBadge status={String(row.enrollmentStatus)} /> },
         ]}
         data={data}
         rowHref={(row) => "/admin/courses/" + String(row._id)}

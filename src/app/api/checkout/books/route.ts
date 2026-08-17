@@ -5,6 +5,7 @@ import { createCheckoutSession, getAppUrl, isStripeConfigured } from "@/lib/serv
 import { generateOrderNumber } from "@/lib/password";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
+import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
 
 const itemSchema = z.object({
   bookId: z.string(),
@@ -70,14 +71,14 @@ export async function POST(request: Request) {
 
   for (const item of parsed.data.items) {
     const book = await Book.findById(item.bookId);
-    if (!book || !book.published) {
+    if (!book || !isBookPublished(book)) {
       return jsonError(`Book not found: ${item.bookId}`, 404);
     }
     if (book.inventory < item.quantity) {
       return jsonError(`Insufficient stock for "${book.title}"`, 400);
     }
 
-    const priceCents = book.salePriceCents ?? book.priceCents;
+    const priceCents = getBookPriceCents(book);
     subtotalCents += priceCents * item.quantity;
 
     orderItems.push({

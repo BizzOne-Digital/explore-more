@@ -1,37 +1,41 @@
+import type { ComponentProps } from "react";
 import connectDB from "@/lib/db";
-import { EventRegistration } from "@/models";
+import { EventRegistration, Event } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { DataTable } from "@/components/admin/DataTable";
-import { StatusBadge } from "@/components/admin/StatusBadge";
-import { serialize, formatDate } from "@/lib/admin/serialize";
+import { EventRegistrationsTable } from "@/components/admin/EventRegistrationsTable";
+import { serializeAdmin } from "@/lib/admin/serialize";
 
 async function getData() {
   await connectDB();
-  const items = await EventRegistration.find().sort({ createdAt: -1 }).lean();
-  return serialize(items);
+  const registrations = await EventRegistration.find()
+    .populate("eventId", "title startDate")
+    .sort({ createdAt: -1 })
+    .lean();
+  
+  const events = await Event.find({}, "title _id").sort({ title: 1 }).lean();
+  
+  return {
+    registrations: serializeAdmin(registrations),
+    events: serializeAdmin(events),
+  };
 }
 
-export default async function Page() {
-  const data = await getData();
+export default async function Page({ searchParams }: { searchParams: Promise<{ event?: string; search?: string }> }) {
+  const { event, search } = await searchParams;
+  const { registrations, events } = await getData();
 
   return (
     <div>
       <PageHeader
         title="Event Registrations"
         description="View and manage event registrations"
-        
+        action={{ label: "New Registration", href: "/admin/event-registrations/new" }}
       />
-      <DataTable
-        columns={[
-    { key: "studentName", header: "Student" },
-    { key: "guardianEmail", header: "Guardian Email" },
-    { key: "paymentStatus", header: "Payment", render: (row) => <StatusBadge status={String(row.paymentStatus)} /> },
-    { key: "checkedIn", header: "Checked In", render: (row) => row.checkedIn ? "Yes" : "No" },
-    { key: "createdAt", header: "Registered", render: (row) => formatDate(row.createdAt) },
-        ]}
-        data={data}
-        
-        emptyMessage="No records found."
+      <EventRegistrationsTable
+        registrations={serializeAdmin(registrations) as unknown as ComponentProps<typeof EventRegistrationsTable>["registrations"]}
+        events={serializeAdmin(events) as unknown as ComponentProps<typeof EventRegistrationsTable>["events"]}
+        initialEventFilter={event}
+        initialSearch={search}
       />
     </div>
   );

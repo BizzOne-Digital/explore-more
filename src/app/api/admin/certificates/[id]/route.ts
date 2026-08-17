@@ -6,6 +6,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params;
     if (!isValidObjectId(id)) return notFound();
+    
     await connectDB();
     const item = await Certificate.findById(id).lean();
     if (!item) return notFound();
@@ -19,6 +20,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     if (!isValidObjectId(id)) return notFound();
+    
     await connectDB();
     const body = await request.json();
     const item = await Certificate.findByIdAndUpdate(id, body, { new: true, runValidators: true }).lean();
@@ -33,6 +35,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     if (!isValidObjectId(id)) return notFound();
+    
     await connectDB();
     const item = await Certificate.findByIdAndDelete(id);
     if (!item) return notFound();

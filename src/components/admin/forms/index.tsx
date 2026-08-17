@@ -30,7 +30,7 @@ const inputClass =
   "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-explore-teal focus:outline-none focus:ring-1 focus:ring-explore-teal";
 
 interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  registration: UseFormRegisterReturn;
+  registration?: UseFormRegisterReturn;
   error?: FieldError;
 }
 
@@ -131,10 +131,21 @@ export function FormActions({
   );
 }
 
-export function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+export function FormSection({ 
+  title, 
+  description, 
+  children 
+}: { 
+  title: string; 
+  description?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-5">
-      <h2 className="font-display text-lg font-semibold text-white">{title}</h2>
+      <div>
+        <h2 className="font-display text-lg font-semibold text-white">{title}</h2>
+        {description && <p className="mt-1 text-sm text-white/60">{description}</p>}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">{children}</div>
     </section>
   );

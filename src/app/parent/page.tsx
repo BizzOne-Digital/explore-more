@@ -12,6 +12,7 @@ import {
 } from "@/components/parent/PortfolioCards";
 import { StudentYearSelector } from "@/components/parent/StudentYearSelector";
 import { SubmitPortfolioButton } from "@/components/parent/PortfolioForms";
+import { QuickStartGuide } from "@/components/parent/QuickStartGuide";
 import { Conversation, Enrollment, EventRegistration, Order } from "@/models";
 
 export default async function ParentDashboardPage({
@@ -61,12 +62,16 @@ export default async function ParentDashboardPage({
       </section>
 
       {students.length === 0 ? (
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <p className="text-explore-charcoal/60">No linked students yet. Contact the academy to link your account.</p>
-          <Link href="/contact" className="mt-4 inline-block rounded-lg bg-explore-teal px-5 py-2.5 text-sm font-semibold text-white">
-            Contact Us
-          </Link>
-        </div>
+        <>
+          <QuickStartGuide />
+          
+          <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
+            <p className="text-explore-charcoal/60 mb-4">No linked students yet. Contact the academy to link your account.</p>
+            <Link href="/contact" className="inline-block rounded-lg bg-explore-teal px-5 py-2.5 text-sm font-semibold text-white hover:bg-explore-teal/90 transition-colors">
+              Contact Us
+            </Link>
+          </div>
+        </>
       ) : (
         <>
           <Suspense fallback={null}>

@@ -39,6 +39,15 @@ type BillingData = {
     reference?: string;
   }[];
   stripeConfigured: boolean;
+  plans?: Array<{
+    _id: string;
+    name: string;
+    priceCents: number;
+    interval: "month" | "year";
+    features: string[];
+    description?: string;
+  }>;
+  canManageSubscription?: boolean;
 };
 
 export function BillingClient() {
@@ -155,7 +164,12 @@ export function BillingClient() {
         return;
       }
       setSuccess("Billing information updated.");
-      setData(json.data);
+      setData((prev) => ({
+        ...json.data,
+        plans: json.data.plans ?? prev?.plans ?? [],
+        canManageSubscription:
+          json.data.canManageSubscription ?? prev?.canManageSubscription ?? false,
+      }));
       const b = json.data.billing;
       setForm({
         billingName: b.billingName ?? "",
@@ -288,6 +302,16 @@ export function BillingClient() {
               </div>
             )}
           </div>
+          {billing.canManageSubscription && (
+            <button
+              type="button"
+              onClick={openPaymentPortal}
+              disabled={portalLoading}
+              className="mt-4 w-full rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
+            >
+              Manage subscription (upgrade, downgrade, or cancel)
+            </button>
+          )}
           {sub.features.length > 0 && (
             <div className="mt-4 border-t border-explore-charcoal/10 pt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-explore-charcoal/50">
@@ -339,6 +363,32 @@ export function BillingClient() {
           )}
         </section>
       </div>
+
+      {billing.plans && billing.plans.length > 0 && (
+        <section className="rounded-xl bg-white p-6 shadow-sm">
+          <h3 className="font-display text-lg font-semibold">Available Plans</h3>
+          <p className="mt-1 text-sm text-explore-charcoal/60">
+            Use the secure billing portal to upgrade, downgrade, or cancel when enabled by the academy.
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {billing.plans.map((plan) => (
+              <div
+                key={plan._id}
+                className={`rounded-lg border p-4 ${
+                  sub.planName === plan.name
+                    ? "border-explore-teal bg-explore-teal/5"
+                    : "border-explore-charcoal/15"
+                }`}
+              >
+                <p className="font-semibold">{plan.name}</p>
+                <p className="text-sm text-explore-charcoal/70">
+                  {formatCents(plan.priceCents)} / {formatInterval(plan.interval).toLowerCase()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="rounded-xl bg-white p-6 shadow-sm">
         <h3 className="font-display text-lg font-semibold">Billing Information</h3>

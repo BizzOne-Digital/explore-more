@@ -12,7 +12,6 @@ import {
   Save,
   StickyNote,
   User,
-  Users,
   X,
 } from "lucide-react";
 import { formatCents } from "@/lib/utils";
@@ -22,13 +21,28 @@ import {
   formatSubscriptionStatus,
 } from "@/lib/billing/format";
 
+import {
+  OverviewProfileTab,
+  CoursesResourcesTab,
+  AttendanceTab,
+  MessagesTab,
+  DocumentsTab,
+  ChildrenTab,
+  type FamilyData,
+  type ParentProfile,
+} from "@/components/admin/parent/ParentFamilyTabs";
+
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "children", label: "Children" },
+  { id: "courses", label: "Courses & Resources" },
   { id: "billing", label: "Billing" },
   { id: "subscription", label: "Subscription" },
   { id: "payments", label: "Payments & Receipts" },
+  { id: "attendance", label: "Attendance" },
   { id: "notes", label: "Notes" },
+  { id: "messages", label: "Messages" },
+  { id: "documents", label: "Documents" },
   { id: "activity", label: "Activity Log" },
 ] as const;
 
@@ -71,7 +85,7 @@ type Note = {
   createdAt: string;
   isEdited: boolean;
   editedAt?: string;
-  editedBy?: string;
+  editedBy?: { name?: string; staffId?: string } | string;
   isVisibleToParent: boolean;
 };
 
@@ -126,6 +140,25 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [family, setFamily] = useState<FamilyData | null>(null);
+  const [profile, setProfile] = useState<ParentProfile | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    firstName: "",
+    lastName: "",
+    street: "",
+    city: "",
+    state: "",
+    zip: "",
+    emergencyName: "",
+    emergencyPhone: "",
+    emergencyRelationship: "",
+    preferredCommunication: "email",
+    isActive: true,
+  });
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [showAddNote, setShowAddNote] = useState(false);
   const [noteForm, setNoteForm] = useState({
@@ -184,11 +217,12 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
       setError("");
       setSuccess("");
       try {
-        const [userRes, billingRes, notesRes, activityRes] = await Promise.all([
+        const [userRes, billingRes, notesRes, activityRes, accountRes] = await Promise.all([
           fetch(`/api/admin/users/${userId}`),
           fetch(`/api/admin/users/${userId}/billing`),
           fetch(`/api/admin/users/${userId}/notes`),
           fetch(`/api/admin/users/${userId}/activity`),
+          fetch(`/api/admin/users/${userId}/parent-account`),
         ]);
 
         if (cancelled) return;
@@ -224,6 +258,30 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
           failures.push(activityJson?.error || "Failed to load activity log");
         }
 
+        const accountJson = await accountRes.json().catch(() => null);
+        if (accountJson?.success) {
+          const u = accountJson.data.user;
+          const p = accountJson.data.profile as ParentProfile | null;
+          setProfile(p);
+          setFamily(accountJson.data.family);
+          setProfileForm({
+            name: u.name ?? "",
+            email: u.email ?? "",
+            phone: u.phone ?? "",
+            firstName: p?.firstName ?? "",
+            lastName: p?.lastName ?? "",
+            street: p?.mailingAddress?.street ?? "",
+            city: p?.mailingAddress?.city ?? "",
+            state: p?.mailingAddress?.state ?? "",
+            zip: p?.mailingAddress?.zip ?? "",
+            emergencyName: p?.emergencyContact?.name ?? "",
+            emergencyPhone: p?.emergencyContact?.phone ?? "",
+            emergencyRelationship: p?.emergencyContact?.relationship ?? "",
+            preferredCommunication: p?.preferredCommunication ?? "email",
+            isActive: u.isActive ?? true,
+          });
+        }
+
         if (failures.length > 0) {
           setError(failures.join(" · "));
         }
@@ -240,6 +298,83 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
       cancelled = true;
     };
   }, [userId]);
+
+  async function saveProfile() {
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/parent-account`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: profileForm.name,
+          email: profileForm.email,
+          phone: profileForm.phone,
+          isActive: profileForm.isActive,
+          firstName: profileForm.firstName,
+          lastName: profileForm.lastName,
+          mailingAddress: {
+            street: profileForm.street,
+            city: profileForm.city,
+            state: profileForm.state,
+            zip: profileForm.zip,
+          },
+          emergencyContact: {
+            name: profileForm.emergencyName,
+            phone: profileForm.emergencyPhone,
+            relationship: profileForm.emergencyRelationship,
+          },
+          preferredCommunication: profileForm.preferredCommunication,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error || "Failed to save profile");
+        return;
+      }
+      setUser(json.data.user);
+      setProfile(json.data.profile);
+      setSuccess("Profile saved.");
+      const activityRes = await fetch(`/api/admin/users/${userId}/activity`);
+      const activityJson = await activityRes.json();
+      if (activityJson.success) setActivities(activityJson.data);
+    } catch {
+      setError("Failed to save profile.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function sendPasswordReset() {
+    setResetLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/reset-password`, { method: "POST" });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error || "Failed to send reset email");
+        return;
+      }
+      setSuccess(json.data?.message || "Password reset email sent.");
+    } catch {
+      setError("Failed to send password reset.");
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
+  async function openNoteDetail(note: Note) {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/notes/${note._id}`);
+      const json = await res.json();
+      if (json.success) setSelectedNote(json.data);
+      else setSelectedNote(note);
+    } catch {
+      setSelectedNote(note);
+    }
+  }
 
   async function saveBilling() {
     setSaving(true);
@@ -460,98 +595,33 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
         ))}
       </div>
 
-      {tab === "overview" && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6">
-            <h3 className="text-sm font-medium text-white/60">Account Status</h3>
-            <p className={`mt-2 text-lg font-semibold ${user.isActive ? "text-green-400" : "text-red-400"}`}>
-              {user.isActive ? "Active" : "Deactivated"}
-            </p>
-            <p className="mt-1 text-sm text-white/50">
-              Email {user.emailVerified ? "verified" : "unverified"} · Member since{" "}
-              {new Date(user.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6">
-            <h3 className="text-sm font-medium text-white/60">Subscription</h3>
-            <p className="mt-2 text-lg font-semibold text-white">
-              {billing?.subscription.planName ?? "—"}
-            </p>
-            <p className="mt-1 text-sm text-white/50">
-              {billing
-                ? formatSubscriptionStatus(billing.subscription.status)
-                : "—"}
-            </p>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6 md:col-span-2">
-            <h3 className="mb-3 text-sm font-medium text-white/60">Contact</h3>
-            <div className="grid gap-3 md:grid-cols-3 text-sm">
-              <div>
-                <p className="text-white/50">Email</p>
-                <p className="text-white">{user.email}</p>
-              </div>
-              <div>
-                <p className="text-white/50">Phone</p>
-                <p className="text-white">{user.phone || "—"}</p>
-              </div>
-              <div>
-                <p className="text-white/50">Payment method</p>
-                <p className="text-white">
-                  {billing ? formatPaymentMethod(billing.paymentMethod) : "—"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {tab === "overview" && user && (
+        <OverviewProfileTab
+          user={user}
+          profile={profile}
+          profileForm={profileForm}
+          setProfileForm={setProfileForm}
+          billingPlanName={billing?.subscription.planName}
+          billingStatus={billing?.subscription.status}
+          paymentMethod={billing?.paymentMethod ?? null}
+          saving={saving}
+          resetLoading={resetLoading}
+          onSave={saveProfile}
+          onPasswordReset={sendPasswordReset}
+        />
       )}
 
       {tab === "children" && (
-        <div className="rounded-lg border border-white/10 bg-white/5 p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5 text-explore-teal" />
-            <h3 className="text-lg font-semibold text-white">Linked Children</h3>
-          </div>
-          {studentLinks.length === 0 ? (
-            <p className="text-sm text-white/50">No linked students.</p>
-          ) : (
-            <div className="space-y-3">
-              {studentLinks.map((link) => (
-                <div
-                  key={link._id}
-                  className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-4"
-                >
-                  <div>
-                    <p className="font-medium text-white">{link.studentId?.name}</p>
-                    <p className="text-sm text-white/60">
-                      {link.relationship}
-                      {link.studentId?.studentId && (
-                        <span className="ml-2 font-mono text-explore-teal">
-                          {link.studentId.studentId}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      link.status === "approved"
-                        ? "bg-green-500/10 text-green-400"
-                        : "bg-yellow-500/10 text-yellow-400"
-                    }`}
-                  >
-                    {link.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-          <Link
-            href="/admin/guardian-links"
-            className="mt-4 inline-block text-sm text-explore-teal hover:underline"
-          >
-            Manage guardian links →
-          </Link>
-        </div>
+        <ChildrenTab family={family} studentLinks={studentLinks} />
       )}
+
+      {tab === "courses" && <CoursesResourcesTab family={family} />}
+
+      {tab === "attendance" && <AttendanceTab family={family} />}
+
+      {tab === "messages" && <MessagesTab family={family} userId={userId} />}
+
+      {tab === "documents" && <DocumentsTab family={family} />}
 
       {tab === "billing" && (
         billing ? (
@@ -845,9 +915,12 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
                     {formatNoteDate(note.createdAt)} — {note.staffName}
                   </p>
                   <p className="mt-1 font-medium text-white">{note.subject}</p>
+                  {note.reasonForCall && note.reasonForCall !== "General" && (
+                    <p className="text-xs text-white/50">{note.reasonForCall}</p>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setSelectedNote(note)}
+                    onClick={() => void openNoteDetail(note)}
                     className="mt-2 text-sm text-explore-teal hover:underline"
                   >
                     View Note →
@@ -917,7 +990,12 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
               {selectedNote.isEdited && selectedNote.editedAt && (
                 <div>
                   <dt className="text-white/50">Edited</dt>
-                  <dd className="text-white">{formatNoteDate(selectedNote.editedAt)}</dd>
+                  <dd className="text-white">
+                    {formatNoteDate(selectedNote.editedAt)}
+                    {typeof selectedNote.editedBy === "object" && selectedNote.editedBy?.name
+                      ? ` by ${selectedNote.editedBy.name}`
+                      : ""}
+                  </dd>
                 </div>
               )}
               <div>

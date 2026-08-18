@@ -2,7 +2,7 @@ import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { ParentProfile } from "@/models";
-import { getParentBillingSummary, ensureParentSubscription } from "@/lib/billing/parent-billing";
+import { getParentBillingSummary, ensureParentSubscription, listActivePlans } from "@/lib/billing/parent-billing";
 import { buildPartialUpdate } from "@/lib/billing/utils";
 
 export async function GET() {
@@ -12,8 +12,11 @@ export async function GET() {
 
     await connectDB();
     await ensureParentSubscription(sessionResult.user.id);
-    const data = await getParentBillingSummary(sessionResult.user.id);
-    return apiSuccess(data);
+    const [data, plans] = await Promise.all([
+      getParentBillingSummary(sessionResult.user.id),
+      listActivePlans(),
+    ]);
+    return apiSuccess({ ...data, plans, canManageSubscription: !!data.stripeConfigured });
   } catch (error) {
     return apiError(error);
   }
@@ -55,8 +58,11 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const data = await getParentBillingSummary(sessionResult.user.id);
-    return apiSuccess(data);
+    const [data, plans] = await Promise.all([
+      getParentBillingSummary(sessionResult.user.id),
+      listActivePlans(),
+    ]);
+    return apiSuccess({ ...data, plans, canManageSubscription: !!data.stripeConfigured });
   } catch (error) {
     return apiError(error);
   }

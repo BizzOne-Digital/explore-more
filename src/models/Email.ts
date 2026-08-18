@@ -12,6 +12,8 @@ export interface IEmailCampaign extends Document {
   priority: "normal" | "important" | "urgent";
   attachmentUrl?: string;
   attachmentName?: string;
+  imageUrl?: string;
+  imageName?: string;
   status: "draft" | "queued" | "sending" | "sent" | "failed";
   recipientCount: number;
   sentCount: number;
@@ -53,6 +55,8 @@ const EmailCampaignSchema = new Schema<IEmailCampaign>(
     },
     attachmentUrl: String,
     attachmentName: String,
+    imageUrl: String,
+    imageName: String,
     status: {
       type: String,
       enum: ["draft", "queued", "sending", "sent", "failed"],

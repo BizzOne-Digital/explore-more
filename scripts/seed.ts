@@ -54,6 +54,9 @@ async function main() {
     DonationCampaign,
     FAQ,
     GalleryCategory,
+    SubscriptionPlan,
+    ParentSubscription,
+    ParentProfile,
   } = await import("../src/models");
 
   // ── Site Settings ──
@@ -110,11 +113,12 @@ async function main() {
   const parentHash = await hashPassword(parentPassword);
 
   await User.deleteMany({ email: parentEmail });
-  await User.create({
+  const parentUser = await User.create({
     name: "Demo Parent",
     email: parentEmail,
     passwordHash: parentHash,
     role: "parent",
+    guardianId: "PG-000123",
     emailVerified: true,
     isActive: true,
     notificationPreferences: {
@@ -124,7 +128,53 @@ async function main() {
       announcements: true,
     },
   });
+  await ParentProfile.create({
+    userId: parentUser._id,
+    billingName: "Demo Parent",
+    billingEmail: parentEmail,
+  });
   console.log(`✓ Demo parent user (${parentEmail})`);
+
+  // ── Subscription Plans ──
+  await SubscriptionPlan.deleteMany({});
+  const explorerPlan = await SubscriptionPlan.create({
+    name: "Explorer Monthly",
+    slug: "explorer-monthly",
+    description: "Core access to parent portal, attendance, and community resources.",
+    priceCents: 4900,
+    interval: "month",
+    features: [
+      "Parent portal & dashboard",
+      "Attendance tracking",
+      "Course & resource library",
+      "Email notifications",
+    ],
+    isActive: true,
+    sortOrder: 1,
+  });
+  await SubscriptionPlan.create({
+    name: "Adventure Monthly",
+    slug: "adventure-monthly",
+    description: "Expanded access including portfolio tools and priority support.",
+    priceCents: 7900,
+    interval: "month",
+    features: [
+      "Everything in Explorer",
+      "Homeschool portfolio tools",
+      "Priority messaging",
+      "Event early access",
+    ],
+    isActive: true,
+    sortOrder: 2,
+  });
+  await ParentSubscription.deleteMany({ userId: parentUser._id });
+  await ParentSubscription.create({
+    userId: parentUser._id,
+    planId: explorerPlan._id,
+    status: "active",
+    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  });
+  console.log("✓ Subscription plans + demo parent subscription");
 
   // ── Six Programs ──
   await Program.deleteMany({});

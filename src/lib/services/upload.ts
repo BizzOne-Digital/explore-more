@@ -4,8 +4,10 @@ import crypto from "crypto";
 import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_PORTFOLIO_EXTENSIONS,
+  ALLOWED_CAMPAIGN_EXTENSIONS,
   MAX_PORTFOLIO_UPLOAD_SIZE,
   MAX_UPLOAD_SIZE,
+  MAX_CAMPAIGN_UPLOAD_SIZE,
   UPLOAD_DIRS,
 } from "@/lib/constants";
 
@@ -69,6 +71,34 @@ export async function uploadPublicImage(
   return {
     url: `/uploads/${UPLOAD_DIRS[category]}/${filename}`,
     filename,
+  };
+}
+
+export async function uploadCampaignFile(
+  file: File
+): Promise<{ url: string; filename: string; originalName: string }> {
+  if (file.size > MAX_CAMPAIGN_UPLOAD_SIZE) {
+    throw new Error(
+      `File too large. Maximum size is ${Math.round(MAX_CAMPAIGN_UPLOAD_SIZE / 1024 / 1024)}MB`
+    );
+  }
+
+  const filename = safeFilename(file.name, ALLOWED_CAMPAIGN_EXTENSIONS);
+  const dir = path.join(PUBLIC_UPLOAD_ROOT, UPLOAD_DIRS.campaigns);
+  await fs.mkdir(dir, { recursive: true });
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const filepath = path.join(dir, filename);
+
+  if (!filepath.startsWith(dir)) {
+    throw new Error("Invalid upload path");
+  }
+
+  await fs.writeFile(filepath, buffer);
+  return {
+    url: `/uploads/${UPLOAD_DIRS.campaigns}/${filename}`,
+    filename,
+    originalName: file.name,
   };
 }
 

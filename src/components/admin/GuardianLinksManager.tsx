@@ -46,7 +46,31 @@ export function AdminGuardianLinksManager() {
   }
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+
+    async function load() {
+      const [linksRes, usersRes] = await Promise.all([
+        fetch("/api/admin/guardian-links"),
+        fetch("/api/admin/users"),
+      ]);
+      const linksJson = await linksRes.json();
+      const usersJson = await usersRes.json();
+
+      if (cancelled) return;
+
+      if (linksJson.success) setLinks(linksJson.data ?? []);
+      if (usersJson.success) {
+        const users = usersJson.data ?? [];
+        setParents(users.filter((u: UserOption & { role: string }) => u.role === "parent"));
+        setStudents(users.filter((u: UserOption & { role: string }) => u.role === "student"));
+      }
+      setLoading(false);
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function approve(linkId: string, status: string) {

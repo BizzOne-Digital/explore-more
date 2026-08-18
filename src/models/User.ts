@@ -8,6 +8,8 @@ export interface IUser extends Document {
   role: Role;
   studentId?: string;
   staffId?: string;
+  guardianId?: string;
+  stripeCustomerId?: string;
   emailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
@@ -40,6 +42,8 @@ const UserSchema = new Schema<IUser>(
     },
     studentId: { type: String, unique: true, sparse: true },
     staffId: { type: String, unique: true, sparse: true },
+    guardianId: { type: String, unique: true, sparse: true },
+    stripeCustomerId: { type: String, unique: true, sparse: true },
     emailVerified: { type: Boolean, default: false },
     emailVerificationToken: String,
     emailVerificationExpires: Date,
@@ -60,20 +64,23 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1 });
-UserSchema.index({ studentId: 1 });
-UserSchema.index({ staffId: 1 });
 
 // Auto-generate IDs based on role
-UserSchema.pre("save", function () {
+UserSchema.pre("save", async function () {
   if (this.role === "student" && !this.studentId) {
-    this.studentId = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const { generateUniqueStudentId } = await import("@/lib/students/id");
+    this.studentId = await generateUniqueStudentId();
   }
 
   if ((this.role === "administrator" || this.role === "instructor") && !this.staffId) {
     const prefix = this.role === "administrator" ? "ADM" : "INS";
     this.staffId = `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+  }
+
+  if (this.role === "parent" && !this.guardianId) {
+    const suffix = Math.floor(Math.random() * 900000 + 100000);
+    this.guardianId = `PG-${suffix}`;
   }
 });
 
@@ -172,3 +179,70 @@ const InstructorProfileSchema = new Schema<IInstructorProfile>(
 export const InstructorProfile: Model<IInstructorProfile> =
   mongoose.models.InstructorProfile ??
   mongoose.model<IInstructorProfile>("InstructorProfile", InstructorProfileSchema);
+
+export interface IParentProfile extends Document {
+  userId: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  mailingAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+  };
+  emergencyContact?: {
+    name?: string;
+    phone?: string;
+    relationship?: string;
+  };
+  preferredCommunication?: "email" | "phone" | "text";
+  billingName?: string;
+  billingEmail?: string;
+  billingPhone?: string;
+  billingAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ParentProfileSchema = new Schema<IParentProfile>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+    firstName: String,
+    lastName: String,
+    mailingAddress: {
+      street: String,
+      city: String,
+      state: String,
+      zip: String,
+    },
+    emergencyContact: {
+      name: String,
+      phone: String,
+      relationship: String,
+    },
+    preferredCommunication: {
+      type: String,
+      enum: ["email", "phone", "text"],
+      default: "email",
+    },
+    billingName: String,
+    billingEmail: String,
+    billingPhone: String,
+    billingAddress: {
+      street: String,
+      city: String,
+      state: String,
+      zip: String,
+    },
+  },
+  { timestamps: true }
+);
+
+export const ParentProfile: Model<IParentProfile> =
+  mongoose.models.ParentProfile ??
+  mongoose.model<IParentProfile>("ParentProfile", ParentProfileSchema);

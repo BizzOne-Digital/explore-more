@@ -25,6 +25,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import { ParentAccountDashboard } from "@/components/admin/parent/ParentAccountDashboard";
 import { formatDistanceToNow } from "date-fns";
 
 interface UserData {
@@ -240,6 +241,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         </Link>
       </div>
     );
+  }
+
+  if (user.role === "parent") {
+    return <ParentAccountDashboard userId={resolvedParams.id} />;
   }
 
   const roleLabels: Record<string, string> = {

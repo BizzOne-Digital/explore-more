@@ -34,7 +34,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
     <div>
       <PageHeader
         title="Students"
-        description="Each student has a unique Student ID (e.g. STU-…) used to link parent accounts in Guardian Links."
+        description="Each student has a unique 6-digit Student ID used to link parent accounts in Guardian Links."
         action={{ label: "New Student", href: "/admin/students/new" }}
       />
       <StudentsTable

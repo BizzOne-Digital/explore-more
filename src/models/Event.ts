@@ -80,7 +80,6 @@ const EventSchema = new Schema<IEvent>(
 );
 
 EventSchema.index({ startDate: 1, status: 1 });
-EventSchema.index({ slug: 1 });
 
 export const Event: Model<IEvent> =
   mongoose.models.Event ?? mongoose.model<IEvent>("Event", EventSchema);
@@ -202,7 +201,6 @@ const EventRegistrationSchema = new Schema<IEventRegistration>(
 );
 
 EventRegistrationSchema.index({ eventId: 1, userId: 1 });
-EventRegistrationSchema.index({ registrationId: 1 });
 EventRegistrationSchema.index({ guardianEmail: 1 });
 EventRegistrationSchema.index({ guardianPhone: 1 });
 

@@ -69,10 +69,6 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     const item = await EmailCampaign.findById(id);
     if (!item) return notFound();
 
-    if (!canEditCampaign(item.status)) {
-      return apiError(new Error("Cannot delete a sent campaign"), 400);
-    }
-
     await item.deleteOne();
     return apiSuccess({ message: "Campaign deleted" });
   } catch (error) {

@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const studentUserId = await resolveStudentUserId(studentId);
     if (!studentUserId) {
       return apiError(
-        new Error("Student not found. Use the Student ID from Admin → Students (e.g. STU-…)."),
+        new Error("Student not found. Use the 6-digit Student ID from Admin → Students."),
         404
       );
     }

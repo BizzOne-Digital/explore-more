@@ -123,10 +123,18 @@ function buildCampaignEmailHtml(
     priority: keyof typeof priorityColors;
     attachmentUrl?: string;
     attachmentName?: string;
+    imageUrl?: string;
+    imageName?: string;
   }
 ): string {
   const color = priorityColors[campaign.priority];
   const label = priorityLabels[campaign.priority];
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004";
+  const imageSrc = campaign.imageUrl?.startsWith("http")
+    ? campaign.imageUrl
+    : campaign.imageUrl
+      ? `${appUrl}${campaign.imageUrl}`
+      : "";
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -137,6 +145,13 @@ function buildCampaignEmailHtml(
       </div>
       
       <div style="background: #f5f5f5; padding: 20px; border-radius: 0 0 8px 8px;">
+        ${
+          imageSrc
+            ? `<div style="margin: 20px 0;">
+              <img src="${imageSrc}" alt="${campaign.imageName || "Campaign image"}" style="max-width: 100%; height: auto; border-radius: 8px; display: block;" />
+            </div>`
+            : ""
+        }
         <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
           ${htmlBody}
         </div>

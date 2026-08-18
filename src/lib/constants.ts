@@ -27,6 +27,13 @@ export const UPLOAD_DIRS = {
 
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
 export const MAX_PORTFOLIO_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
+/** Campaign attachments/images — no practical cap for admin uploads (server memory still applies). */
+export const MAX_CAMPAIGN_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1GB
+export const ALLOWED_CAMPAIGN_EXTENSIONS = [
+  ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg",
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+  ".txt", ".csv", ".zip", ".mp4", ".mov", ".mp3", ".wav",
+];
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 export const ALLOWED_PORTFOLIO_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic",

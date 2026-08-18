@@ -36,6 +36,8 @@ export async function GET(
     } else if (user.role === "instructor") {
       profile = await InstructorProfile.findOne({ userId: id }).lean();
     } else if (user.role === "parent") {
+      const { ParentProfile } = await import("@/models");
+      profile = await ParentProfile.findOne({ userId: id }).lean();
       studentLinks = await GuardianStudentLink.find({ guardianId: id })
         .populate("studentId", "name email studentId")
         .lean();

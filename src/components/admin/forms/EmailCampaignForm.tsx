@@ -16,7 +16,7 @@ import {
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { FileUpload } from "@/components/admin/FileUpload";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { Mail, Bell, Users, Send, Eye, AlertCircle } from "lucide-react";
+import { Mail, Bell, Users, Send, Eye, AlertCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import {
   audienceAllowsEmptyRecipients,
@@ -33,6 +33,8 @@ const schema = z.object({
   priority: z.enum(["normal", "important", "urgent"]),
   attachmentUrl: z.string().optional(),
   attachmentName: z.string().optional(),
+  imageUrl: z.string().optional(),
+  imageName: z.string().optional(),
   status: z.enum(["draft", "queued", "sent"]),
 });
 
@@ -81,6 +83,8 @@ export function EmailCampaignForm({
       priority: (initialData?.priority as FormData["priority"]) ?? "normal",
       attachmentUrl: (initialData?.attachmentUrl as string) ?? "",
       attachmentName: (initialData?.attachmentName as string) ?? "",
+      imageUrl: (initialData?.imageUrl as string) ?? "",
+      imageName: (initialData?.imageName as string) ?? "",
       status: (initialData?.status as FormData["status"]) ?? "draft",
     },
   });
@@ -182,6 +186,30 @@ export function EmailCampaignForm({
     }
     setValue("status", "queued");
     handleSubmit(onSubmit)();
+  }
+
+  async function handleDelete() {
+    if (!initialData?._id) return;
+    if (
+      !confirm(
+        "Delete this campaign permanently? This cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/email-campaigns/${initialData._id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error ?? "Delete failed");
+        return;
+      }
+      router.push("/admin/email-campaigns");
+      router.refresh();
+    } catch {
+      setError("Delete failed");
+    }
   }
 
   const priorityInfo = {
@@ -427,6 +455,36 @@ export function EmailCampaignForm({
           )}
         </FormSection>
 
+        {/* Campaign Image */}
+        <FormSection
+          title="Campaign Image (Optional)"
+          description="Upload a header or banner image for this campaign"
+        >
+          <div className="sm:col-span-2">
+            <Controller
+              name="imageUrl"
+              control={control}
+              render={({ field }) => (
+                <FileUpload
+                  label="Campaign Picture"
+                  value={field.value || ""}
+                  fileName={watch("imageName")}
+                  mode="image"
+                  maxSize={null}
+                  onChange={(url, name) => {
+                    field.onChange(url);
+                    setValue("imageName", name);
+                  }}
+                  onRemove={() => {
+                    field.onChange("");
+                    setValue("imageName", "");
+                  }}
+                />
+              )}
+            />
+          </div>
+        </FormSection>
+
         {/* Message Content */}
         <FormSection title="Message Content">
           <FormField
@@ -448,6 +506,7 @@ export function EmailCampaignForm({
                   value={field.value}
                   onChange={field.onChange}
                   error={errors.htmlBody}
+                  enableImageUpload
                   placeholder="Write your message here. Use the toolbar to add formatting, links, images, and buttons."
                 />
               )}
@@ -457,8 +516,8 @@ export function EmailCampaignForm({
 
         {/* Attachment */}
         <FormSection
-          title="Attachment (Optional)"
-          description="Add a file attachment to this campaign"
+          title="File Attachment (Optional)"
+          description="Drag and drop a file to attach to this campaign"
         >
           <div className="sm:col-span-2">
             <Controller
@@ -469,6 +528,8 @@ export function EmailCampaignForm({
                   label="Attach File"
                   value={field.value || ""}
                   fileName={watch("attachmentName")}
+                  mode="any"
+                  maxSize={null}
                   onChange={(url, fileName) => {
                     field.onChange(url);
                     setValue("attachmentName", fileName);
@@ -477,8 +538,6 @@ export function EmailCampaignForm({
                     field.onChange("");
                     setValue("attachmentName", "");
                   }}
-                  folder="campaign-attachments"
-                  maxSize={10}
                 />
               )}
             />
@@ -524,6 +583,17 @@ export function EmailCampaignForm({
                   dangerouslySetInnerHTML={{ __html: watchHtmlBody }}
                 />
 
+                {watch("imageUrl") && (
+                  <div className="mt-4 overflow-hidden rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={watch("imageUrl")}
+                      alt={watch("imageName") || "Campaign image"}
+                      className="max-h-64 w-full object-cover"
+                    />
+                  </div>
+                )}
+
                 {watch("attachmentUrl") && (
                   <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
                     <p className="text-sm text-gray-600">
@@ -549,7 +619,18 @@ export function EmailCampaignForm({
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
+            {!isNew && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/20"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Campaign
+              </button>
+            )}
+
             {!showPreview && (
               <button
                 type="button"

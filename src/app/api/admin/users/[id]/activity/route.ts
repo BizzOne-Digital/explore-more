@@ -1,6 +1,6 @@
 import connectDB from "@/lib/db";
 import { ActivityLog } from "@/models";
-import { apiSuccess, apiError } from "@/lib/admin/api";
+import { apiSuccess, apiError, isValidObjectId } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 
 export async function GET(
@@ -16,10 +16,14 @@ export async function GET(
     await connectDB();
     const { id } = await params;
 
+    if (!isValidObjectId(id)) {
+      return apiError(new Error("Invalid user id"), 400);
+    }
+
     const activities = await ActivityLog.find({
       $or: [{ userId: id }, { entityId: id }],
     })
-      .populate("performedBy", "name email role")
+      .populate("performedBy", "name email role staffId")
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();

@@ -1,9 +1,28 @@
 import mongoose from "mongoose";
 import connectDB from "@/lib/db";
 import { User } from "@/models";
+import {
+  normalizeStudentIdInput,
+  randomStudentIdCandidate,
+} from "@/lib/students/id-codegen";
 
+export { formatStudentId, isValidStudentIdFormat, normalizeStudentIdInput, STUDENT_ID_LENGTH } from "@/lib/students/id-codegen";
+
+/** @deprecated Use generateUniqueStudentId() */
 export function generateStudentId(): string {
-  return `STU-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  return randomStudentIdCandidate();
+}
+
+export async function generateUniqueStudentId(): Promise<string> {
+  await connectDB();
+
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const candidate = randomStudentIdCandidate();
+    const exists = await User.exists({ studentId: candidate });
+    if (!exists) return candidate;
+  }
+
+  throw new Error("Unable to generate a unique Student ID. Please try again.");
 }
 
 /** Assign Student IDs to any student accounts missing one. */
@@ -14,14 +33,14 @@ export async function ensureAllStudentIds(): Promise<number> {
     $or: [{ studentId: { $exists: false } }, { studentId: null }, { studentId: "" }],
   });
 
-  await Promise.all(
-    missing.map(async (user) => {
-      user.studentId = generateStudentId();
-      await user.save();
-    })
-  );
+  let assigned = 0;
+  for (const user of missing) {
+    user.studentId = await generateUniqueStudentId();
+    await user.save();
+    assigned++;
+  }
 
-  return missing.length;
+  return assigned;
 }
 
 /** Ensure a single student has a Student ID; returns the code. */
@@ -31,14 +50,14 @@ export async function ensureStudentUserId(userId: string): Promise<string | unde
   if (!user) return undefined;
 
   if (!user.studentId) {
-    user.studentId = generateStudentId();
+    user.studentId = await generateUniqueStudentId();
     await user.save();
   }
 
   return user.studentId;
 }
 
-/** Resolve a Student ID code (STU-…) or MongoDB _id to the student's user _id. */
+/** Resolve a 6-digit Student ID or MongoDB _id to the student's user _id. */
 export async function resolveStudentUserId(identifier: string): Promise<string | null> {
   await connectDB();
   const trimmed = identifier.trim();
@@ -49,6 +68,14 @@ export async function resolveStudentUserId(identifier: string): Promise<string |
     if (byObjectId) return byObjectId._id.toString();
   }
 
-  const byCode = await User.findOne({ studentId: trimmed, role: "student" }).select("_id").lean();
+  const normalized = /^\d+$/.test(trimmed) ? normalizeStudentIdInput(trimmed) : trimmed;
+
+  const byCode = await User.findOne({
+    role: "student",
+    $or: [{ studentId: trimmed }, { studentId: normalized }],
+  })
+    .select("_id")
+    .lean();
+
   return byCode ? byCode._id.toString() : null;
 }

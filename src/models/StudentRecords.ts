@@ -51,9 +51,12 @@ export interface IAttendance extends Document {
   courseId?: mongoose.Types.ObjectId;
   eventId?: mongoose.Types.ObjectId;
   sessionDate: Date;
-  status: "present" | "absent" | "late" | "excused";
+  status: "present" | "absent" | "late" | "excused" | "early_dismissal";
   notes?: string;
   recordedBy: mongoose.Types.ObjectId;
+  parentExcuseNote?: string;
+  parentExcuseDocUrl?: string;
+  parentExcuseSubmittedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,11 +69,14 @@ const AttendanceSchema = new Schema<IAttendance>(
     sessionDate: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["present", "absent", "late", "excused"],
+      enum: ["present", "absent", "late", "excused", "early_dismissal"],
       required: true,
     },
     notes: String,
     recordedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    parentExcuseNote: String,
+    parentExcuseDocUrl: String,
+    parentExcuseSubmittedAt: Date,
   },
   { timestamps: true }
 );

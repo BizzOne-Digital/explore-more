@@ -107,7 +107,11 @@ export function BillingClient() {
         const json = await res.json().catch(() => null);
         if (cancelled) return;
         if (!json?.success) {
-          setError(json?.error || "Failed to load billing information");
+          const msg =
+            res.status === 403
+              ? "This page requires a parent account. Please sign out and sign in at /parent/login with your parent email."
+              : json?.error || "Failed to load billing information";
+          setError(msg);
           setData(null);
           return;
         }
@@ -218,13 +222,23 @@ export function BillingClient() {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-center">
         <p className="text-red-700">{error || "Unable to load billing."}</p>
-        <button
-          type="button"
-          onClick={load}
-          className="mt-3 rounded-lg bg-explore-teal px-4 py-2 text-sm text-white"
-        >
-          Try again
-        </button>
+        {error?.toLowerCase().includes("parent account") && (
+          <a
+            href="/parent/login?callbackUrl=/parent/billing"
+            className="mt-3 inline-block rounded-lg bg-explore-teal px-4 py-2 text-sm text-white"
+          >
+            Go to parent login
+          </a>
+        )}
+        {!error?.toLowerCase().includes("parent account") && (
+          <button
+            type="button"
+            onClick={load}
+            className="mt-3 rounded-lg bg-explore-teal px-4 py-2 text-sm text-white"
+          >
+            Try again
+          </button>
+        )}
       </div>
     );
   }

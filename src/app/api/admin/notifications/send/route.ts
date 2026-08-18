@@ -15,6 +15,8 @@ const notificationSchema = z.object({
   message: z.string().min(1),
   audience: z.enum(["all_parents", "portfolio_parents", "tutoring_parents"]),
   priority: z.enum(["normal", "important", "urgent"]),
+  attachmentPath: z.string().optional(),
+  attachmentName: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -42,6 +44,8 @@ export async function POST(request: NextRequest) {
       audience: data.audience,
       priority: data.priority,
       recipientIds: recipients,
+      attachmentPath: data.attachmentPath,
+      attachmentName: data.attachmentName,
       sentAt: new Date(),
       sentBy: session.user.id,
     });
@@ -84,6 +88,19 @@ export async function POST(request: NextRequest) {
                 <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
                   <p style="margin: 0; white-space: pre-wrap;">${data.message}</p>
                 </div>
+
+                ${
+                  data.attachmentPath
+                    ? `<div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                  <p style="margin: 0; font-size: 14px;">
+                    📎 <strong>Attachment:</strong>
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004"}${data.attachmentPath.startsWith("/") ? "" : "/"}${data.attachmentPath}" style="color: ${priorityColors[data.priority]};">
+                      ${data.attachmentName || "View attachment"}
+                    </a>
+                  </p>
+                </div>`
+                    : ""
+                }
 
                 <div style="margin: 30px 0;">
                   <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004'}/parent/notifications" 

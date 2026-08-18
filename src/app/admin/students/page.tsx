@@ -4,9 +4,12 @@ import { User, GuardianStudentLink } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { StudentsTable } from "@/components/admin/StudentsTable";
 import { serializeAdmin } from "@/lib/admin/serialize";
+import { ensureAllStudentIds } from "@/lib/students/id";
 
 async function getData() {
   await connectDB();
+  await ensureAllStudentIds();
+
   const students = await User.find({ role: "student" }).sort({ createdAt: -1 }).lean();
 
   const studentIds = students.map((s) => s._id);
@@ -31,7 +34,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ s
     <div>
       <PageHeader
         title="Students"
-        description="Student accounts and profiles"
+        description="Each student has a unique Student ID (e.g. STU-…) used to link parent accounts in Guardian Links."
         action={{ label: "New Student", href: "/admin/students/new" }}
       />
       <StudentsTable

@@ -104,6 +104,28 @@ async function main() {
   });
   console.log(`✓ Admin user (${adminEmail})`);
 
+  // ── Demo Parent User ──
+  const parentEmail = (process.env.PARENT_EMAIL ?? "parent@exploremoreacademy.com").toLowerCase();
+  const parentPassword = process.env.PARENT_PASSWORD ?? "ChangeMe123!";
+  const parentHash = await hashPassword(parentPassword);
+
+  await User.deleteMany({ email: parentEmail });
+  await User.create({
+    name: "Demo Parent",
+    email: parentEmail,
+    passwordHash: parentHash,
+    role: "parent",
+    emailVerified: true,
+    isActive: true,
+    notificationPreferences: {
+      events: true,
+      courses: true,
+      newsletter: false,
+      announcements: true,
+    },
+  });
+  console.log(`✓ Demo parent user (${parentEmail})`);
+
   // ── Six Programs ──
   await Program.deleteMany({});
   const programs = [
@@ -501,6 +523,7 @@ async function main() {
 
   console.log("\nSeed complete!");
   console.log(`Admin login: ${adminEmail} / ${adminPassword}`);
+  console.log(`Parent login: ${parentEmail} / ${parentPassword}`);
   if (!RESET_DB) {
     console.log("Note: Run with RESET_DB=true to drop and fully reseed.");
   }

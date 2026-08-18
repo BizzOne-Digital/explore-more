@@ -14,6 +14,7 @@ import {
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { COMPANY } from "@/lib/constants";
+import { centsToDollars, dollarsToCents } from "@/lib/utils";
 
 const schema = z.object({
   companyName: z.string().min(1),
@@ -24,8 +25,8 @@ const schema = z.object({
   stripeEnabled: z.boolean(),
   manualOrderMode: z.boolean(),
   taxRatePercent: z.coerce.number(),
-  shippingFlatCents: z.coerce.number(),
-  freeShippingThresholdCents: z.coerce.number(),
+  shippingFlatAmount: z.coerce.number().min(0),
+  freeShippingThresholdAmount: z.coerce.number().min(0),
   introEnabled: z.boolean(),
   showStats: z.boolean(),
   students: z.coerce.number().optional(),
@@ -54,8 +55,8 @@ export function SettingsForm() {
       stripeEnabled: false,
       manualOrderMode: false,
       taxRatePercent: 0,
-      shippingFlatCents: 0,
-      freeShippingThresholdCents: 0,
+      shippingFlatAmount: 0,
+      freeShippingThresholdAmount: 0,
       introEnabled: true,
       showStats: false,
     },
@@ -76,8 +77,8 @@ export function SettingsForm() {
             stripeEnabled: s.stripeEnabled ?? false,
             manualOrderMode: s.manualOrderMode ?? false,
             taxRatePercent: s.taxRatePercent ?? 0,
-            shippingFlatCents: s.shippingFlatCents ?? 0,
-            freeShippingThresholdCents: s.freeShippingThresholdCents ?? 0,
+            shippingFlatAmount: centsToDollars(s.shippingFlatCents ?? 0),
+            freeShippingThresholdAmount: centsToDollars(s.freeShippingThresholdCents ?? 0),
             introEnabled: s.introEnabled ?? true,
             showStats: s.verifiedStats?.showStats ?? false,
             students: s.verifiedStats?.students,
@@ -100,8 +101,8 @@ export function SettingsForm() {
       stripeEnabled: data.stripeEnabled,
       manualOrderMode: data.manualOrderMode,
       taxRatePercent: data.taxRatePercent,
-      shippingFlatCents: data.shippingFlatCents,
-      freeShippingThresholdCents: data.freeShippingThresholdCents,
+      shippingFlatCents: dollarsToCents(data.shippingFlatAmount),
+      freeShippingThresholdCents: dollarsToCents(data.freeShippingThresholdAmount),
       introEnabled: data.introEnabled,
       verifiedStats: {
         showStats: data.showStats,
@@ -158,11 +159,21 @@ export function SettingsForm() {
           <FormField label="Tax Rate (%)" error={errors.taxRatePercent}>
             <TextInput registration={register("taxRatePercent")} type="number" step="0.01" error={errors.taxRatePercent} />
           </FormField>
-          <FormField label="Shipping Flat (cents)" error={errors.shippingFlatCents}>
-            <TextInput registration={register("shippingFlatCents")} type="number" error={errors.shippingFlatCents} />
+          <FormField label="Shipping Flat (USD)" error={errors.shippingFlatAmount} hint="e.g. 5.99">
+            <TextInput
+              registration={register("shippingFlatAmount")}
+              type="number"
+              step="0.01"
+              error={errors.shippingFlatAmount}
+            />
           </FormField>
-          <FormField label="Free Shipping Threshold (cents)" error={errors.freeShippingThresholdCents}>
-            <TextInput registration={register("freeShippingThresholdCents")} type="number" error={errors.freeShippingThresholdCents} />
+          <FormField label="Free Shipping Threshold (USD)" error={errors.freeShippingThresholdAmount} hint="e.g. 50.00">
+            <TextInput
+              registration={register("freeShippingThresholdAmount")}
+              type="number"
+              step="0.01"
+              error={errors.freeShippingThresholdAmount}
+            />
           </FormField>
           <div className="flex flex-col gap-3 sm:col-span-2">
             <CheckboxInput registration={register("stripeEnabled")} label="Stripe enabled" />

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { formatDate } from "@/lib/admin/serialize";
-import { Search } from "lucide-react";
+import { Search, Copy, Check } from "lucide-react";
 import Link from "next/link";
 
 interface Student {
@@ -30,6 +30,13 @@ interface Props {
 
 export function StudentsTable({ students, guardianLinks, initialSearch }: Props) {
   const [searchTerm, setSearchTerm] = useState(initialSearch || "");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  async function copyStudentId(studentId: string) {
+    await navigator.clipboard.writeText(studentId);
+    setCopiedId(studentId);
+    setTimeout(() => setCopiedId(null), 2000);
+  }
 
   // Create a map of student ID to guardian info
   const guardianMap = useMemo(() => {
@@ -110,12 +117,30 @@ export function StudentsTable({ students, guardianLinks, initialSearch }: Props)
                 return (
                   <tr key={student._id} className="transition hover:bg-white/5">
                     <td className="px-4 py-3 text-sm">
-                      <Link 
-                        href={`/admin/students/${student._id}`} 
-                        className="font-mono text-explore-teal hover:underline"
-                      >
-                        {student.studentId || "—"}
-                      </Link>
+                      {student.studentId ? (
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/admin/students/${student._id}`}
+                            className="font-mono text-explore-teal hover:underline"
+                          >
+                            {student.studentId}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => copyStudentId(student.studentId!)}
+                            className="text-white/40 hover:text-explore-teal"
+                            title="Copy Student ID"
+                          >
+                            {copiedId === student.studentId ? (
+                              <Check className="h-3.5 w-3.5" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-white/40">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <Link 

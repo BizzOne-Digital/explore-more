@@ -3,6 +3,11 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { ParentNotification, User } from "@/models";
 import { sendTransactionalEmail } from "@/lib/services/email";
+import {
+  allowsEmptyRecipients,
+  noRecipientsMessage,
+  resolveNotificationRecipients,
+} from "@/lib/notifications/recipients";
 import { z } from "zod";
 
 const notificationSchema = z.object({
@@ -24,34 +29,10 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Get recipient list based on audience
-    let recipients: string[] = [];
+    const recipients = await resolveNotificationRecipients(data.audience);
 
-    switch (data.audience) {
-      case "all_parents":
-        const allParents = await User.find({ role: "parent", isActive: true }).select("_id");
-        recipients = allParents.map((p) => p._id.toString());
-        break;
-
-      case "portfolio_parents":
-        // Parents with portfolio access
-        const { HomeschoolPortfolio } = await import("@/models/Portfolio");
-        const portfolios = await HomeschoolPortfolio.find().distinct("guardianId");
-        recipients = portfolios.map((id: unknown) => String(id));
-        break;
-
-      case "tutoring_parents":
-        // Parents with tutoring enrollments (implement based on your enrollment model)
-        const tutorParents = await User.find({ role: "parent", isActive: true }).select("_id");
-        recipients = tutorParents.map((p) => p._id.toString());
-        break;
-    }
-
-    if (recipients.length === 0) {
-      return NextResponse.json(
-        { error: "No recipients found for the selected audience" },
-        { status: 400 }
-      );
+    if (recipients.length === 0 && !allowsEmptyRecipients(data.audience)) {
+      return NextResponse.json({ error: noRecipientsMessage(data.audience) }, { status: 400 });
     }
 
     // Create notification record
@@ -127,9 +108,14 @@ export async function POST(request: NextRequest) {
       console.error("Batch email error:", err);
     });
 
+    const message =
+      recipients.length > 0
+        ? `Notification sent to ${recipients.length} parent(s)`
+        : "Notification published. It will appear in the parent portal when parent accounts sign up.";
+
     return NextResponse.json({
       success: true,
-      message: `Notification sent to ${recipients.length} parent(s)`,
+      message,
       notificationId: notification._id,
       recipientCount: recipients.length,
     });

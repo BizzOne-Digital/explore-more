@@ -1,6 +1,11 @@
+import connectDB from "@/lib/db";
 import { AdminGuardianLinksManager } from "@/components/admin/GuardianLinksManager";
+import { ensureAllStudentIds } from "@/lib/students/id";
 
-export default function AdminGuardianLinksPage() {
+export default async function AdminGuardianLinksPage() {
+  await connectDB();
+  await ensureAllStudentIds();
+
   return (
     <div>
       <h1 className="font-display text-2xl font-bold text-white mb-2">Guardian Links</h1>

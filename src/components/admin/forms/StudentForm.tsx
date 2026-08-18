@@ -37,18 +37,31 @@ interface GuardianLink {
   status: string;
 }
 
+interface ParentOption {
+  _id: string;
+  name: string;
+  email: string;
+}
+
 export function StudentForm({
   initialData,
   isNew = false,
   guardianLinks = [],
+  parents = [],
 }: {
   initialData?: Record<string, unknown> & { _id?: string };
   isNew?: boolean;
   guardianLinks?: GuardianLink[];
+  parents?: ParentOption[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [selectedParentId, setSelectedParentId] = useState("");
+  const [relationship, setRelationship] = useState("Parent");
   const [sendingReset, setSendingReset] = useState(false);
+  const [createdStudentId, setCreatedStudentId] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -89,9 +102,50 @@ export function StudentForm({
       setError(json.error ?? "Save failed");
       return;
     }
+
+    if (isNew && json.data?.user?.studentId) {
+      setCreatedStudentId(json.data.user.studentId as string);
+      return;
+    }
+
     router.push("/admin/students");
     router.refresh();
   }
+
+  async function handleLinkParent() {
+    if (!initialData?._id || !selectedParentId) return;
+
+    setLinkError(null);
+    setLinking(true);
+
+    try {
+      const res = await fetch("/api/admin/guardian-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          guardianId: selectedParentId,
+          studentId: initialData._id,
+          relationship,
+          status: "approved",
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setLinkError(json.error ?? "Failed to link parent");
+        return;
+      }
+      setSelectedParentId("");
+      router.refresh();
+    } catch {
+      setLinkError("Failed to link parent");
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  const displayStudentId =
+    createdStudentId ||
+    (typeof initialData?.studentId === "string" ? initialData.studentId : "");
 
   async function handleDeactivate() {
     if (!initialData?._id) return;
@@ -172,19 +226,43 @@ export function StudentForm({
         </div>
       )}
 
-      {!isNew && typeof initialData?.studentId === "string" && initialData.studentId ? (
+      {createdStudentId && (
+        <div className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-4">
+          <p className="text-sm text-green-300 mb-2">Student created successfully.</p>
+          <p className="text-xs text-white/60">Student ID (use this to link parent accounts):</p>
+          <p className="font-mono text-lg font-semibold text-explore-teal">{createdStudentId}</p>
+          <button
+            type="button"
+            onClick={() => router.push("/admin/students")}
+            className="mt-3 rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white"
+          >
+            Go to Students List
+          </button>
+        </div>
+      )}
+
+      {!isNew && displayStudentId && !createdStudentId ? (
         <div className="mb-6 rounded-xl border border-explore-teal/30 bg-explore-teal/10 p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs text-white/60">Student ID</p>
-              <p className="font-mono text-lg font-semibold text-explore-teal">
-                {initialData.studentId}
+              <p className="font-mono text-lg font-semibold text-explore-teal">{displayStudentId}</p>
+              <p className="mt-1 text-xs text-white/50">
+                Share this ID when linking this student to a parent account.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(displayStudentId)}
+              className="rounded-lg border border-explore-teal/40 px-3 py-1.5 text-xs font-medium text-explore-teal hover:bg-explore-teal/10"
+            >
+              Copy ID
+            </button>
           </div>
         </div>
       ) : null}
 
+      {!createdStudentId && (
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormSection title="Student Information">
           <FormField label="Full Name" error={errors.name} required className="sm:col-span-2">
@@ -217,7 +295,7 @@ export function StudentForm({
         </FormSection>
 
         {!isNew && guardianLinks.length > 0 && (
-          <FormSection title="Parent/Guardian Links">
+          <FormSection title="Linked Parents/Guardians">
             <div className="sm:col-span-2 space-y-2">
               {guardianLinks.map((link) => (
                 <div
@@ -244,6 +322,52 @@ export function StudentForm({
                   </div>
                 </div>
               ))}
+            </div>
+          </FormSection>
+        )}
+
+        {!isNew && parents.length > 0 && (
+          <FormSection title="Link Parent Account">
+            <div className="sm:col-span-2 space-y-3">
+              {linkError && (
+                <p className="text-sm text-red-400">{linkError}</p>
+              )}
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-xs text-white/60">Parent Account</label>
+                  <select
+                    value={selectedParentId}
+                    onChange={(e) => setSelectedParentId(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                  >
+                    <option value="">Select parent…</option>
+                    {parents.map((parent) => (
+                      <option key={parent._id} value={parent._id}>
+                        {parent.name} ({parent.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-white/60">Relationship</label>
+                  <input
+                    value={relationship}
+                    onChange={(e) => setRelationship(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                    placeholder="Parent"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={handleLinkParent}
+                    disabled={linking || !selectedParentId}
+                    className="w-full rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {linking ? "Linking…" : "Link Parent"}
+                  </button>
+                </div>
+              </div>
             </div>
           </FormSection>
         )}
@@ -305,6 +429,7 @@ export function StudentForm({
           </Link>
         </div>
       </form>
+      )}
     </div>
   );
 }

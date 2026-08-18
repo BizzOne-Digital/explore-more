@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Send, Loader } from "lucide-react";
 
 export function SendNotificationForm() {
@@ -10,13 +10,46 @@ export function SendNotificationForm() {
   const [priority, setPriority] = useState("normal");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [recipientCount, setRecipientCount] = useState<number | null>(null);
+  const [recipientHint, setRecipientHint] = useState("");
+  const [loadingRecipients, setLoadingRecipients] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRecipientCount() {
+      setLoadingRecipients(true);
+      try {
+        const response = await fetch(
+          `/api/admin/email-campaigns/recipients?audience=${encodeURIComponent(audience)}`
+        );
+        const data = await response.json();
+        if (cancelled) return;
+
+        setRecipientCount(data.data?.count ?? 0);
+        setRecipientHint(data.data?.hint ?? "");
+      } catch {
+        if (!cancelled) {
+          setRecipientCount(null);
+          setRecipientHint("");
+        }
+      } finally {
+        if (!cancelled) setLoadingRecipients(false);
+      }
+    }
+
+    loadRecipientCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [audience]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setSuccess(false);
+    setSuccess("");
 
     try {
       const response = await fetch("/api/admin/notifications/send", {
@@ -36,7 +69,7 @@ export function SendNotificationForm() {
         throw new Error(data.error || "Failed to send notification");
       }
 
-      setSuccess(true);
+      setSuccess(data.message || "Notification sent successfully!");
       setTitle("");
       setMessage("");
       setAudience("all_parents");
@@ -123,6 +156,26 @@ export function SendNotificationForm() {
         </div>
       </div>
 
+      <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+        {loadingRecipients ? (
+          <span>Checking recipients...</span>
+        ) : recipientCount === null ? (
+          <span>Unable to load recipient count.</span>
+        ) : recipientCount > 0 ? (
+          <span>
+            This will reach <strong className="text-white">{recipientCount}</strong> parent
+            {recipientCount === 1 ? "" : "s"} by email and in the parent portal.
+          </span>
+        ) : audience === "all_parents" ? (
+          <span>
+            No parent accounts yet. The notification will still be saved and shown in the parent
+            portal when parents sign up.
+          </span>
+        ) : (
+          <span>{recipientHint || "No recipients found for this audience."}</span>
+        )}
+      </div>
+
       {/* Error/Success */}
       {error && (
         <div className="rounded-lg bg-red-500/20 border border-red-500/30 p-3">
@@ -132,14 +185,18 @@ export function SendNotificationForm() {
 
       {success && (
         <div className="rounded-lg bg-green-500/20 border border-green-500/30 p-3">
-          <p className="text-sm text-green-300">✓ Notification sent successfully!</p>
+          <p className="text-sm text-green-300">✓ {success}</p>
         </div>
       )}
 
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={
+          loading ||
+          loadingRecipients ||
+          (recipientCount === 0 && audience !== "all_parents")
+        }
         className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-explore-teal px-4 py-3 text-sm font-semibold text-white hover:bg-explore-teal/90 transition-colors disabled:opacity-50"
       >
         {loading ? (

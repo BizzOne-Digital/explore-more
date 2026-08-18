@@ -1,7 +1,9 @@
 import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
-import { GuardianStudentLink } from "@/models";
+import { GuardianStudentLink, User } from "@/models";
+import { resolveStudentUserId } from "@/lib/students/id";
+import mongoose from "mongoose";
 
 export async function GET() {
   try {
@@ -11,7 +13,7 @@ export async function GET() {
     await connectDB();
     const links = await GuardianStudentLink.find()
       .populate("guardianId", "name email")
-      .populate("studentId", "name email")
+      .populate("studentId", "name email studentId")
       .sort({ createdAt: -1 });
 
     return apiSuccess(links);
@@ -31,11 +33,29 @@ export async function POST(request: Request) {
     }
 
     await connectDB();
+
+    if (!mongoose.Types.ObjectId.isValid(guardianId)) {
+      return apiError(new Error("Invalid guardian ID"), 400);
+    }
+
+    const guardian = await User.findOne({ _id: guardianId, role: "parent" });
+    if (!guardian) {
+      return apiError(new Error("Parent/guardian account not found"), 404);
+    }
+
+    const studentUserId = await resolveStudentUserId(studentId);
+    if (!studentUserId) {
+      return apiError(
+        new Error("Student not found. Use the Student ID from Admin → Students (e.g. STU-…)."),
+        404
+      );
+    }
+
     const link = await GuardianStudentLink.findOneAndUpdate(
-      { guardianId, studentId },
+      { guardianId, studentId: studentUserId },
       {
         guardianId,
-        studentId,
+        studentId: studentUserId,
         relationship,
         status: status ?? "approved",
         consentGiven: true,
@@ -43,7 +63,9 @@ export async function POST(request: Request) {
         approvedBy: sessionResult.user.id,
       },
       { upsert: true, new: true }
-    );
+    )
+      .populate("guardianId", "name email")
+      .populate("studentId", "name email studentId");
 
     return apiSuccess(link, 201);
   } catch (error) {
@@ -64,7 +86,9 @@ export async function PATCH(request: Request) {
       linkId,
       { status, approvedBy: sessionResult.user.id },
       { new: true }
-    );
+    )
+      .populate("guardianId", "name email")
+      .populate("studentId", "name email studentId");
     if (!link) return apiError(new Error("Link not found"), 404);
 
     return apiSuccess(link);

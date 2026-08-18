@@ -17,6 +17,12 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { FileUpload } from "@/components/admin/FileUpload";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Mail, Bell, Users, Send, Eye, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import {
+  audienceAllowsEmptyRecipients,
+  canEditCampaign,
+  canSendCampaign,
+} from "@/lib/email/campaign-utils";
 
 const schema = z.object({
   type: z.enum(["event", "course", "announcement", "custom"]),
@@ -49,8 +55,13 @@ export function EmailCampaignForm({
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [recipientCount, setRecipientCount] = useState(0);
+  const [recipientHint, setRecipientHint] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+  const campaignStatus = (initialData?.status as string) ?? "draft";
+  const isReadOnly = !isNew && !canEditCampaign(campaignStatus);
+  const canSend = isNew || canSendCampaign(campaignStatus);
 
   const {
     register,
@@ -87,7 +98,8 @@ export function EmailCampaignForm({
         const res = await fetch(`/api/admin/email-campaigns/recipients?audience=${watchAudience}`);
         if (res.ok) {
           const data = await res.json();
-          setRecipientCount(data.count || 0);
+          setRecipientCount(data.data?.count ?? 0);
+          setRecipientHint(data.data?.hint ?? "");
         }
       } catch (err) {
         console.error("Failed to fetch recipient count:", err);
@@ -148,6 +160,23 @@ export function EmailCampaignForm({
   }
 
   async function handleSendNow() {
+    if (
+      watchAudience === "custom" &&
+      selectedUserIds.length === 0
+    ) {
+      setError("Select at least one recipient for a custom campaign.");
+      return;
+    }
+
+    if (
+      watchAudience !== "custom" &&
+      recipientCount === 0 &&
+      !audienceAllowsEmptyRecipients(watchAudience, watchDeliveryMethod)
+    ) {
+      setError(recipientHint || "No recipients found for the selected audience.");
+      return;
+    }
+
     if (!confirm("Are you sure you want to send this campaign now? This action cannot be undone.")) {
       return;
     }
@@ -173,6 +202,31 @@ export function EmailCampaignForm({
         </div>
       )}
 
+      {isReadOnly && (
+        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          {campaignStatus === "sent" ? (
+            <>
+              This campaign was already sent
+              {initialData?.sentAt
+                ? ` on ${new Date(String(initialData.sentAt)).toLocaleString()}`
+                : ""}
+              .{" "}
+              <Link href="/admin/email-campaigns/new" className="font-medium underline">
+                Create a new campaign
+              </Link>{" "}
+              to send another message.
+            </>
+          ) : campaignStatus === "sending" ? (
+            "This campaign is currently sending."
+          ) : campaignStatus === "queued" ? (
+            "This campaign is queued and will send shortly."
+          ) : (
+            "This campaign can no longer be edited."
+          )}
+        </div>
+      )}
+
+      <fieldset disabled={isReadOnly} className={isReadOnly ? "opacity-80" : undefined}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Campaign Settings */}
         <FormSection title="Campaign Settings">
@@ -360,7 +414,13 @@ export function EmailCampaignForm({
                   <p className="text-sm font-medium text-white">
                     {recipientCount} recipient{recipientCount !== 1 ? "s" : ""}
                   </p>
-                  <p className="text-xs text-white/60">will receive this campaign</p>
+                  <p className="text-xs text-white/60">
+                    {recipientCount > 0
+                      ? "will receive this campaign"
+                      : audienceAllowsEmptyRecipients(watchAudience, watchDeliveryMethod)
+                        ? "No parent accounts yet — in-app notifications will still be published for future parents."
+                        : recipientHint || "No recipients found for this audience."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -503,24 +563,33 @@ export function EmailCampaignForm({
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isReadOnly}
               className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
             >
               Save as Draft
             </button>
 
-            <button
-              type="button"
-              onClick={handleSendNow}
-              disabled={isSubmitting}
-              className="flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white transition hover:bg-explore-teal/90 disabled:opacity-50"
-            >
-              <Send className="h-4 w-4" />
-              Send Now
-            </button>
+            {canSend && (
+              <button
+                type="button"
+                onClick={handleSendNow}
+                disabled={
+                  isSubmitting ||
+                  (watchAudience === "custom" && selectedUserIds.length === 0) ||
+                  (watchAudience !== "custom" &&
+                    recipientCount === 0 &&
+                    !audienceAllowsEmptyRecipients(watchAudience, watchDeliveryMethod))
+                }
+                className="flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white transition hover:bg-explore-teal/90 disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+                {campaignStatus === "failed" ? "Retry Send" : "Send Now"}
+              </button>
+            )}
           </div>
         </div>
       </form>
+      </fieldset>
     </div>
   );
 }

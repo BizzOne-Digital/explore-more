@@ -80,6 +80,33 @@ export const ParentSubscription: Model<IParentSubscription> =
   mongoose.models.ParentSubscription ??
   mongoose.model<IParentSubscription>("ParentSubscription", ParentSubscriptionSchema);
 
+export interface IPendingMembership extends Document {
+  email: string;
+  planId: mongoose.Types.ObjectId;
+  stripeSubscriptionId: string;
+  stripeCustomerId?: string;
+  stripePriceId?: string;
+  currentPeriodEnd?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const PendingMembershipSchema = new Schema<IPendingMembership>(
+  {
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    planId: { type: Schema.Types.ObjectId, ref: "SubscriptionPlan", required: true },
+    stripeSubscriptionId: { type: String, required: true },
+    stripeCustomerId: String,
+    stripePriceId: String,
+    currentPeriodEnd: Date,
+  },
+  { timestamps: true }
+);
+
+export const PendingMembership: Model<IPendingMembership> =
+  mongoose.models.PendingMembership ??
+  mongoose.model<IPendingMembership>("PendingMembership", PendingMembershipSchema);
+
 export interface IPaymentMethodSnapshot {
   brand: string;
   last4: string;

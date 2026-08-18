@@ -24,11 +24,23 @@ export async function GET() {
     });
     const readMap = new Map(reads.map((r) => [r.notificationId.toString(), r]));
 
-    const items = notifications.map((n) => ({
-      ...n.toObject(),
-      read: readMap.get(n._id.toString())?.readAt != null,
-      acknowledged: readMap.get(n._id.toString())?.acknowledgedAt != null,
-    }));
+    const items = notifications.map((n) => {
+      const readRecord = readMap.get(n._id.toString());
+      return {
+        _id: n._id.toString(),
+        title: n.title,
+        message: n.message,
+        priority: n.priority,
+        sentAt: n.sentAt,
+        requiresAcknowledgment: Boolean(n.requiresAcknowledgment),
+        attachmentPath: n.attachmentPath || undefined,
+        attachmentName: n.attachmentName || undefined,
+        sentBy: n.sentBy,
+        read: readRecord?.readAt != null,
+        readAt: readRecord?.readAt,
+        acknowledged: readRecord?.acknowledgedAt != null,
+      };
+    });
 
     const unreadCount = items.filter((i) => !i.read).length;
 

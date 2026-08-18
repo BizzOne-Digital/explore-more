@@ -47,6 +47,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         user.lockUntil = undefined;
         await user.save();
 
+        if (user.role === "parent") {
+          const { claimPendingMembership } = await import("@/lib/billing/membership-activation");
+          await claimPendingMembership(user._id.toString(), user.email);
+        }
+
         return {
           id: user._id.toString(),
           email: user.email,

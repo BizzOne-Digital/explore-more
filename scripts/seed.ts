@@ -16,6 +16,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { COMPANY, PAGE_KEYS } from "../src/lib/constants";
 import { getPageSectionCatalog } from "../src/lib/content/page-sections";
+import { buildSubscriptionPlanSeedRows } from "../src/lib/membership/plans";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const RESET_DB = process.env.RESET_DB === "true";
@@ -137,44 +138,19 @@ async function main() {
 
   // ── Subscription Plans ──
   await SubscriptionPlan.deleteMany({});
-  const explorerPlan = await SubscriptionPlan.create({
-    name: "Explorer Monthly",
-    slug: "explorer-monthly",
-    description: "Core access to parent portal, attendance, and community resources.",
-    priceCents: 4900,
-    interval: "month",
-    features: [
-      "Parent portal & dashboard",
-      "Attendance tracking",
-      "Course & resource library",
-      "Email notifications",
-    ],
-    isActive: true,
-    sortOrder: 1,
-  });
-  await SubscriptionPlan.create({
-    name: "Adventure Monthly",
-    slug: "adventure-monthly",
-    description: "Expanded access including portfolio tools and priority support.",
-    priceCents: 7900,
-    interval: "month",
-    features: [
-      "Everything in Explorer",
-      "Homeschool portfolio tools",
-      "Priority messaging",
-      "Event early access",
-    ],
-    isActive: true,
-    sortOrder: 2,
-  });
+  const planRows = buildSubscriptionPlanSeedRows();
+  const createdPlans = await SubscriptionPlan.insertMany(planRows);
+  const explorerPlan = createdPlans.find((p) => p.slug === "explorer-monthly");
   await ParentSubscription.deleteMany({ userId: parentUser._id });
-  await ParentSubscription.create({
-    userId: parentUser._id,
-    planId: explorerPlan._id,
-    status: "active",
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  });
-  console.log("✓ Subscription plans + demo parent subscription");
+  if (explorerPlan) {
+    await ParentSubscription.create({
+      userId: parentUser._id,
+      planId: explorerPlan._id,
+      status: "active",
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
+  }
+  console.log(`✓ ${createdPlans.length} membership plans + demo parent subscription`);
 
   // ── Six Programs ──
   await Program.deleteMany({});

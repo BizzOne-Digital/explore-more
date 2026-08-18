@@ -49,6 +49,11 @@ export function CheckoutForm() {
       } else if (json.orderNumber) {
         clearCart();
         window.location.href = `/order-success?order=${json.orderNumber}`;
+      } else if (json.manual) {
+        clearCart();
+        window.location.href = `/order-success?order=${json.orderNumber}`;
+      } else {
+        throw new Error("No checkout URL returned. Please try again.");
       }
     } catch (err) {
       setStatus("error");

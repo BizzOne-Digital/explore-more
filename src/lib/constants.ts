@@ -47,6 +47,7 @@ export const PAGE_KEYS = [
   "events",
   "books",
   "courses",
+  "membership",
   "programs",
   "sponsor-a-kid",
   "gallery",

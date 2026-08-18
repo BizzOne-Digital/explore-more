@@ -9,6 +9,7 @@ export function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const tokenFromUrl = searchParams.get("token") || "";
+  const callbackUrl = searchParams.get("callbackUrl") || "/login";
   const [token, setToken] = useState(tokenFromUrl);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [resendStatus, setResendStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
@@ -81,11 +82,14 @@ export function VerifyEmailForm() {
   }
 
   if (status === "success") {
+    const loginHref = `/login?callbackUrl=${encodeURIComponent(callbackUrl)}${
+      email ? `&email=${encodeURIComponent(email)}` : ""
+    }`;
     return (
       <div className="text-center space-y-4">
         <p className="font-display text-xl font-bold text-explore-forest">Email verified!</p>
         <p className="text-sm text-explore-charcoal/70">Your account is active. You can now sign in.</p>
-        <Button href="/login" variant="secondary">Sign In</Button>
+        <Button href={loginHref} variant="secondary">Sign In</Button>
       </div>
     );
   }

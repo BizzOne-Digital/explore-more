@@ -9,14 +9,22 @@ import {
   Donation,
   DonationCampaign,
 } from "@/models";
-import { constructWebhookEvent } from "@/lib/services/stripe";
+import { constructWebhookEvent, getStripe } from "@/lib/services/stripe";
+import {
+  activateMembershipForUser,
+  savePendingMembership,
+} from "@/lib/billing/membership-activation";
 import { queueEmail, emailTemplates } from "@/lib/services/email";
 import { formatCents } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const checkoutType = session.metadata?.checkoutType;
+  const metadata = session.metadata ?? {};
+  const checkoutType =
+    metadata.checkoutType ||
+    (metadata.type === "order" ? "books" : undefined) ||
+    (metadata.type === "enrollment" ? "course" : undefined);
   if (!checkoutType) return;
 
   await connectDB();
@@ -59,7 +67,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     case "course": {
-      const enrollmentId = session.metadata?.enrollmentId;
+      let enrollmentId = session.metadata?.enrollmentId;
+      if (!enrollmentId && session.metadata?.courseId && session.metadata?.userId) {
+        const existing = await Enrollment.findOne({
+          courseId: session.metadata.courseId,
+          userId: session.metadata.userId,
+        });
+        enrollmentId = existing?._id?.toString();
+      }
       if (!enrollmentId) return;
 
       const enrollment = await Enrollment.findById(enrollmentId).populate("courseId");
@@ -114,6 +129,71 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           htmlBody: template.html,
           template: "eventRegistration",
           metadata: { registrationId: registration._id.toString() },
+        });
+      }
+      break;
+    }
+
+    case "membership": {
+      const planId = session.metadata?.planId;
+      const userId = session.metadata?.userId;
+      const email = (
+        session.customer_email ||
+        session.customer_details?.email ||
+        ""
+      ).toLowerCase();
+      const stripeSubscriptionId =
+        typeof session.subscription === "string"
+          ? session.subscription
+          : session.subscription?.id;
+      const stripeCustomerId =
+        typeof session.customer === "string" ? session.customer : session.customer?.id;
+
+      if (!planId || !stripeSubscriptionId) return;
+
+      let currentPeriodEnd: Date | undefined;
+      const stripe = getStripe();
+      if (stripe) {
+        const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        const periodEnd = (subscription as unknown as { current_period_end?: number }).current_period_end;
+        if (periodEnd) {
+          currentPeriodEnd = new Date(periodEnd * 1000);
+        }
+      }
+
+      const stripePriceId =
+        typeof session.metadata?.stripePriceId === "string"
+          ? session.metadata.stripePriceId
+          : undefined;
+
+      let targetUserId = userId;
+      if (!targetUserId && email) {
+        const user = await User.findOne({ email });
+        targetUserId = user?._id?.toString();
+      }
+
+      if (targetUserId) {
+        await activateMembershipForUser({
+          userId: targetUserId,
+          planId,
+          stripeSubscriptionId,
+          stripePriceId,
+          stripeCustomerId,
+          currentPeriodEnd,
+          status: "active",
+        });
+        if (email) {
+          const { PendingMembership } = await import("@/models");
+          await PendingMembership.deleteOne({ email });
+        }
+      } else if (email) {
+        await savePendingMembership({
+          email,
+          planId,
+          stripeSubscriptionId,
+          stripeCustomerId,
+          stripePriceId,
+          currentPeriodEnd,
         });
       }
       break;
@@ -178,7 +258,7 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.payment_status === "paid") {
+    if (session.payment_status === "paid" || session.mode === "subscription") {
       await handleCheckoutCompleted(session);
     }
   }

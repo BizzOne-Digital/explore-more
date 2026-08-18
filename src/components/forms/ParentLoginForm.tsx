@@ -48,7 +48,7 @@ export function ParentLoginForm() {
         </p>
       </div>
       
-      <Input name="email" type="email" label="Email" required autoComplete="email" />
+      <Input name="email" type="email" label="Email" required autoComplete="email" defaultValue={searchParams.get("email") || ""} />
       <Input name="password" type="password" label="Password" required autoComplete="current-password" />
       
       {error && <p className="text-sm text-red-600">{error}</p>}

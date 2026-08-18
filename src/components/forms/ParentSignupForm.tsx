@@ -10,6 +10,7 @@ export function ParentSignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/parent";
+  const defaultEmail = searchParams.get("email") || "";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +61,14 @@ export function ParentSignupForm() {
       </div>
       
       <Input name="name" label="Full Name" required autoComplete="name" />
-      <Input name="email" type="email" label="Email" required autoComplete="email" />
+      <Input
+        name="email"
+        type="email"
+        label="Email"
+        required
+        autoComplete="email"
+        defaultValue={defaultEmail}
+      />
       <Input 
         name="password" 
         type="password" 

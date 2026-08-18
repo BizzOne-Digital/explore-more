@@ -24,6 +24,7 @@ export async function createCheckoutSession(params: {
   mode: "payment" | "subscription";
   metadata: Record<string, string>;
   customerEmail?: string;
+  customer?: string;
   successUrl: string;
   cancelUrl: string;
 }): Promise<Stripe.Checkout.Session> {
@@ -37,10 +38,19 @@ export async function createCheckoutSession(params: {
     line_items: params.lineItems,
     mode: params.mode,
     metadata: params.metadata,
-    customer_email: params.customerEmail,
+    customer: params.customer,
+    customer_email: params.customer ? undefined : params.customerEmail,
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
   });
+}
+
+export async function retrieveCheckoutSession(
+  sessionId: string
+): Promise<Stripe.Checkout.Session | null> {
+  const stripe = getStripe();
+  if (!stripe) return null;
+  return stripe.checkout.sessions.retrieve(sessionId);
 }
 
 export function constructWebhookEvent(body: string, signature: string): Stripe.Event {

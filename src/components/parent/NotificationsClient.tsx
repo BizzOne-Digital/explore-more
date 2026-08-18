@@ -1,11 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText, ExternalLink, CheckCircle2 } from "lucide-react";
 import {
-  isPdfAttachment,
+  getNotificationAttachments,
   looksLikeHtml,
-  resolveNotificationFileUrl,
   sanitizeNotificationHtml,
 } from "@/lib/notifications/display";
 
@@ -15,6 +15,7 @@ interface NotificationItem {
   message: string;
   priority: string;
   sentAt?: string;
+  readAt?: string;
   requiresAcknowledgment: boolean;
   read: boolean;
   acknowledged: boolean;
@@ -31,14 +32,20 @@ export function NotificationsClient({
   unreadCount: number;
 }) {
   const router = useRouter();
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   async function markRead(id: string, acknowledge = false) {
-    await fetch("/api/parent/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notificationId: id, acknowledge }),
-    });
-    router.refresh();
+    setBusyId(id);
+    try {
+      await fetch("/api/parent/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId: id, acknowledge }),
+      });
+      router.refresh();
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
@@ -49,8 +56,11 @@ export function NotificationsClient({
         </p>
       )}
       {items.map((item) => {
-        const attachmentUrl = resolveNotificationFileUrl(item.attachmentPath);
-        const showPdf = attachmentUrl && isPdfAttachment(item.attachmentPath, item.attachmentName);
+        const attachments = getNotificationAttachments(
+          item.attachmentPath,
+          item.attachmentName,
+          item.message
+        );
 
         return (
           <article
@@ -70,26 +80,40 @@ export function NotificationsClient({
                   {item.sentAt ? new Date(item.sentAt).toLocaleString() : ""}
                 </p>
               </div>
-              {!item.read && <span className="text-xs font-semibold text-explore-orange">New</span>}
+              {item.read ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-explore-teal">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Read
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-explore-orange">New</span>
+              )}
             </div>
 
-            {attachmentUrl && (
-              <div className="mt-4 rounded-lg border border-explore-teal/20 bg-explore-teal/5 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-explore-charcoal">
-                    <FileText className="h-5 w-5 text-explore-teal" />
-                    {item.attachmentName || (showPdf ? "Attached PDF" : "Attachment")}
-                  </div>
-                  <a
-                    href={attachmentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white hover:bg-explore-teal/90"
+            {attachments.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {attachments.map((attachment) => (
+                  <div
+                    key={attachment.url}
+                    className="rounded-lg border border-explore-teal/20 bg-explore-teal/5 p-4"
                   >
-                    <ExternalLink className="h-4 w-4" />
-                    {showPdf ? "View PDF" : "Open attachment"}
-                  </a>
-                </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-explore-charcoal">
+                        <FileText className="h-5 w-5 shrink-0 text-explore-teal" />
+                        {attachment.name}
+                      </div>
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white hover:bg-explore-teal/90"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {attachment.isPdf ? "View PDF" : "Open attachment"}
+                      </a>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -104,24 +128,34 @@ export function NotificationsClient({
               </p>
             )}
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               {!item.read && (
                 <button
                   type="button"
-                  onClick={() => markRead(item._id)}
-                  className="rounded-lg bg-explore-sand px-3 py-1.5 text-xs font-semibold"
+                  onClick={() => void markRead(item._id)}
+                  disabled={busyId === item._id}
+                  className="rounded-lg bg-explore-sand px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
                 >
-                  Mark as Read
+                  {busyId === item._id ? "Saving…" : "Mark as Read"}
                 </button>
+              )}
+              {item.read && item.readAt && (
+                <p className="text-xs text-explore-charcoal/50">
+                  Marked read {new Date(item.readAt).toLocaleString()}
+                </p>
               )}
               {item.requiresAcknowledgment && !item.acknowledged && (
                 <button
                   type="button"
-                  onClick={() => markRead(item._id, true)}
-                  className="rounded-lg bg-explore-teal px-3 py-1.5 text-xs font-semibold text-white"
+                  onClick={() => void markRead(item._id, true)}
+                  disabled={busyId === item._id}
+                  className="rounded-lg bg-explore-teal px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
                 >
                   I Have Read This Notification
                 </button>
+              )}
+              {item.acknowledged && (
+                <p className="text-xs font-medium text-explore-teal">Acknowledged</p>
               )}
             </div>
           </article>

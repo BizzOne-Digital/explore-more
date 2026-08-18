@@ -26,12 +26,26 @@ export default async function ParentNotificationsPage() {
 
   const readMap = new Map(reads.map((r) => [r.notificationId.toString(), r]));
 
-  const items = notifications.map((n) => ({
-    ...n,
-    _id: n._id.toString(),
-    read: readMap.get(n._id.toString())?.readAt != null,
-    acknowledged: readMap.get(n._id.toString())?.acknowledgedAt != null,
-  }));
+  const items = notifications.map((n) => {
+    const readRecord = readMap.get(n._id.toString());
+    return {
+      _id: n._id.toString(),
+      title: n.title,
+      message: n.message,
+      priority: n.priority,
+      sentAt: n.sentAt ? new Date(n.sentAt).toISOString() : undefined,
+      requiresAcknowledgment: Boolean(n.requiresAcknowledgment),
+      attachmentPath: n.attachmentPath || undefined,
+      attachmentName: n.attachmentName || undefined,
+      sentBy:
+        n.sentBy && typeof n.sentBy === "object" && "name" in n.sentBy
+          ? { name: (n.sentBy as { name?: string }).name }
+          : undefined,
+      read: readRecord?.readAt != null,
+      readAt: readRecord?.readAt ? new Date(readRecord.readAt).toISOString() : undefined,
+      acknowledged: readRecord?.acknowledgedAt != null,
+    };
+  });
 
   const unreadCount = items.filter((i) => !i.read).length;
 
@@ -43,7 +57,7 @@ export default async function ParentNotificationsPage() {
           Academy announcements, portfolio review updates, events, and important reminders.
         </p>
       </div>
-      <NotificationsClient items={JSON.parse(JSON.stringify(items))} unreadCount={unreadCount} />
+      <NotificationsClient items={items} unreadCount={unreadCount} />
     </div>
   );
 }

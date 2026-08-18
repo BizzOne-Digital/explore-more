@@ -29,6 +29,11 @@ export async function POST(request: Request) {
     user.emailVerificationExpires = undefined;
     await user.save();
 
+    if (user.role === "parent") {
+      const { claimPendingMembership } = await import("@/lib/billing/membership-activation");
+      await claimPendingMembership(user._id.toString(), user.email);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {

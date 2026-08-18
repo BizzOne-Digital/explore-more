@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     const existing = await Enrollment.findOne({ courseId: course._id, userId: session.user.id });
-    if (existing) {
+    if (existing && existing.paymentStatus === "paid") {
       return NextResponse.json({ error: "Already enrolled" }, { status: 409 });
     }
 
@@ -40,24 +40,42 @@ export async function POST(request: Request) {
     const isFree = priceCents === 0;
 
     if (isFree) {
-      await Enrollment.create({
-        courseId: course._id,
-        userId: session.user.id,
-        paymentStatus: "free",
-        status: "active",
-      });
+      if (!existing) {
+        await Enrollment.create({
+          courseId: course._id,
+          userId: session.user.id,
+          paymentStatus: "free",
+          status: "active",
+        });
+      }
       return NextResponse.json({ success: true });
     }
 
     const stripe = getStripe();
     if (!stripe) {
-      await Enrollment.create({
+      if (!existing) {
+        await Enrollment.create({
+          courseId: course._id,
+          userId: session.user.id,
+          paymentStatus: "pending",
+          status: "active",
+        });
+      }
+      return NextResponse.json({ success: true, manual: true });
+    }
+
+    const enrollment =
+      existing ??
+      (await Enrollment.create({
         courseId: course._id,
         userId: session.user.id,
         paymentStatus: "pending",
         status: "active",
-      });
-      return NextResponse.json({ success: true, manual: true });
+      }));
+
+    if (existing) {
+      enrollment.paymentStatus = "pending";
+      await enrollment.save();
     }
 
     const checkoutSession = await createCheckoutSession({
@@ -73,7 +91,8 @@ export async function POST(request: Request) {
       ],
       mode: "payment",
       metadata: {
-        type: "enrollment",
+        checkoutType: "course",
+        enrollmentId: enrollment._id.toString(),
         courseId: course._id.toString(),
         userId: session.user.id,
       },
@@ -81,6 +100,9 @@ export async function POST(request: Request) {
       successUrl: `${getAppUrl()}/student?enrolled=${courseSlug}`,
       cancelUrl: `${getAppUrl()}/courses/${courseSlug}`,
     });
+
+    enrollment.stripeSessionId = checkoutSession.id;
+    await enrollment.save();
 
     return NextResponse.json({ checkoutUrl: checkoutSession.url });
   } catch (error) {

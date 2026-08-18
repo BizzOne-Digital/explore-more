@@ -27,8 +27,31 @@ export default function CheckoutPage() {
         <Link href="/cart" className="mb-4 inline-block text-sm text-explore-teal hover:underline">
           ← Back to cart
         </Link>
-        <h1 className="mb-8 font-display text-2xl font-bold text-explore-charcoal sm:text-3xl">Checkout</h1>
+        <h1 className="mb-4 font-display text-2xl font-bold text-explore-charcoal sm:text-3xl">Checkout</h1>
+
+        <div className="mb-6 rounded-2xl border border-explore-charcoal/10 bg-white p-4 shadow-sm sm:p-6">
+          <p className="text-sm font-semibold text-explore-charcoal">How would you like to checkout?</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border-2 border-explore-teal bg-explore-teal/5 p-4">
+              <p className="font-semibold text-explore-charcoal">Checkout as Guest</p>
+              <p className="mt-1 text-xs text-explore-charcoal/70">
+                Complete your bookstore order without creating an account.
+              </p>
+            </div>
+            <Link
+              href="/login?callbackUrl=/checkout"
+              className="rounded-xl border border-explore-charcoal/10 p-4 transition hover:border-explore-teal hover:bg-explore-teal/5"
+            >
+              <p className="font-semibold text-explore-charcoal">Sign in to your account</p>
+              <p className="mt-1 text-xs text-explore-charcoal/70">
+                Use your parent or student login to track orders in your portal.
+              </p>
+            </Link>
+          </div>
+        </div>
+
         <div className="rounded-2xl border border-explore-charcoal/10 bg-white p-4 shadow-sm sm:p-8">
+          <h2 className="mb-4 text-lg font-semibold text-explore-charcoal">Guest checkout</h2>
           <CheckoutForm />
         </div>
       </div>

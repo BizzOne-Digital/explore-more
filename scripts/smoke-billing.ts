@@ -47,6 +47,30 @@ async function main() {
   const sub = await ParentSubscription.findOne({ userId: id }).lean();
   console.log(`✓ Subscription plans: ${planCount}, parent subscription: ${sub?.status ?? "none"}`);
 
+  const { buildSubscriptionPlanSeedRows } = await import("../src/lib/membership/plans");
+  const expectedPlans = buildSubscriptionPlanSeedRows().length;
+  if (planCount < expectedPlans) {
+    console.warn(
+      `⚠ Expected at least ${expectedPlans} membership plans; found ${planCount}. Run: npm run seed`
+    );
+  } else {
+    console.log(`✓ Membership plan catalog complete (${planCount} plans)`);
+  }
+
+  const { MEMBERSHIP_TIERS, membershipPlanSlug } = await import("../src/lib/membership/plans");
+  for (const tier of MEMBERSHIP_TIERS) {
+    const monthly = await SubscriptionPlan.findOne({
+      slug: membershipPlanSlug(tier.id, "month"),
+    }).lean();
+    const annual = await SubscriptionPlan.findOne({
+      slug: membershipPlanSlug(tier.id, "year"),
+    }).lean();
+    if (!monthly || !annual) {
+      console.warn(`⚠ Missing plan rows for tier: ${tier.id}`);
+    }
+  }
+  console.log("✓ Membership tier slug check complete");
+
   console.log("\nAll smoke checks passed.");
   await mongoose.disconnect();
 }

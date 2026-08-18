@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import { User, StudentProfile } from "@/models";
 import { hashPassword, generateVerificationCode } from "@/lib/password";
 import { sendVerificationEmail } from "@/lib/auth/verification-email";
+import { claimPendingMembership } from "@/lib/billing/membership-activation";
 import type { Role } from "@/lib/constants";
 
 const schema = z.object({
@@ -39,6 +40,10 @@ export async function POST(request: Request) {
 
     if (data.role === "student") {
       await StudentProfile.create({ userId: user._id });
+    }
+
+    if (data.role === "parent") {
+      await claimPendingMembership(user._id.toString(), user.email);
     }
 
     const emailResult = await sendVerificationEmail({

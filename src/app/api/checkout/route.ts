@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import connectDB from "@/lib/db";
-import { Order } from "@/models";
+import { Book, Order } from "@/models";
 import { generateOrderNumber } from "@/lib/password";
 import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stripe";
 import { auth } from "@/lib/auth";
+import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
 
 const checkoutSchema = z.object({
   items: z.array(
@@ -35,7 +36,32 @@ export async function POST(request: Request) {
     await connectDB();
 
     const session = await auth();
-    const subtotalCents = data.items.reduce((s, i) => s + i.priceCents * i.quantity, 0);
+
+    const orderItems: Array<{
+      bookId: string;
+      title: string;
+      quantity: number;
+      priceCents: number;
+    }> = [];
+
+    for (const item of data.items) {
+      const book = await Book.findById(item.bookId);
+      if (!book || !isBookPublished(book)) {
+        return NextResponse.json({ error: `Book not available: ${item.title}` }, { status: 404 });
+      }
+      if (book.inventory < item.quantity) {
+        return NextResponse.json({ error: `Insufficient stock for "${book.title}"` }, { status: 400 });
+      }
+
+      orderItems.push({
+        bookId: book._id.toString(),
+        title: book.title,
+        quantity: item.quantity,
+        priceCents: getBookPriceCents(book),
+      });
+    }
+
+    const subtotalCents = orderItems.reduce((s, i) => s + i.priceCents * i.quantity, 0);
     const shippingCents = subtotalCents >= 5000 ? 0 : 599;
     const totalCents = subtotalCents + shippingCents;
     const orderNumber = generateOrderNumber();
@@ -43,12 +69,7 @@ export async function POST(request: Request) {
     const order = await Order.create({
       userId: session?.user?.id,
       orderNumber,
-      items: data.items.map((i) => ({
-        bookId: i.bookId,
-        title: i.title,
-        quantity: i.quantity,
-        priceCents: i.priceCents,
-      })),
+      items: orderItems,
       subtotalCents,
       taxCents: 0,
       shippingCents,
@@ -66,7 +87,7 @@ export async function POST(request: Request) {
     }
 
     const checkoutSession = await createCheckoutSession({
-      lineItems: data.items.map((item) => ({
+      lineItems: orderItems.map((item) => ({
         price_data: {
           currency: "usd",
           product_data: { name: item.title },

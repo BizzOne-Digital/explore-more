@@ -17,7 +17,7 @@ export default async function ParentMessagesPage() {
     .lean();
 
   const staffUsers = await User.find({
-    role: { $in: ["instructor", "administrator"] },
+    role: { $in: ["staff", "instructor", "administrator"] },
     isActive: true,
   }).select("name email role");
 

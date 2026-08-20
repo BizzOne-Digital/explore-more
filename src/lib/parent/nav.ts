@@ -4,6 +4,8 @@ export const PARENT_NAV_ITEMS = [
   { href: "/parent/attendance", label: "Attendance", icon: "attendance" },
   { href: "/parent/portfolio", label: "Courses & Resources", icon: "portfolio" },
   { href: "/parent/messages", label: "Messages", icon: "messages" },
+  { href: "/parent/tutors", label: "Tutors & Staff", icon: "messages" },
+  { href: "/parent/books", label: "My Books", icon: "portfolio" },
   { href: "/parent/receipts", label: "Payments & Receipts", icon: "receipts" },
   { href: "/parent/billing", label: "Billing & Subscription", icon: "billing" },
   { href: "/parent/notifications", label: "Notifications", icon: "notifications" },

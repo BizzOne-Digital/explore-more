@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import connectDB from "@/lib/db";
-import { User, StudentProfile } from "@/models";
+import { User, StudentProfile, ParentProfile } from "@/models";
 import { hashPassword, generateVerificationCode } from "@/lib/password";
 import { sendVerificationEmail } from "@/lib/auth/verification-email";
 import { claimPendingMembership } from "@/lib/billing/membership-activation";
@@ -43,6 +43,11 @@ export async function POST(request: Request) {
     }
 
     if (data.role === "parent") {
+      await ParentProfile.create({
+        userId: user._id,
+        billingName: data.name,
+        billingEmail: user.email,
+      });
       await claimPendingMembership(user._id.toString(), user.email);
     }
 

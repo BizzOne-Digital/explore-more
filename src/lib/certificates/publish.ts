@@ -2,7 +2,7 @@ import connectDB from "@/lib/db";
 import { Certificate, GuardianStudentLink, ParentNotification, User } from "@/models";
 import { sendTransactionalEmail } from "@/lib/services/email";
 import { getCertificateAssociation, getCertificateFileUrl } from "@/lib/certificates/display";
-import mongoose from "mongoose";
+import { Types } from "mongoose";
 
 interface PublishResult {
   notificationSent: boolean;
@@ -47,7 +47,7 @@ export async function publishCertificateToStudent(
   }
 
   const guardian = guardianLink.guardianId as unknown as {
-    _id: mongoose.Types.ObjectId;
+    _id: Types.ObjectId;
     name: string;
     email: string;
   };

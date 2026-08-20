@@ -548,6 +548,12 @@ async function main() {
   console.log("✓ 3 draft donation campaigns");
 
   console.log("\nSeed complete!");
+
+  const { ensureAllStudentIds } = await import("../src/lib/students/id");
+  const migrated = await ensureAllStudentIds();
+  if (migrated > 0) {
+    console.log(`✓ Assigned/updated ${migrated} six-digit Student ID(s)`);
+  }
   console.log(`Admin login: ${adminEmail} / ${adminPassword}`);
   console.log(`Parent login: ${parentEmail} / ${parentPassword}`);
   if (!RESET_DB) {

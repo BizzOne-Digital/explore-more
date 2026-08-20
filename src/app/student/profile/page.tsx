@@ -32,6 +32,9 @@ export default async function StudentProfilePage() {
             value={user.emailVerified ? "Yes" : "No — check your inbox"}
           />
           <ProfileField label="Phone" value={user.phone ?? "Not set"} />
+          {user.studentId && (
+            <ProfileField label="Student ID" value={user.studentId} />
+          )}
           <ProfileField label="Role" value={user.role} />
           {profile?.ageRange && <ProfileField label="Age Range" value={profile.ageRange} />}
           {profile?.schoolStatus && (

@@ -16,7 +16,11 @@ export default async function Page() {
 
   return (
     <div>
-      <PageHeader title="Users" description="Search and manage all user accounts" />
+      <PageHeader
+        title="Users"
+        description="Search and manage all user accounts"
+        action={{ label: "Create User", href: "/admin/users/new" }}
+      />
       <UserSearchTable users={data as unknown as ComponentProps<typeof UserSearchTable>["users"]} />
     </div>
   );

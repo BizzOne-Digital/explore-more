@@ -12,6 +12,7 @@ import {
   Resource,
   Message,
   StudentProfile,
+  User,
 } from "@/models";
 
 export default async function StudentDashboardPage() {
@@ -20,6 +21,7 @@ export default async function StudentDashboardPage() {
 
   await connectDB();
   const userId = session.user.id;
+  const user = await User.findById(userId).select("name studentId").lean();
 
   const [
     enrollments,
@@ -41,7 +43,9 @@ export default async function StudentDashboardPage() {
     Result.find({ studentId: userId, publishedToStudent: true })
       .sort({ date: -1 })
       .limit(5),
-    Certificate.find({ studentId: userId }).sort({ issueDate: -1 }).limit(3),
+    Certificate.find({ studentId: userId, publishedToStudent: { $ne: false } })
+      .sort({ issueDate: -1 })
+      .limit(3),
     Resource.find({
       $or: [{ isPublic: true }, { assignedStudentIds: userId }],
     })
@@ -63,6 +67,12 @@ export default async function StudentDashboardPage() {
         <p className="mt-2 text-explore-charcoal/70">
           Track your courses, events, results, and resources in one place.
         </p>
+        {user?.studentId && (
+          <p className="mt-3 inline-flex items-center gap-2 rounded-lg bg-explore-teal/10 px-3 py-2 text-sm">
+            <span className="text-explore-charcoal/70">Your Student ID:</span>
+            <span className="font-mono font-bold text-explore-teal">{user.studentId}</span>
+          </p>
+        )}
         {profile && (
           <div className="mt-4">
             <div className="flex items-center justify-between text-sm">
@@ -169,7 +179,7 @@ export default async function StudentDashboardPage() {
           )}
         </DashboardSection>
 
-        <DashboardSection title="Certificates" href="/student/certificates">
+        <DashboardSection title="My Certificates" href="/student/certificates">
           {certificates.length === 0 ? (
             <p className="text-sm text-explore-charcoal/60">No certificates yet.</p>
           ) : (

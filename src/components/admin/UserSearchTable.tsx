@@ -49,6 +49,7 @@ export function UserSearchTable({ users }: Props) {
       all: users.length,
       student: 0,
       parent: 0,
+      staff: 0,
       instructor: 0,
       administrator: 0,
     };
@@ -88,6 +89,9 @@ export function UserSearchTable({ users }: Props) {
             </option>
             <option value="parent" className="bg-explore-charcoal">
               Parents ({roleCounts.parent})
+            </option>
+            <option value="staff" className="bg-explore-charcoal">
+              Staff ({roleCounts.staff})
             </option>
             <option value="instructor" className="bg-explore-charcoal">
               Instructors ({roleCounts.instructor})

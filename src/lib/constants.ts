@@ -10,7 +10,10 @@ export const COMPANY = {
     "Empowering youth through exploration, education, and real-world experiences. We inspire wild minds, build bold hearts, and create limitless futures.",
 } as const;
 
-export const ROLES = ["student", "parent", "instructor", "administrator"] as const;
+export const ROLES = ["student", "parent", "staff", "instructor", "administrator"] as const;
+
+/** Roles that can access the staff portal (messages, parent calls). */
+export const STAFF_PORTAL_ROLES = ["staff", "instructor", "administrator"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const UPLOAD_DIRS = {

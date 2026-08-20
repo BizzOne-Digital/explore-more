@@ -15,6 +15,7 @@ import {
   GuardianStudentLink,
 } from "@/models";
 import { canAccessStudentData } from "@/lib/auth/access";
+import { CertificateListItem } from "@/components/parent/CertificateListItem";
 
 type PageProps = { params: Promise<{ studentId: string }> };
 
@@ -51,7 +52,7 @@ export default async function ParentStudentPage({ params }: PageProps) {
         .populate("eventId", "title startDate location slug")
         .sort({ createdAt: -1 }),
       Result.find({ studentId, publishedToStudent: true }).sort({ date: -1 }),
-      Certificate.find({ studentId }).sort({ issueDate: -1 }),
+      Certificate.find({ studentId, publishedToStudent: { $ne: false } }).sort({ issueDate: -1 }),
       Attendance.find({ studentId }).sort({ sessionDate: -1 }).limit(10),
     ]);
 
@@ -139,24 +140,27 @@ export default async function ParentStudentPage({ params }: PageProps) {
           )}
         </ParentSection>
 
-        <ParentSection title="Certificates">
+        <ParentSection title="Achievements & Certificates">
           {certificates.length === 0 ? (
             <p className="text-sm text-explore-charcoal/60">No certificates.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {certificates.map((c) => (
-                <li key={c._id.toString()} className="flex items-center justify-between text-sm">
-                  <span>{c.title}</span>
-                  <a
-                    href={`/api/files/private/${c.filePath}`}
-                    className="text-explore-teal hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Download
-                  </a>
-                </li>
-              ))}
+                  <CertificateListItem
+                    key={c._id.toString()}
+                    cert={{
+                      _id: c._id.toString(),
+                      title: c.title,
+                      description: c.description,
+                      issueDate: c.issueDate,
+                      filePath: c.filePath,
+                      fileType: c.fileType,
+                      associatedCourse: c.associatedCourse,
+                      associatedProgram: c.associatedProgram,
+                      associatedEvent: c.associatedEvent,
+                    }}
+                  />
+                ))}
             </ul>
           )}
         </ParentSection>

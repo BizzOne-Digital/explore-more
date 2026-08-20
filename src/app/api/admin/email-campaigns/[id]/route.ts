@@ -4,6 +4,7 @@ import { apiSuccess, apiError, notFound } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 import { canEditCampaign } from "@/lib/email/campaign-utils";
 import { processEmailCampaign } from "@/lib/email/process-campaign";
+import { containsLocalFilesystemPath } from "@/lib/notifications/display";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -37,6 +38,19 @@ export async function PUT(request: Request, { params }: RouteParams) {
       return apiError(
         new Error(
           "This campaign has already been sent. Create a new campaign to send another message."
+        ),
+        400
+      );
+    }
+
+    if (
+      body.status === "queued" &&
+      containsLocalFilesystemPath(String(body.htmlBody ?? item.htmlBody ?? "")) &&
+      !String(body.attachmentUrl ?? item.attachmentUrl ?? "").trim()
+    ) {
+      return apiError(
+        new Error(
+          "The message contains a file path from your computer. Upload the PDF using the Attachment field instead of pasting a local path."
         ),
         400
       );

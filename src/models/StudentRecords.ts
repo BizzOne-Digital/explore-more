@@ -92,11 +92,16 @@ export interface ICertificate extends Document {
   courseId?: mongoose.Types.ObjectId;
   programId?: mongoose.Types.ObjectId;
   eventId?: mongoose.Types.ObjectId;
+  associatedCourse?: string;
+  associatedProgram?: string;
+  associatedEvent?: string;
   issueDate: Date;
   filePath: string;
   fileType: "image" | "pdf";
   verificationCode?: string;
   isShareable: boolean;
+  publishedToStudent: boolean;
+  publishedAt?: Date;
   notificationSent: boolean;
   notificationSentAt?: Date;
   issuedBy: mongoose.Types.ObjectId;
@@ -112,11 +117,16 @@ const CertificateSchema = new Schema<ICertificate>(
     courseId: { type: Schema.Types.ObjectId, ref: "Course" },
     programId: { type: Schema.Types.ObjectId, ref: "Program" },
     eventId: { type: Schema.Types.ObjectId, ref: "Event" },
+    associatedCourse: String,
+    associatedProgram: String,
+    associatedEvent: String,
     issueDate: { type: Date, required: true },
     filePath: { type: String, required: true },
     fileType: { type: String, enum: ["image", "pdf"], default: "pdf" },
     verificationCode: String,
     isShareable: { type: Boolean, default: false },
+    publishedToStudent: { type: Boolean, default: false },
+    publishedAt: Date,
     notificationSent: { type: Boolean, default: false },
     notificationSentAt: Date,
     issuedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

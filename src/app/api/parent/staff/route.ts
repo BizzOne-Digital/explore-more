@@ -12,7 +12,7 @@ export async function GET() {
     await connectDB();
 
     const staffUsers = await User.find({
-      role: { $in: ["instructor", "administrator"] },
+      role: { $in: ["staff", "instructor", "administrator"] },
       isActive: true,
     }).select("name email role");
 
@@ -24,7 +24,7 @@ export async function GET() {
         const profile = profileMap.get(user._id.toString());
         const categories = profile?.categories?.length
           ? profile.categories
-          : user.role === "administrator"
+          : user.role === "administrator" || user.role === "staff"
             ? (["administration"] as const)
             : (["tutor"] as const);
 
@@ -33,7 +33,7 @@ export async function GET() {
           name: user.name,
           email: user.email,
           role: user.role,
-          title: profile?.title ?? (user.role === "administrator" ? "Administration" : "Staff"),
+          title: profile?.title ?? (user.role === "administrator" ? "Administration" : user.role === "staff" ? "Staff" : "Instructor"),
           bio: profile?.bio,
           categories: categories.map((c) => ({ id: c, label: STAFF_CATEGORY_LABELS[c] })),
           specialties: profile?.specialties ?? [],

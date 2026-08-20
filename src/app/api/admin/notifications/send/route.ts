@@ -8,6 +8,7 @@ import {
   noRecipientsMessage,
   resolveNotificationRecipients,
 } from "@/lib/notifications/recipients";
+import { containsLocalFilesystemPath } from "@/lib/notifications/display";
 import { z } from "zod";
 
 const notificationSchema = z.object({
@@ -28,6 +29,16 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const data = notificationSchema.parse(body);
+
+    if (containsLocalFilesystemPath(data.message) && !data.attachmentPath?.trim()) {
+      return NextResponse.json(
+        {
+          error:
+            "The message contains a file path from your computer. Upload the PDF using the Attachment field instead of pasting a local path.",
+        },
+        { status: 400 }
+      );
+    }
 
     await connectDB();
 

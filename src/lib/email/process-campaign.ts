@@ -160,7 +160,7 @@ function buildCampaignEmailHtml(
           campaign.attachmentUrl
             ? `<div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${color};">
               <p style="margin: 0; font-size: 14px;">
-                📎 <strong>Attachment:</strong> <a href="${campaign.attachmentUrl}" style="color: ${color};">${campaign.attachmentName || "Download File"}</a>
+                📎 <strong>Attachment:</strong> <a href="${campaign.attachmentUrl.startsWith("http") ? campaign.attachmentUrl : `${appUrl}${campaign.attachmentUrl.startsWith("/") ? "" : "/"}${campaign.attachmentUrl}`}" style="color: ${color};">${campaign.attachmentName || "Download File"}</a>
               </p>
             </div>`
             : ""

@@ -3,6 +3,7 @@ import { EmailCampaign } from "@/models";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 import { processEmailCampaign } from "@/lib/email/process-campaign";
+import { containsLocalFilesystemPath } from "@/lib/notifications/display";
 
 export async function GET() {
   try {
@@ -22,6 +23,19 @@ export async function POST(request: Request) {
     }
     await connectDB();
     const body = await request.json();
+
+    if (
+      body.status === "queued" &&
+      containsLocalFilesystemPath(String(body.htmlBody ?? "")) &&
+      !String(body.attachmentUrl ?? "").trim()
+    ) {
+      return apiError(
+        new Error(
+          "The message contains a file path from your computer. Upload the PDF using the Attachment field instead of pasting a local path."
+        ),
+        400
+      );
+    }
 
     const item = await EmailCampaign.create({
       ...body,

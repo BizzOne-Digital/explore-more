@@ -7,6 +7,8 @@ import {
   getNotificationAttachments,
   looksLikeHtml,
   sanitizeNotificationHtml,
+  formatNotificationPlainText,
+  notificationHasMissingUpload,
 } from "@/lib/notifications/display";
 
 interface NotificationItem {
@@ -61,6 +63,10 @@ export function NotificationsClient({
           item.attachmentName,
           item.message
         );
+        const missingUpload = notificationHasMissingUpload(
+          item.attachmentPath,
+          item.message
+        );
 
         return (
           <article
@@ -89,6 +95,13 @@ export function NotificationsClient({
                 <span className="text-xs font-semibold text-explore-orange">New</span>
               )}
             </div>
+
+            {missingUpload && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                This notification references a file that was not uploaded to the portal. Please
+                contact Explore More Academy if you need the document.
+              </div>
+            )}
 
             {attachments.length > 0 && (
               <div className="mt-4 space-y-2">
@@ -124,7 +137,7 @@ export function NotificationsClient({
               />
             ) : (
               <p className="mt-3 whitespace-pre-wrap text-sm text-explore-charcoal/80">
-                {item.message}
+                {formatNotificationPlainText(item.message)}
               </p>
             )}
 

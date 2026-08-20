@@ -1,10 +1,10 @@
 "use client";
 
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState, useRef } from "react";
 import Link from "next/link";
 import {
   FormField,
@@ -15,18 +15,20 @@ import {
   FormSection,
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { Upload, X, FileText, Image as ImageIcon } from "lucide-react";
+import { Upload, X, FileText, Image as ImageIcon, Search, CheckCircle2 } from "lucide-react";
+import { getCertificateFileUrl } from "@/lib/certificates/display";
 
 const schema = z.object({
   studentId: z.string().min(1, "Student is required"),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   issueDate: z.string().min(1, "Issue date is required"),
-  courseId: z.string().optional(),
-  programId: z.string().optional(),
-  eventId: z.string().optional(),
+  associatedCourse: z.string().optional(),
+  associatedProgram: z.string().optional(),
+  associatedEvent: z.string().optional(),
   fileType: z.enum(["image", "pdf"]),
   isShareable: z.boolean(),
+  publishToStudent: z.boolean(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -37,73 +39,79 @@ interface Student {
   studentId?: string;
 }
 
-interface Course {
-  _id: string;
-  title: string;
-}
-
-interface Program {
-  _id: string;
-  title: string;
-}
-
-interface Event {
-  _id: string;
-  title: string;
-}
-
 export function CertificateForm({
   initialData,
   isNew = false,
   students = [],
-  courses = [],
-  programs = [],
-  events = [],
 }: {
   initialData?: Record<string, unknown> & { _id?: string };
   isNew?: boolean;
   students: Student[];
-  courses: Course[];
-  programs: Program[];
-  events: Event[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [filePath, setFilePath] = useState((initialData?.filePath as string) || "");
+  const [studentSearch, setStudentSearch] = useState("");
+  const [issueSearch, setIssueSearch] = useState("");
+  const [selectedIssueStudents, setSelectedIssueStudents] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      studentId: (initialData?.studentId as string) ?? "",
+      studentId: String(initialData?.studentId ?? ""),
       title: (initialData?.title as string) ?? "",
       description: (initialData?.description as string) ?? "",
       issueDate: initialData?.issueDate
         ? new Date(initialData.issueDate as string).toISOString().slice(0, 10)
         : new Date().toISOString().slice(0, 10),
-      courseId: (initialData?.courseId as string) ?? "",
-      programId: (initialData?.programId as string) ?? "",
-      eventId: (initialData?.eventId as string) ?? "",
+      associatedCourse: (initialData?.associatedCourse as string) ?? "",
+      associatedProgram: (initialData?.associatedProgram as string) ?? "",
+      associatedEvent: (initialData?.associatedEvent as string) ?? "",
       fileType: (initialData?.fileType as FormData["fileType"]) ?? "pdf",
       isShareable: (initialData?.isShareable as boolean) ?? false,
+      publishToStudent: Boolean(initialData?.publishedToStudent),
     },
   });
 
   const fileType = watch("fileType");
+  const selectedStudentId = watch("studentId");
+  const publishToStudent = watch("publishToStudent");
+
+  const filteredStudents = useMemo(() => {
+    const q = studentSearch.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        (s.studentId ?? "").toLowerCase().includes(q)
+    );
+  }, [students, studentSearch]);
+
+  const issueCandidates = useMemo(() => {
+    const q = issueSearch.trim().toLowerCase();
+    return students.filter((s) => {
+      if (s._id === selectedStudentId) return false;
+      if (!q) return true;
+      return s.name.toLowerCase().includes(q) || (s.studentId ?? "").toLowerCase().includes(q);
+    });
+  }, [students, issueSearch, selectedStudentId]);
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const isImage = file.type.startsWith("image/");
-    const isPdf = file.type === "application/pdf";
+    const isImage = file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
     if (fileType === "image" && !isImage) {
       setError("Please select an image file");
@@ -111,13 +119,12 @@ export function CertificateForm({
     }
 
     if (fileType === "pdf" && !isPdf) {
-      setError("Please select a PDF file");
+      setError("Please select a PDF file (application/pdf)");
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File must be less than 10MB");
+    if (file.size > 50 * 1024 * 1024) {
+      setError("PDF upload failed. Maximum file size is 50 MB.");
       return;
     }
 
@@ -127,9 +134,9 @@ export function CertificateForm({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("folder", "certificates");
+      formData.append("fileType", fileType);
 
-      const res = await fetch("/api/upload/public", {
+      const res = await fetch("/api/admin/certificates/upload", {
         method: "POST",
         body: formData,
       });
@@ -138,20 +145,20 @@ export function CertificateForm({
 
       if (!json.success) {
         setError(json.error ?? "Upload failed");
-        setUploading(false);
         return;
       }
 
-      setFilePath(json.data.url);
-      setUploading(false);
-    } catch (err) {
+      setFilePath(json.data.path as string);
+    } catch {
       setError("Upload failed");
+    } finally {
       setUploading(false);
     }
   }
 
   async function onSubmit(data: FormData) {
     setError(null);
+    setSuccess(null);
 
     if (!filePath) {
       setError("Please upload a certificate file");
@@ -162,9 +169,9 @@ export function CertificateForm({
       ...data,
       issueDate: new Date(data.issueDate),
       filePath,
-      courseId: data.courseId || undefined,
-      programId: data.programId || undefined,
-      eventId: data.eventId || undefined,
+      associatedCourse: data.associatedCourse?.trim() || undefined,
+      associatedProgram: data.associatedProgram?.trim() || undefined,
+      associatedEvent: data.associatedEvent?.trim() || undefined,
     };
 
     const url = isNew ? "/api/admin/certificates" : `/api/admin/certificates/${initialData?._id}`;
@@ -178,8 +185,73 @@ export function CertificateForm({
       setError(json.error ?? "Save failed");
       return;
     }
-    router.push("/admin/certificates");
-    router.refresh();
+
+    if (data.publishToStudent) {
+      if (json.data?.publish?.notificationSent) {
+        setSuccess("Certificate saved and published to the student account. Parent notified.");
+      } else if (json.data?.publish?.error) {
+        setSuccess(`Certificate saved and published to student. Parent notification: ${json.data.publish.error}`);
+      } else {
+        setSuccess("Certificate saved and published to the student account.");
+      }
+    } else {
+      setSuccess("Certificate saved as draft. Check Publish to Student Account to release it.");
+    }
+
+    setTimeout(() => {
+      router.push("/admin/certificates");
+      router.refresh();
+    }, 1500);
+  }
+
+  async function handlePublishNow() {
+    if (!initialData?._id) return;
+    setPublishing(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/certificates/${initialData._id}/publish`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error ?? "Publish failed");
+        return;
+      }
+      setValue("publishToStudent", true);
+      setSuccess(
+        json.data?.notificationSent
+          ? "Certificate published and parent notified."
+          : `Published to student. ${json.data?.error ?? "Parent notification pending."}`
+      );
+    } catch {
+      setError("Publish failed");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function handleIssueToMore() {
+    if (!initialData?._id || selectedIssueStudents.length === 0) return;
+    setPublishing(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/certificates/${initialData._id}/issue`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentIds: selectedIssueStudents, publish: true }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error ?? "Issue failed");
+        return;
+      }
+      setSuccess(`Issued certificate to ${selectedIssueStudents.length} additional student(s).`);
+      setSelectedIssueStudents([]);
+    } catch {
+      setError("Issue failed");
+    } finally {
+      setPublishing(false);
+    }
   }
 
   async function handleDelete() {
@@ -195,10 +267,12 @@ export function CertificateForm({
       }
       router.push("/admin/certificates");
       router.refresh();
-    } catch (err) {
+    } catch {
       setError("Delete failed");
     }
   }
+
+  const previewUrl = filePath ? getCertificateFileUrl(filePath) : "";
 
   return (
     <div>
@@ -208,16 +282,41 @@ export function CertificateForm({
           {error}
         </div>
       )}
+      {success && (
+        <div className="mb-4 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+          {success}
+        </div>
+      )}
+
+      {!isNew && Boolean(initialData?.publishedToStudent) && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-300">
+          <CheckCircle2 className="h-4 w-4" />
+          Published to student account
+          {Boolean(initialData?.notificationSent) ? " · Parent notified" : " · Parent notification pending"}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <FormSection title="Student">
+        <FormSection title="Assign Student">
+          <FormField label="Search Student" className="sm:col-span-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <input
+                type="text"
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                placeholder="Search by name or 6-digit Student ID..."
+                className="w-full rounded-lg border border-white/20 bg-white/5 py-2.5 pl-10 pr-4 text-white placeholder:text-white/40"
+              />
+            </div>
+          </FormField>
           <FormField label="Select Student" error={errors.studentId} required className="sm:col-span-2">
             <SelectInput
               registration={register("studentId")}
               error={errors.studentId}
               options={[
                 { value: "", label: "Select a student..." },
-                ...students.map((s) => ({
+                ...filteredStudents.map((s) => ({
                   value: s._id,
                   label: `${s.name}${s.studentId ? ` (${s.studentId})` : ""}`,
                 })),
@@ -231,7 +330,7 @@ export function CertificateForm({
             <TextInput registration={register("title")} error={errors.title} placeholder="e.g., Certificate of Completion" />
           </FormField>
           <FormField label="Description" error={errors.description} className="sm:col-span-2">
-            <TextArea registration={register("description")} error={errors.description} rows={3} placeholder="Additional details about this certificate..." />
+            <TextArea registration={register("description")} error={errors.description} rows={3} />
           </FormField>
           <FormField label="Issue Date" error={errors.issueDate} required>
             <TextInput registration={register("issueDate")} error={errors.issueDate} type="date" />
@@ -249,34 +348,25 @@ export function CertificateForm({
         </FormSection>
 
         <FormSection title="Associated With">
-          <FormField label="Course" error={errors.courseId} hint="Optional">
-            <SelectInput
-              registration={register("courseId")}
-              error={errors.courseId}
-              options={[
-                { value: "", label: "—" },
-                ...courses.map((c) => ({ value: c._id, label: c.title })),
-              ]}
+          <FormField label="Course" error={errors.associatedCourse} hint="Free text — e.g., 4th Grade Mathematics">
+            <TextInput
+              registration={register("associatedCourse")}
+              error={errors.associatedCourse}
+              placeholder="4th Grade Mathematics"
             />
           </FormField>
-          <FormField label="Program" error={errors.programId} hint="Optional">
-            <SelectInput
-              registration={register("programId")}
-              error={errors.programId}
-              options={[
-                { value: "", label: "—" },
-                ...programs.map((p) => ({ value: p._id, label: p.title })),
-              ]}
+          <FormField label="Program" error={errors.associatedProgram} hint="Free text">
+            <TextInput
+              registration={register("associatedProgram")}
+              error={errors.associatedProgram}
+              placeholder="Explore More Academy Summer STEM Program"
             />
           </FormField>
-          <FormField label="Event" error={errors.eventId} hint="Optional" className="sm:col-span-2">
-            <SelectInput
-              registration={register("eventId")}
-              error={errors.eventId}
-              options={[
-                { value: "", label: "—" },
-                ...events.map((e) => ({ value: e._id, label: e.title })),
-              ]}
+          <FormField label="Event" error={errors.associatedEvent} hint="Free text" className="sm:col-span-2">
+            <TextInput
+              registration={register("associatedEvent")}
+              error={errors.associatedEvent}
+              placeholder="2026 Junior Explorer Science Day"
             />
           </FormField>
         </FormSection>
@@ -286,21 +376,12 @@ export function CertificateForm({
             {filePath ? (
               <div className="relative inline-block">
                 {fileType === "image" ? (
-                  <img
-                    src={filePath}
-                    alt="Certificate Preview"
-                    className="h-64 w-auto rounded-lg border border-white/10 object-cover"
-                  />
+                  <img src={previewUrl} alt="Certificate Preview" className="h-64 w-auto rounded-lg border border-white/10 object-cover" />
                 ) : (
                   <div className="flex h-64 w-96 flex-col items-center justify-center rounded-lg border border-white/10 bg-white/5">
                     <FileText className="h-16 w-16 text-white/40" />
                     <p className="mt-2 text-sm text-white/60">PDF Document</p>
-                    <a
-                      href={filePath}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 text-xs text-explore-teal hover:underline"
-                    >
+                    <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-explore-teal hover:underline">
                       View PDF
                     </a>
                   </div>
@@ -330,12 +411,8 @@ export function CertificateForm({
                     ) : (
                       <FileText className="mx-auto h-8 w-8 text-white/40" />
                     )}
-                    <p className="mt-2 text-sm text-white/60">
-                      Click to upload {fileType === "image" ? "image" : "PDF"}
-                    </p>
-                    <p className="mt-1 text-xs text-white/40">
-                      {fileType === "image" ? "PNG, JPG up to 10MB" : "PDF up to 10MB"}
-                    </p>
+                    <p className="mt-2 text-sm text-white/60">Click to upload {fileType === "image" ? "image" : "PDF"}</p>
+                    <p className="mt-1 text-xs text-white/40">PDF up to 50 MB</p>
                   </div>
                 )}
               </div>
@@ -344,12 +421,72 @@ export function CertificateForm({
             <input
               ref={fileInputRef}
               type="file"
-              accept={fileType === "image" ? "image/*" : "application/pdf"}
+              accept={fileType === "image" ? "image/*" : "application/pdf,.pdf"}
               onChange={handleFileUpload}
               className="hidden"
             />
           </div>
         </FormSection>
+
+        <FormSection title="Publish to Student Account">
+          <div className="sm:col-span-2 space-y-3">
+            <CheckboxInput
+              registration={register("publishToStudent")}
+              label="Publish to Student Account (visible in student & parent portals)"
+            />
+            {!isNew && !publishToStudent && (
+              <button
+                type="button"
+                onClick={() => void handlePublishNow()}
+                disabled={publishing}
+                className="rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {publishing ? "Publishing…" : "Publish Now & Notify Parent"}
+              </button>
+            )}
+          </div>
+        </FormSection>
+
+        {!isNew && (
+          <FormSection title="Issue Same Certificate to More Students">
+            <FormField label="Search additional students" className="sm:col-span-2">
+              <input
+                type="text"
+                value={issueSearch}
+                onChange={(e) => setIssueSearch(e.target.value)}
+                placeholder="Search by name or Student ID..."
+                className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40"
+              />
+            </FormField>
+            <div className="sm:col-span-2 max-h-48 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+              {issueCandidates.slice(0, 20).map((s) => (
+                <label key={s._id} className="flex items-center gap-2 text-sm text-white/80">
+                  <input
+                    type="checkbox"
+                    checked={selectedIssueStudents.includes(s._id)}
+                    onChange={(e) => {
+                      setSelectedIssueStudents((prev) =>
+                        e.target.checked ? [...prev, s._id] : prev.filter((id) => id !== s._id)
+                      );
+                    }}
+                  />
+                  {s.name}
+                  {s.studentId ? ` (${s.studentId})` : ""}
+                </label>
+              ))}
+            </div>
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                onClick={() => void handleIssueToMore()}
+                disabled={publishing || selectedIssueStudents.length === 0}
+                className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                Issue to Selected Students
+              </button>
+            </div>
+          </FormSection>
+        )}
 
         <FormSection title="Settings">
           <div className="sm:col-span-2">
@@ -363,7 +500,7 @@ export function CertificateForm({
             disabled={isSubmitting}
             className="rounded-lg bg-explore-lime px-5 py-2 text-sm font-semibold text-explore-black transition hover:bg-explore-lime/90 disabled:opacity-50"
           >
-            {isSubmitting ? "Saving…" : "Save Certificate"}
+            {isSubmitting ? "Saving…" : publishToStudent ? "Save & Publish" : "Save Certificate"}
           </button>
 
           {!isNew && (
@@ -376,10 +513,7 @@ export function CertificateForm({
             </button>
           )}
 
-          <Link
-            href="/admin/certificates"
-            className="rounded-lg border border-white/10 px-5 py-2 text-sm font-medium text-white/60 transition hover:text-white"
-          >
+          <Link href="/admin/certificates" className="rounded-lg border border-white/10 px-5 py-2 text-sm font-medium text-white/60 transition hover:text-white">
             Cancel
           </Link>
         </div>

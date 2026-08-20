@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
 import { Upload, CheckCircle, XCircle, Loader } from "lucide-react";
 
 interface DigitalFileUploadProps {
@@ -14,6 +13,44 @@ interface DigitalFileUploadProps {
   onUploadSuccess?: () => void;
 }
 
+async function readJsonResponse(response: Response): Promise<Record<string, unknown>> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const text = await response.text();
+
+  if (!text) {
+    throw new Error(response.ok ? "Empty server response" : `Upload failed (${response.status})`);
+  }
+
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      throw new Error("The server returned an invalid response. Please try again.");
+    }
+  }
+
+  throw new Error(
+    response.ok
+      ? "Unexpected server response"
+      : `Upload failed (${response.status}). Check storage configuration or try a smaller PDF.`
+  );
+}
+
+function isAllowedUpload(file: File): boolean {
+  const name = file.name.toLowerCase();
+  const type = file.type.toLowerCase();
+  return (
+    type === "application/pdf" ||
+    name.endsWith(".pdf") ||
+    type.includes("epub") ||
+    name.endsWith(".epub") ||
+    type.includes("mobi") ||
+    name.endsWith(".mobi") ||
+    type === "application/zip" ||
+    name.endsWith(".zip")
+  );
+}
+
 export function DigitalFileUpload({ bookId, currentFile, onUploadSuccess }: DigitalFileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -24,16 +61,20 @@ export function DigitalFileUpload({ bookId, currentFile, onUploadSuccess }: Digi
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (500MB max)
-    if (file.size > 500 * 1024 * 1024) {
-      setError("File too large. Maximum 500MB allowed.");
+    if (!isAllowedUpload(file)) {
+      setError("Invalid file type. Allowed: PDF, EPUB, MOBI, ZIP");
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      setError("PDF upload failed. Maximum file size is 50 MB.");
       return;
     }
 
     setUploading(true);
     setError("");
     setSuccess(false);
-    setProgress(0);
+    setProgress(25);
 
     try {
       const formData = new FormData();
@@ -45,28 +86,29 @@ export function DigitalFileUpload({ bookId, currentFile, onUploadSuccess }: Digi
         body: formData,
       });
 
-      const data = await response.json();
+      setProgress(75);
+      const data = await readJsonResponse(response);
 
-      if (!response.ok) {
-        throw new Error(data.error || "Upload failed");
+      if (!response.ok || !data.success) {
+        throw new Error(String(data.error ?? "Upload failed"));
       }
 
       setSuccess(true);
       setProgress(100);
-      
+
       if (onUploadSuccess) {
         onUploadSuccess();
       }
 
-      // Refresh page after 2 seconds
       setTimeout(() => {
         window.location.reload();
-      }, 2000);
+      }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
       setProgress(0);
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   }
 
@@ -76,14 +118,13 @@ export function DigitalFileUpload({ bookId, currentFile, onUploadSuccess }: Digi
     }
 
     try {
-      const response = await fetch(`/api/admin/books/upload-digital?bookId=${bookId}`, {
+      const response = await fetch(`/api/admin/books/upload-digital?bookId=${encodeURIComponent(bookId)}`, {
         method: "DELETE",
       });
+      const data = await readJsonResponse(response);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Delete failed");
+      if (!response.ok || !data.success) {
+        throw new Error(String(data.error ?? "Delete failed"));
       }
 
       window.location.reload();
@@ -100,98 +141,83 @@ export function DigitalFileUpload({ bookId, currentFile, onUploadSuccess }: Digi
 
   return (
     <div className="space-y-4">
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-2">Digital Download File</h3>
-        
+      <div className="rounded-lg border-2 border-dashed border-white/20 p-6">
+        <h3 className="mb-2 text-lg font-semibold text-white">Digital Download File (PDF)</h3>
+
         {currentFile ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-            <div className="flex items-center gap-2 text-green-700 mb-2">
+          <div className="mb-4 rounded-lg border border-green-500/30 bg-green-500/10 p-4">
+            <div className="mb-2 flex items-center gap-2 text-green-300">
               <CheckCircle className="h-5 w-5" />
               <span className="font-semibold">File Uploaded</span>
             </div>
-            <p className="text-sm text-gray-700">
-              📄 {currentFile.fileName}
-            </p>
-            <p className="text-sm text-gray-600">
-              Size: {formatFileSize(currentFile.fileSizeBytes)}
-            </p>
-            <p className="text-sm text-gray-600">
-              Status: {currentFile.enabled ? "✅ Enabled" : "❌ Disabled"}
-            </p>
-            <button
-              onClick={handleDelete}
-              className="mt-3 text-sm text-red-600 hover:text-red-700 underline"
-            >
-              Delete File
-            </button>
+            <p className="text-sm text-white/80">📄 {currentFile.fileName}</p>
+            <p className="text-sm text-white/60">Size: {formatFileSize(currentFile.fileSizeBytes)}</p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <a
+                href={`/api/admin/books/${bookId}/digital-file`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-explore-teal hover:underline"
+              >
+                View PDF
+              </a>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="text-sm text-red-300 hover:underline"
+              >
+                Remove PDF
+              </button>
+            </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-600 mb-4">
-            No digital file uploaded. Upload a PDF, EPUB, or MOBI file (max 500MB).
+          <p className="mb-4 text-sm text-white/60">
+            No digital file uploaded. Upload a PDF (max 50 MB). Filenames with spaces, parentheses, and capitals are supported.
           </p>
         )}
 
-        <div className="flex items-center gap-4">
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              accept=".pdf,.epub,.mobi,.zip"
-              onChange={handleUpload}
-              disabled={uploading}
-              className="hidden"
-            />
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-              {uploading ? (
-                <>
-                  <Loader className="h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" />
-                  {currentFile ? "Replace File" : "Upload File"}
-                </>
-              )}
-            </div>
-          </label>
-        </div>
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white hover:bg-explore-teal/90">
+          <input
+            type="file"
+            accept="application/pdf,.pdf,.epub,.mobi,.zip"
+            onChange={handleUpload}
+            disabled={uploading}
+            className="hidden"
+          />
+          {uploading ? (
+            <>
+              <Loader className="h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              {currentFile ? "Replace PDF" : "Upload PDF"}
+            </>
+          )}
+        </label>
 
         {uploading && (
           <div className="mt-4">
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
+            <div className="h-2 w-full rounded-full bg-white/10">
+              <div className="h-2 rounded-full bg-explore-teal transition-all" style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-sm text-gray-600 mt-2">Uploading to Cloudflare R2...</p>
           </div>
         )}
 
         {error && (
-          <div className="mt-4 flex items-center gap-2 text-red-600">
-            <XCircle className="h-5 w-5" />
+          <div className="mt-4 flex items-center gap-2 text-red-300">
+            <XCircle className="h-5 w-5 shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="mt-4 flex items-center gap-2 text-green-600">
+          <div className="mt-4 flex items-center gap-2 text-green-300">
             <CheckCircle className="h-5 w-5" />
-            <span className="text-sm">Upload successful! Refreshing page...</span>
+            <span className="text-sm">Upload successful! Refreshing...</span>
           </div>
         )}
-      </div>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-2">ℹ️ Important Notes:</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Supported formats: PDF, EPUB, MOBI, ZIP</li>
-          <li>• Maximum file size: 500MB</li>
-          <li>• Files are stored securely in Cloudflare R2</li>
-          <li>• Customers get download link after purchase</li>
-          <li>• Download links expire after 15 minutes (for security)</li>
-        </ul>
       </div>
     </div>
   );

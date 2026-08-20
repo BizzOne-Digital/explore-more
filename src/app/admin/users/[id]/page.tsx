@@ -251,6 +251,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     student: "Student",
     parent: "Parent",
     instructor: "Instructor",
+    staff: "Staff",
     administrator: "Administrator",
   };
 
@@ -258,6 +259,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     student: "bg-blue-500/10 text-blue-400 border-blue-500/30",
     parent: "bg-green-500/10 text-green-400 border-green-500/30",
     instructor: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+    staff: "bg-blue-500/10 text-blue-400 border-blue-500/30",
     administrator: "bg-red-500/10 text-red-400 border-red-500/30",
   };
 
@@ -439,6 +441,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               >
                 <option value="student">Student</option>
                 <option value="parent">Parent</option>
+                <option value="staff">Staff</option>
                 <option value="instructor">Instructor</option>
                 <option value="administrator">Administrator</option>
               </select>

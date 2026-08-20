@@ -58,7 +58,25 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Generate signed download URL (valid for 15 minutes)
+    // Generate signed download URL or serve local file
+    if (book.digitalFile.storage === "local" && book.digitalFile.localPath) {
+      const { readLocalBookFile } = await import("@/lib/services/book-digital-storage");
+      const buffer = await readLocalBookFile(book.digitalFile.localPath);
+      const filename = book.digitalFile.fileName || "book.pdf";
+
+      return new Response(new Uint8Array(buffer), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
+
+    if (!book.digitalFile.r2Key) {
+      return NextResponse.json({ error: "Digital file not available" }, { status: 404 });
+    }
+
     const downloadUrl = await getR2DownloadUrl(book.digitalFile.r2Key, 900);
 
     // Log the download (optional)

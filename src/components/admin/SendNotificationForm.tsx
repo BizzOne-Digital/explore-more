@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Send, Loader } from "lucide-react";
+import { containsLocalFilesystemPath } from "@/lib/notifications/display";
 
 export function SendNotificationForm() {
   const [title, setTitle] = useState("");
@@ -79,6 +80,14 @@ export function SendNotificationForm() {
     setLoading(true);
     setError("");
     setSuccess("");
+
+    if (containsLocalFilesystemPath(message) && !attachmentPath) {
+      setError(
+        "You pasted a file path from your computer. Use the Attachment field below to upload the PDF — parents cannot open local paths."
+      );
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/admin/notifications/send", {
@@ -203,6 +212,12 @@ export function SendNotificationForm() {
         {uploading && <p className="mt-1 text-xs text-white/50">Uploading…</p>}
         {attachmentName && (
           <p className="mt-1 text-xs text-green-300">Attached: {attachmentName}</p>
+        )}
+        {containsLocalFilesystemPath(message) && !attachmentPath && (
+          <p className="mt-2 text-xs text-amber-200">
+            Your message looks like a local file path. Upload the file using the field above so
+            parents can open it.
+          </p>
         )}
       </div>
 

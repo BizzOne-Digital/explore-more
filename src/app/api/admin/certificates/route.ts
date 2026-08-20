@@ -1,9 +1,23 @@
-import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import { Certificate, GuardianStudentLink } from "@/models";
+import { Certificate } from "@/models";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
-import { sendCertificateNotification } from "@/lib/email/templates/certificate-notification";
+import { z } from "zod";
+import { publishCertificateToStudent } from "@/lib/certificates/publish";
+
+const certificateSchema = z.object({
+  studentId: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  issueDate: z.union([z.string(), z.date()]),
+  associatedCourse: z.string().optional(),
+  associatedProgram: z.string().optional(),
+  associatedEvent: z.string().optional(),
+  filePath: z.string().min(1),
+  fileType: z.enum(["image", "pdf"]),
+  isShareable: z.boolean().optional(),
+  publishToStudent: z.boolean().optional(),
+});
 
 export async function GET() {
   try {
@@ -27,42 +41,39 @@ export async function POST(request: Request) {
 
     await connectDB();
     const body = await request.json();
+    const data = certificateSchema.parse(body);
 
     const certificate = await Certificate.create({
-      ...body,
-      issuedBy: session.user.id,
+      studentId: data.studentId,
+      title: data.title,
+      description: data.description,
+      associatedCourse: data.associatedCourse || undefined,
+      associatedProgram: data.associatedProgram || undefined,
+      associatedEvent: data.associatedEvent || undefined,
+      issueDate: new Date(data.issueDate),
+      filePath: data.filePath,
+      fileType: data.fileType,
+      isShareable: data.isShareable ?? false,
+      publishedToStudent: false,
       notificationSent: false,
+      issuedBy: session.user.id,
     });
 
-    try {
-      const guardianLink = await GuardianStudentLink.findOne({
-        studentId: body.studentId,
-        status: "approved",
-      }).populate("guardianId").populate("studentId").lean();
-
-      if (guardianLink && guardianLink.guardianId) {
-        await sendCertificateNotification({
-          guardian: guardianLink.guardianId as unknown as { name: string; email: string },
-          student: guardianLink.studentId as unknown as { name: string; studentId?: string },
-          certificate: certificate.toObject() as unknown as {
-            title: string;
-            description?: string;
-            issueDate: Date;
-            filePath: string;
-            fileType: string;
-          },
-        });
-
-        await Certificate.findByIdAndUpdate(certificate._id, {
-          notificationSent: true,
-          notificationSentAt: new Date(),
-        });
-      }
-    } catch (notifyError) {
-      console.error("Failed to send certificate notification:", notifyError);
+    let publishResult = null;
+    if (data.publishToStudent) {
+      publishResult = await publishCertificateToStudent(
+        certificate._id.toString(),
+        session.user.id
+      );
     }
 
-    return apiSuccess(certificate, 201);
+    return apiSuccess(
+      {
+        certificate,
+        publish: publishResult,
+      },
+      201
+    );
   } catch (error) {
     return apiError(error);
   }

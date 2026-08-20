@@ -22,6 +22,7 @@ const publicPaths = [
   "/student/login",
   "/parent/signup",
   "/parent/login",
+  "/staff/login",
   "/verify-email",
   "/forgot-password",
   "/reset-password",
@@ -71,6 +72,28 @@ export async function middleware(request: NextRequest) {
     }
     if (!session || !["student", "administrator"].includes(session.user.role)) {
       return NextResponse.redirect(new URL("/student/login?callbackUrl=" + encodeURIComponent(pathname), request.url));
+    }
+    return withPathname(request, pathname);
+  }
+
+  // Staff portal
+  if (pathname.startsWith("/staff")) {
+    if (pathname === "/staff/login") {
+      if (
+        session?.user?.role &&
+        ["staff", "instructor", "administrator"].includes(session.user.role)
+      ) {
+        return NextResponse.redirect(new URL("/staff", request.url));
+      }
+      return withPathname(request, pathname);
+    }
+    if (
+      !session ||
+      !["staff", "instructor", "administrator"].includes(session.user.role)
+    ) {
+      return NextResponse.redirect(
+        new URL("/staff/login?callbackUrl=" + encodeURIComponent(pathname), request.url)
+      );
     }
     return withPathname(request, pathname);
   }

@@ -23,6 +23,7 @@ import {
   canEditCampaign,
   canSendCampaign,
 } from "@/lib/email/campaign-utils";
+import { containsLocalFilesystemPath } from "@/lib/notifications/display";
 
 const schema = z.object({
   type: z.enum(["event", "course", "announcement", "custom"]),
@@ -136,6 +137,17 @@ export function EmailCampaignForm({
 
   async function onSubmit(data: FormData) {
     setError(null);
+
+    if (
+      data.status === "queued" &&
+      containsLocalFilesystemPath(data.htmlBody) &&
+      !data.attachmentUrl?.trim()
+    ) {
+      setError(
+        "You pasted a file path from your computer. Use the Attachment upload field so parents can open the PDF."
+      );
+      return;
+    }
 
     // Add recipient IDs for custom audience
     const payload: Record<string, unknown> = { ...data };

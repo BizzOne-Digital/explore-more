@@ -52,12 +52,16 @@ export function LinkChildForm({ onSuccess }: { onSuccess?: () => void }) {
         <label className="block text-sm font-medium text-explore-charcoal/70 mb-1">Student ID</label>
         <input
           type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={6}
           value={studentIdCode}
-          onChange={(e) => setStudentIdCode(e.target.value)}
+          onChange={(e) => setStudentIdCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           placeholder="e.g. 482917"
           required
-          className="w-full rounded-lg border border-explore-charcoal/20 px-4 py-2.5"
+          className="w-full rounded-lg border border-explore-charcoal/20 px-4 py-2.5 font-mono tracking-widest"
         />
+        <p className="mt-1 text-xs text-explore-charcoal/50">6-digit number from Admin → Students</p>
       </div>
 
       <div>

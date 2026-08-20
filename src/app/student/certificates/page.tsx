@@ -2,23 +2,26 @@ import connectDB from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Certificate } from "@/models";
+import { getCertificateAssociation, getCertificateFileUrl } from "@/lib/certificates/display";
 
 export default async function StudentCertificatesPage() {
   const session = await auth();
-  if (!session?.user) redirect("/login?callbackUrl=/student/certificates");
+  if (!session?.user) redirect("/student/login?callbackUrl=/student/certificates");
 
   await connectDB();
 
-  const certificates = await Certificate.find({ studentId: session.user.id })
-    .populate("courseId", "title")
-    .populate("programId", "title")
-    .sort({ issueDate: -1 });
+  const certificates = await Certificate.find({
+    studentId: session.user.id,
+    publishedToStudent: { $ne: false },
+  }).sort({ issueDate: -1 });
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-2xl text-explore-charcoal">My Certificates</h2>
-        <p className="mt-1 text-explore-charcoal/70">Download your earned certificates.</p>
+        <p className="mt-1 text-explore-charcoal/70">
+          View, download, and save your certificates from Explore More Academy.
+        </p>
       </div>
 
       {certificates.length === 0 ? (
@@ -28,8 +31,8 @@ export default async function StudentCertificatesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {certificates.map((cert) => {
-            const course = cert.courseId as { title?: string } | null;
-            const program = cert.programId as { title?: string } | null;
+            const association = getCertificateAssociation(cert);
+            const fileUrl = getCertificateFileUrl(cert.filePath);
 
             return (
               <article
@@ -40,10 +43,11 @@ export default async function StudentCertificatesPage() {
                   <span className="text-xl">🏅</span>
                 </div>
                 <h3 className="mt-4 font-display text-lg text-explore-charcoal">{cert.title}</h3>
-                {(course?.title || program?.title) && (
-                  <p className="mt-1 text-sm text-explore-charcoal/60">
-                    {course?.title ?? program?.title}
-                  </p>
+                {cert.description && (
+                  <p className="mt-1 text-sm text-explore-charcoal/60">{cert.description}</p>
+                )}
+                {association && (
+                  <p className="mt-2 text-sm text-explore-charcoal/70">{association}</p>
                 )}
                 <p className="mt-2 text-sm text-explore-charcoal/50">
                   Issued{" "}
@@ -53,19 +57,23 @@ export default async function StudentCertificatesPage() {
                     year: "numeric",
                   })}
                 </p>
-                {cert.verificationCode && (
-                  <p className="mt-1 font-mono text-xs text-explore-charcoal/40">
-                    Code: {cert.verificationCode}
-                  </p>
-                )}
-                <a
-                  href={`/api/files/private/${cert.filePath}`}
-                  className="mt-4 inline-block rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Download
-                </a>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a
+                    href={fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    {cert.fileType === "pdf" ? "View PDF" : "Open Certificate"}
+                  </a>
+                  <a
+                    href={fileUrl}
+                    download
+                    className="rounded-lg border border-explore-charcoal/15 px-4 py-2 text-sm font-semibold text-explore-charcoal"
+                  >
+                    Download
+                  </a>
+                </div>
               </article>
             );
           })}

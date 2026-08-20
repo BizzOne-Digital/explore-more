@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { formatDate } from "@/lib/admin/serialize";
 import { Search, Download, Bell } from "lucide-react";
 import Link from "next/link";
+import { getCertificateFileUrl } from "@/lib/certificates/display";
 
 interface Certificate {
   _id: string;
@@ -12,6 +13,7 @@ interface Certificate {
   issueDate: string;
   filePath: string;
   fileType: string;
+  publishedToStudent?: boolean;
   notificationSent: boolean;
   createdAt: string;
 }
@@ -107,6 +109,7 @@ export function CertificatesTable({ certificates, students }: Props) {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">Student</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">Issue Date</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">Published</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">Notification</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">Actions</th>
             </tr>
@@ -114,7 +117,7 @@ export function CertificatesTable({ certificates, students }: Props) {
           <tbody className="divide-y divide-white/10">
             {filteredCertificates.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-white/40">
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-white/40">
                   No certificates found
                 </td>
               </tr>
@@ -145,6 +148,13 @@ export function CertificatesTable({ certificates, students }: Props) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm">
+                    {cert.publishedToStudent ? (
+                      <span className="text-green-400">✓ Published</span>
+                    ) : (
+                      <span className="text-yellow-400">Draft</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
                     {cert.notificationSent ? (
                       <span className="text-green-400">✓ Sent</span>
                     ) : (
@@ -154,7 +164,7 @@ export function CertificatesTable({ certificates, students }: Props) {
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
                       <a
-                        href={cert.filePath}
+                        href={getCertificateFileUrl(cert.filePath)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-explore-teal hover:underline"

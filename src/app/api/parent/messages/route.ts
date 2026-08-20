@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       }
 
       const staff = await User.findById(staffId);
-      if (!staff || !["instructor", "administrator"].includes(staff.role)) {
+      if (!staff || !["staff", "instructor", "administrator"].includes(staff.role)) {
         return apiError(new Error("Invalid staff member"), 400);
       }
 

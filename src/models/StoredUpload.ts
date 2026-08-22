@@ -1,8 +1,10 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
-import type { StoredUploadFolder } from "@/lib/constants";
+import type { PrivateStoredFolder, StoredUploadFolder } from "@/lib/constants";
+
+export type UploadStorageFolder = StoredUploadFolder | PrivateStoredFolder;
 
 export interface IStoredUpload extends Document {
-  folder: StoredUploadFolder;
+  folder: UploadStorageFolder;
   filename: string;
   mimeType: string;
   size: number;

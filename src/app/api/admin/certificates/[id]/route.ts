@@ -4,15 +4,19 @@ import { apiSuccess, apiError, notFound, isValidObjectId } from "@/lib/admin/api
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { publishCertificateToStudent } from "@/lib/certificates/publish";
+import {
+  clearCertificateAssociationFields,
+  resolveCertificateAssociations,
+} from "@/lib/certificates/associations";
 
 const updateSchema = z.object({
   studentId: z.string().min(1).optional(),
   title: z.string().min(1).optional(),
   description: z.string().optional(),
   issueDate: z.union([z.string(), z.date()]).optional(),
-  associatedCourse: z.string().optional(),
-  associatedProgram: z.string().optional(),
-  associatedEvent: z.string().optional(),
+  courseId: z.string().optional(),
+  programId: z.string().optional(),
+  eventId: z.string().optional(),
   filePath: z.string().min(1).optional(),
   fileType: z.enum(["image", "pdf"]).optional(),
   isShareable: z.boolean().optional(),
@@ -50,6 +54,28 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const update: Record<string, unknown> = { ...data };
     if (data.issueDate) update.issueDate = new Date(data.issueDate);
     delete update.publishToStudent;
+    delete update.courseId;
+    delete update.programId;
+    delete update.eventId;
+
+    if (
+      data.courseId !== undefined ||
+      data.programId !== undefined ||
+      data.eventId !== undefined
+    ) {
+      Object.assign(update, clearCertificateAssociationFields());
+      const associations = await resolveCertificateAssociations({
+        courseId: data.courseId || undefined,
+        programId: data.programId || undefined,
+        eventId: data.eventId || undefined,
+      });
+      Object.assign(update, {
+        courseId: data.courseId || null,
+        programId: data.programId || null,
+        eventId: data.eventId || null,
+        ...associations,
+      });
+    }
 
     const item = await Certificate.findByIdAndUpdate(id, update, {
       new: true,

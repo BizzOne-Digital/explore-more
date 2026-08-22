@@ -1,5 +1,6 @@
 import connectDB from "@/lib/db";
 import { readPrivateFile } from "@/lib/services/upload";
+import { readPrivateStoredFile } from "@/lib/services/private-stored-upload";
 import { Result, Certificate } from "@/models";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { canAccessStudentData } from "@/lib/auth/access";
@@ -75,6 +76,18 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   try {
+    const stored = await readPrivateStoredFile(relativePath);
+    if (stored) {
+      const filename = relativePath.split("/").pop() ?? "file";
+      return new Response(new Uint8Array(stored.buffer), {
+        headers: {
+          "Content-Type": stored.mimeType,
+          "Content-Disposition": `inline; filename="${filename}"`,
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
+
     const buffer = await readPrivateFile(relativePath);
     const filename = relativePath.split("/").pop() ?? "file";
 

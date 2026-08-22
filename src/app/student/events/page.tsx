@@ -79,6 +79,9 @@ function EventSection({
                   })}
                 </p>
                 <p className="mt-1 text-sm text-explore-charcoal/60">{event.location}</p>
+                <p className="mt-2 text-xs font-mono text-explore-charcoal/50">
+                  Confirmation: {reg.registrationId}
+                </p>
                 <div className="mt-3 flex items-center gap-3 text-xs">
                   <span
                     className={`rounded-full px-2 py-0.5 ${

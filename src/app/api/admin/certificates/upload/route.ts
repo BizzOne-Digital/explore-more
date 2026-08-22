@@ -1,7 +1,8 @@
-import connectDB from "@/lib/db";
-import { ensureUploadDirs, uploadPrivateFile } from "@/lib/services/upload";
+import { readPrivateStoredFile, storePrivateUpload } from "@/lib/services/private-stored-upload";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { requireRole } from "@/lib/api/auth-helpers";
+
+export const runtime = "nodejs";
 
 const MAX_SIZE = 50 * 1024 * 1024;
 
@@ -46,10 +47,7 @@ export async function POST(request: Request) {
       return apiError(new Error("Please upload an image file (PNG, JPG, or WebP)."), 400);
     }
 
-    await connectDB();
-    await ensureUploadDirs();
-
-    const uploaded = await uploadPrivateFile(file, "certificates", MAX_SIZE);
+    const uploaded = await storePrivateUpload(file, "certificates", MAX_SIZE);
 
     return apiSuccess(
       {
@@ -61,6 +59,7 @@ export async function POST(request: Request) {
       201
     );
   } catch (error) {
+    console.error("[certificate upload]", error);
     const message = error instanceof Error ? error.message : "Certificate upload failed";
     return apiError(new Error(message), 400);
   }

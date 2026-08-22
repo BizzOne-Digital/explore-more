@@ -4,6 +4,7 @@ import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getEventPriceCents } from "@/lib/pricing";
 import { sendEventRegistrationEmails } from "@/lib/email/event-notifications";
+import { generateEventRegistrationId } from "@/lib/events/generate-registration-id";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -76,7 +77,7 @@ export async function POST(request: Request, context: RouteContext) {
   const registration = await EventRegistration.create({
     eventId: event._id,
     userId: sessionResult.user.id,
-    registrationId: `REG-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+    registrationId: generateEventRegistrationId(),
     studentName: parsed.data.studentName,
     studentAge: parsed.data.studentAge,
     guardianName,
@@ -125,7 +126,10 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   return jsonOk(
-    { message: "Successfully registered for event", registrationId: registration._id.toString() },
+    {
+      message: "Successfully registered for event",
+      registrationId: registration.registrationId,
+    },
     201
   );
 }

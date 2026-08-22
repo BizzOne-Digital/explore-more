@@ -9,7 +9,6 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { safeSlug } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ImageUpload } from "@/components/admin/ImageUpload";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -22,7 +21,6 @@ const schema = z.object({
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
   timezone: z.string(),
-  coverImage: z.string().optional(),
   eventType: z.enum(["free", "paid"]),
   priceAmount: z.coerce.number().min(0),
   capacity: z.coerce.number().optional(),
@@ -58,7 +56,6 @@ export function EventForm({ initialData, isNew = false }: { initialData?: Record
       startTime: (initialData?.startTime as string) ?? "",
       endTime: (initialData?.endTime as string) ?? "",
       timezone: (initialData?.timezone as string) ?? "America/New_York",
-      coverImage: (initialData?.coverImage as string) ?? "",
       eventType: (initialData?.eventType as FormData["eventType"]) ?? "free",
       priceAmount: (initialData?.priceAmount as number) ?? 0,
       capacity: initialData?.capacity as number | undefined,
@@ -210,17 +207,6 @@ export function EventForm({ initialData, isNew = false }: { initialData?: Record
           </FormField>
           <div className="sm:col-span-2">
             <CheckboxInput registration={register("isOnline")} label="This is an online event" />
-          </div>
-        </FormSection>
-
-        <FormSection title="Image">
-          <div className="sm:col-span-2">
-            <ImageUpload
-              label="Cover Image"
-              value={watch("coverImage") || ""}
-              onChange={(url) => setValue("coverImage", url)}
-              folder="events"
-            />
           </div>
         </FormSection>
 

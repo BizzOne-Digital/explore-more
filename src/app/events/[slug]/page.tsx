@@ -21,10 +21,8 @@ import { AppImage } from "@/components/ui/AppImage";
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ registered?: string; confirmation?: string }>;
 }
-
-const FALLBACK_COVER =
-  "https://images.unsplash.com/photo-1478131143081-80f7f84b84c7?w=1200&q=80";
 
 function formatTimeLabel(time: string): string {
   const match = /^(\d{1,2}):(\d{2})/.exec(time.trim());
@@ -52,17 +50,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function EventDetailPage({ params }: Props) {
+export default async function EventDetailPage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { registered, confirmation } = await searchParams;
   const event = await getEventBySlug(slug);
   if (!event) notFound();
+
+  const showRegistrationSuccess = registered === "true";
 
   const now = new Date();
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
   const isUpcoming = startDate > now;
   const sameDay = format(startDate, "yyyy-MM-dd") === format(endDate, "yyyy-MM-dd");
-  const cover = event.coverImage ? resolveImageUrl(event.coverImage) : FALLBACK_COVER;
   const priceLabel = formatEventPrice(event);
 
   const dateLine = sameDay
@@ -81,22 +81,22 @@ export default async function EventDetailPage({ params }: Props) {
 
   return (
     <>
-      <section className="relative w-full overflow-hidden bg-explore-charcoal text-white">
-        <div className="absolute inset-0">
-          <AppImage
-            src={cover}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="100vw"
-            priority
-            unoptimized={cover.startsWith("http")}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-explore-charcoal via-explore-charcoal/90 to-explore-charcoal/50" />
-          <div className="absolute inset-0 bg-gradient-to-t from-explore-charcoal/90 via-transparent to-explore-charcoal/30" />
+      {showRegistrationSuccess && (
+        <div className="border-b border-explore-teal/20 bg-explore-teal/10 px-4 py-4 sm:px-6">
+          <div className="mx-auto max-w-6xl">
+            <p className="font-semibold text-explore-teal">Registration confirmed!</p>
+            <p className="mt-1 text-sm text-explore-charcoal/80">
+              {confirmation
+                ? <>Your confirmation number is <span className="font-mono font-semibold">{confirmation}</span>. A confirmation email has been sent.</>
+                : "Your registration is confirmed. Check your email for details."}
+            </p>
+          </div>
         </div>
+      )}
+      <section className="relative w-full overflow-hidden bg-explore-charcoal text-white pt-28 pb-16">
+        <div className="absolute inset-0 bg-gradient-to-br from-explore-charcoal via-explore-teal/20 to-explore-charcoal" />
 
-        <div className="relative mx-auto flex min-h-[420px] w-full max-w-6xl flex-col justify-end px-4 pb-12 pt-32 sm:px-6 lg:min-h-[480px] lg:pb-16 lg:pt-36">
+        <div className="relative mx-auto flex min-h-[320px] w-full max-w-6xl flex-col justify-end px-4 pb-12 sm:px-6 lg:min-h-[380px] lg:pb-16">
           <div className="flex flex-wrap gap-2">
             {event.category && <Badge variant="lime">{event.category}</Badge>}
             {event.isOnline && <Badge variant="teal">Online</Badge>}

@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { MapPin, Calendar } from "lucide-react";
-import { Card, CardImage, CardBody, CardTitle, CardDescription } from "@/components/ui/Card";
+import { Card, CardBody, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCents } from "@/lib/utils";
 
@@ -10,12 +10,9 @@ interface EventCardProps {
   event: PublicEvent;
 }
 
-const FALLBACK = "https://images.unsplash.com/photo-1478131143081-80f7f84b84c7?w=800&q=80";
-
 export function EventCard({ event }: EventCardProps) {
   return (
     <Card href={`/events/${event.slug}`}>
-      <CardImage src={event.coverImage || FALLBACK} alt={event.title} />
       <CardBody>
         <div className="mb-3 flex flex-wrap gap-2">
           {event.category && <Badge variant="teal">{event.category}</Badge>}

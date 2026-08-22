@@ -5,6 +5,7 @@ import { createCheckoutSession, getAppUrl, isStripeConfigured } from "@/lib/serv
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getEventPriceCents } from "@/lib/pricing";
+import { generateEventRegistrationId } from "@/lib/events/generate-registration-id";
 
 const checkoutSchema = z.object({
   eventSlug: z.string().min(1),
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
   const registration = await EventRegistration.create({
     eventId: event._id,
     userId: sessionResult.user.id,
-    registrationId: `REG-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+    registrationId: generateEventRegistrationId(),
     studentName: parsed.data.studentName,
     studentAge: parsed.data.studentAge,
     guardianName,
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
       eventId: event._id.toString(),
     },
     customerEmail: sessionResult.user.email,
-    successUrl: `${appUrl}/events/${event.slug}?registered=true`,
+    successUrl: `${appUrl}/events/${event.slug}?registered=true&confirmation=${encodeURIComponent(registration.registrationId)}`,
     cancelUrl: `${appUrl}/events/${event.slug}`,
   });
 

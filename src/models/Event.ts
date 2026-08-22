@@ -1,4 +1,5 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
+import { generateEventRegistrationId } from "@/lib/events/generate-registration-id";
 
 export interface IEvent extends Document {
   title: string;
@@ -204,10 +205,10 @@ EventRegistrationSchema.index({ eventId: 1, userId: 1 });
 EventRegistrationSchema.index({ guardianEmail: 1 });
 EventRegistrationSchema.index({ guardianPhone: 1 });
 
-// Generate unique registration ID before saving
-EventRegistrationSchema.pre("save", function () {
+// Generate unique registration ID before validation
+EventRegistrationSchema.pre("validate", function () {
   if (!this.registrationId) {
-    this.registrationId = `REG-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    this.registrationId = generateEventRegistrationId();
   }
 });
 

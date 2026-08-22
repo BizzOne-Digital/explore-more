@@ -23,9 +23,9 @@ const schema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   issueDate: z.string().min(1, "Issue date is required"),
-  associatedCourse: z.string().optional(),
-  associatedProgram: z.string().optional(),
-  associatedEvent: z.string().optional(),
+  courseId: z.string().optional(),
+  programId: z.string().optional(),
+  eventId: z.string().optional(),
   fileType: z.enum(["image", "pdf"]),
   isShareable: z.boolean(),
   publishToStudent: z.boolean(),
@@ -39,14 +39,42 @@ interface Student {
   studentId?: string;
 }
 
+interface AssociationOption {
+  _id: string;
+  title: string;
+  startDate?: string;
+}
+
+function resolveInitialAssociationId(
+  idValue: unknown,
+  titleValue: unknown,
+  options: AssociationOption[]
+): string {
+  if (typeof idValue === "string" && idValue) return idValue;
+  if (idValue && typeof idValue === "object" && "_id" in idValue) {
+    return String((idValue as { _id: unknown })._id);
+  }
+  if (typeof titleValue === "string" && titleValue.trim()) {
+    const match = options.find((option) => option.title === titleValue.trim());
+    if (match) return match._id;
+  }
+  return "";
+}
+
 export function CertificateForm({
   initialData,
   isNew = false,
   students = [],
+  courses = [],
+  programs = [],
+  events = [],
 }: {
   initialData?: Record<string, unknown> & { _id?: string };
   isNew?: boolean;
   students: Student[];
+  courses?: AssociationOption[];
+  programs?: AssociationOption[];
+  events?: AssociationOption[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -74,9 +102,9 @@ export function CertificateForm({
       issueDate: initialData?.issueDate
         ? new Date(initialData.issueDate as string).toISOString().slice(0, 10)
         : new Date().toISOString().slice(0, 10),
-      associatedCourse: (initialData?.associatedCourse as string) ?? "",
-      associatedProgram: (initialData?.associatedProgram as string) ?? "",
-      associatedEvent: (initialData?.associatedEvent as string) ?? "",
+      courseId: resolveInitialAssociationId(initialData?.courseId, initialData?.associatedCourse, courses),
+      programId: resolveInitialAssociationId(initialData?.programId, initialData?.associatedProgram, programs),
+      eventId: resolveInitialAssociationId(initialData?.eventId, initialData?.associatedEvent, events),
       fileType: (initialData?.fileType as FormData["fileType"]) ?? "pdf",
       isShareable: (initialData?.isShareable as boolean) ?? false,
       publishToStudent: Boolean(initialData?.publishedToStudent),
@@ -141,18 +169,31 @@ export function CertificateForm({
         body: formData,
       });
 
-      const json = await res.json();
-
-      if (!json.success) {
-        setError(json.error ?? "Upload failed");
+      let json: { success?: boolean; error?: string; data?: { path?: string } };
+      try {
+        json = await res.json();
+      } catch {
+        setError(`Upload failed (${res.status}). Please try again.`);
         return;
       }
 
-      setFilePath(json.data.path as string);
-    } catch {
-      setError("Upload failed");
+      if (!res.ok || !json.success) {
+        setError(json.error ?? `Upload failed (${res.status})`);
+        return;
+      }
+
+      if (!json.data?.path) {
+        setError("Upload failed: server did not return a file path.");
+        return;
+      }
+
+      setFilePath(json.data.path);
+      setSuccess("Certificate file uploaded successfully.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   }
 
@@ -169,9 +210,9 @@ export function CertificateForm({
       ...data,
       issueDate: new Date(data.issueDate),
       filePath,
-      associatedCourse: data.associatedCourse?.trim() || undefined,
-      associatedProgram: data.associatedProgram?.trim() || undefined,
-      associatedEvent: data.associatedEvent?.trim() || undefined,
+      courseId: data.courseId?.trim() || undefined,
+      programId: data.programId?.trim() || undefined,
+      eventId: data.eventId?.trim() || undefined,
     };
 
     const url = isNew ? "/api/admin/certificates" : `/api/admin/certificates/${initialData?._id}`;
@@ -348,25 +389,45 @@ export function CertificateForm({
         </FormSection>
 
         <FormSection title="Associated With">
-          <FormField label="Course" error={errors.associatedCourse} hint="Free text — e.g., 4th Grade Mathematics">
-            <TextInput
-              registration={register("associatedCourse")}
-              error={errors.associatedCourse}
-              placeholder="4th Grade Mathematics"
+          <FormField label="Course" error={errors.courseId}>
+            <SelectInput
+              registration={register("courseId")}
+              error={errors.courseId}
+              options={[
+                { value: "", label: "Select a course..." },
+                ...courses.map((course) => ({
+                  value: course._id,
+                  label: course.title,
+                })),
+              ]}
             />
           </FormField>
-          <FormField label="Program" error={errors.associatedProgram} hint="Free text">
-            <TextInput
-              registration={register("associatedProgram")}
-              error={errors.associatedProgram}
-              placeholder="Explore More Academy Summer STEM Program"
+          <FormField label="Program" error={errors.programId}>
+            <SelectInput
+              registration={register("programId")}
+              error={errors.programId}
+              options={[
+                { value: "", label: "Select a program..." },
+                ...programs.map((program) => ({
+                  value: program._id,
+                  label: program.title,
+                })),
+              ]}
             />
           </FormField>
-          <FormField label="Event" error={errors.associatedEvent} hint="Free text" className="sm:col-span-2">
-            <TextInput
-              registration={register("associatedEvent")}
-              error={errors.associatedEvent}
-              placeholder="2026 Junior Explorer Science Day"
+          <FormField label="Event" error={errors.eventId} className="sm:col-span-2">
+            <SelectInput
+              registration={register("eventId")}
+              error={errors.eventId}
+              options={[
+                { value: "", label: "Select an event..." },
+                ...events.map((event) => ({
+                  value: event._id,
+                  label: event.startDate
+                    ? `${event.title} (${new Date(event.startDate).toLocaleDateString()})`
+                    : event.title,
+                })),
+              ]}
             />
           </FormField>
         </FormSection>

@@ -4,15 +4,19 @@ import { apiSuccess, apiError } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { publishCertificateToStudent } from "@/lib/certificates/publish";
+import {
+  clearCertificateAssociationFields,
+  resolveCertificateAssociations,
+} from "@/lib/certificates/associations";
 
 const certificateSchema = z.object({
   studentId: z.string().min(1),
   title: z.string().min(1),
   description: z.string().optional(),
   issueDate: z.union([z.string(), z.date()]),
-  associatedCourse: z.string().optional(),
-  associatedProgram: z.string().optional(),
-  associatedEvent: z.string().optional(),
+  courseId: z.string().optional(),
+  programId: z.string().optional(),
+  eventId: z.string().optional(),
   filePath: z.string().min(1),
   fileType: z.enum(["image", "pdf"]),
   isShareable: z.boolean().optional(),
@@ -43,13 +47,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = certificateSchema.parse(body);
 
+    const associations = await resolveCertificateAssociations({
+      courseId: data.courseId || undefined,
+      programId: data.programId || undefined,
+      eventId: data.eventId || undefined,
+    });
+
     const certificate = await Certificate.create({
       studentId: data.studentId,
       title: data.title,
       description: data.description,
-      associatedCourse: data.associatedCourse || undefined,
-      associatedProgram: data.associatedProgram || undefined,
-      associatedEvent: data.associatedEvent || undefined,
+      ...associations,
       issueDate: new Date(data.issueDate),
       filePath: data.filePath,
       fileType: data.fileType,

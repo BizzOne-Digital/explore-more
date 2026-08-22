@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AuthFormShell } from "@/components/forms/AuthFormShell";
+import { Suspense } from "react";
 import { ParentSignupForm } from "@/components/forms/ParentSignupForm";
 
 export const metadata: Metadata = {
@@ -9,11 +9,17 @@ export const metadata: Metadata = {
 
 export default function ParentSignupPage() {
   return (
-    <AuthFormShell 
-      title="Parent Registration" 
-      subtitle="Create your parent account to manage your child's courses, track progress, and stay connected."
-    >
-      <ParentSignupForm />
-    </AuthFormShell>
+    <div>
+      <div className="mb-6 text-center">
+        <h1 className="font-display text-xl font-bold text-explore-charcoal">Parent Registration</h1>
+        <p className="mt-2 text-sm text-explore-charcoal/60">
+          Create your parent account to manage your child&apos;s courses, track progress, and stay
+          connected.
+        </p>
+      </div>
+      <Suspense fallback={<p className="text-center text-sm text-explore-charcoal/50">Loading...</p>}>
+        <ParentSignupForm />
+      </Suspense>
+    </div>
   );
 }

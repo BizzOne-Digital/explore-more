@@ -11,8 +11,9 @@ export interface ParentAssessmentItem {
   title: string;
   grade: string;
   filePath: string;
-  studentId: string;
+  studentId: string | null;
   studentName: string;
+  canResubmit: boolean;
   submission: {
     _id: string;
     filePath: string;
@@ -35,6 +36,11 @@ export function ParentAssessmentsClient({ items }: { items: ParentAssessmentItem
   const published = items.filter((i) => i.submission?.published);
 
   async function handleResubmit(item: ParentAssessmentItem, file: File) {
+    if (!item.studentId) {
+      setError("Please link your child account from My Children before resubmitting.");
+      return;
+    }
+
     const key = `${item.assessmentId}:${item.studentId}`;
     setError(null);
     setMessage(null);
@@ -187,7 +193,17 @@ function AssessmentCard({
         </a>
       </div>
 
-      {!readOnly && onResubmit && (
+      {!readOnly && !item.canResubmit && (
+        <p className="mt-4 border-t border-explore-sand pt-4 text-sm text-explore-charcoal/60">
+          Link your child from{" "}
+          <a href="/parent/students" className="text-explore-teal hover:underline">
+            My Children
+          </a>{" "}
+          to resubmit this assessment.
+        </p>
+      )}
+
+      {!readOnly && onResubmit && item.canResubmit && (
         <div className="mt-4 border-t border-explore-sand pt-4">
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-explore-sand bg-explore-cream px-4 py-6 transition hover:border-explore-teal/40">
             <Upload className="mb-2 h-6 w-6 text-explore-charcoal/40" />

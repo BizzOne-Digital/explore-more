@@ -1,6 +1,7 @@
 import connectDB from "@/lib/db";
 import { StudentProfile, User } from "@/models";
 import type { GradeLevel } from "@/lib/grades";
+import { isGradeLevel } from "@/lib/grades";
 
 export async function getStudentUserIdsByGrade(grade: GradeLevel): Promise<string[]> {
   await connectDB();
@@ -29,7 +30,17 @@ export async function getStudentGrade(userId: string): Promise<GradeLevel | null
 
 export async function getParentChildrenGrades(parentUserId: string): Promise<GradeLevel[]> {
   await connectDB();
-  const { GuardianStudentLink } = await import("@/models");
+  const { GuardianStudentLink, ParentProfile } = await import("@/models");
+
+  const grades = new Set<GradeLevel>();
+
+  const parentProfile = await ParentProfile.findOne({ userId: parentUserId })
+    .select("childGrade")
+    .lean();
+  if (parentProfile?.childGrade && isGradeLevel(parentProfile.childGrade)) {
+    grades.add(parentProfile.childGrade);
+  }
+
   const links = await GuardianStudentLink.find({
     guardianId: parentUserId,
     status: "approved",
@@ -37,17 +48,17 @@ export async function getParentChildrenGrades(parentUserId: string): Promise<Gra
     .select("studentId")
     .lean();
 
-  if (links.length === 0) return [];
+  if (links.length > 0) {
+    const studentIds = links.map((l) => l.studentId);
+    const profiles = await StudentProfile.find({ userId: { $in: studentIds } })
+      .select("grade")
+      .lean();
 
-  const studentIds = links.map((l) => l.studentId);
-  const profiles = await StudentProfile.find({ userId: { $in: studentIds } })
-    .select("grade")
-    .lean();
-
-  const grades = new Set<GradeLevel>();
-  for (const p of profiles) {
-    if (p.grade) grades.add(p.grade as GradeLevel);
+    for (const p of profiles) {
+      if (p.grade && isGradeLevel(p.grade)) grades.add(p.grade);
+    }
   }
+
   return [...grades];
 }
 

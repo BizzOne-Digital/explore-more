@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader, Save } from "lucide-react";
 import { CopyIdButton } from "@/components/parent/CopyIdButton";
+import { GRADE_LEVELS, formatGradeLabel } from "@/lib/grades";
 
 type ProfileData = {
   user: {
@@ -22,6 +23,7 @@ type ProfileData = {
     mailingAddress?: { street?: string; city?: string; state?: string; zip?: string };
     emergencyContact?: { name?: string; phone?: string; relationship?: string };
     preferredCommunication?: string;
+    childGrade?: string;
   };
 };
 
@@ -48,6 +50,7 @@ export function ParentAccountForm() {
     events: true,
     courses: true,
     announcements: true,
+    childGrade: "",
     currentPassword: "",
     newPassword: "",
   });
@@ -74,6 +77,7 @@ export function ParentAccountForm() {
             emergencyPhone: profile?.emergencyContact?.phone ?? "",
             emergencyRelationship: profile?.emergencyContact?.relationship ?? "",
             preferredCommunication: profile?.preferredCommunication ?? "email",
+            childGrade: profile?.childGrade ?? "",
             events: user.notificationPreferences?.events ?? true,
             courses: user.notificationPreferences?.courses ?? true,
             announcements: user.notificationPreferences?.announcements ?? true,
@@ -113,6 +117,7 @@ export function ParentAccountForm() {
             relationship: form.emergencyRelationship,
           },
           preferredCommunication: form.preferredCommunication,
+          childGrade: form.childGrade || undefined,
           notificationPreferences: {
             events: form.events,
             courses: form.courses,
@@ -156,6 +161,26 @@ export function ParentAccountForm() {
           <Field label="Last Name" value={form.lastName} onChange={(v) => setForm({ ...form, lastName: v })} />
           <Field label="Email" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} className="sm:col-span-2" />
           <Field label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-explore-charcoal/70">
+              Child&apos;s Grade
+            </label>
+            <select
+              value={form.childGrade}
+              onChange={(e) => setForm({ ...form, childGrade: e.target.value })}
+              className="w-full rounded-lg border border-explore-charcoal/20 px-4 py-2"
+            >
+              <option value="">Select grade...</option>
+              {GRADE_LEVELS.map((grade) => (
+                <option key={grade} value={grade}>
+                  {formatGradeLabel(grade)}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-explore-charcoal/50">
+              Used to show grade-specific assessments in your portal.
+            </p>
+          </div>
           <div>
             <label className="block text-sm font-medium text-explore-charcoal/70 mb-1">Preferred Communication</label>
             <select

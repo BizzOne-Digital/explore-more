@@ -211,6 +211,8 @@ export interface IParentProfile extends Document {
     state?: string;
     zip?: string;
   };
+  /** Grade of the parent's child (used for assessments and portal filtering). */
+  childGrade?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -245,6 +247,7 @@ const ParentProfileSchema = new Schema<IParentProfile>(
       state: String,
       zip: String,
     },
+    childGrade: String,
   },
   { timestamps: true }
 );

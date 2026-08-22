@@ -6,13 +6,20 @@ import { hashPassword, generateVerificationCode } from "@/lib/password";
 import { sendVerificationEmail } from "@/lib/auth/verification-email";
 import { claimPendingMembership } from "@/lib/billing/membership-activation";
 import type { Role } from "@/lib/constants";
+import { GRADE_LEVELS, isGradeLevel } from "@/lib/grades";
 
-const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
-  role: z.enum(["student", "parent"]),
-});
+const schema = z
+  .object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    password: z.string().min(8),
+    role: z.enum(["student", "parent"]),
+    childGrade: z.string().optional(),
+  })
+  .refine((data) => data.role !== "parent" || (data.childGrade && isGradeLevel(data.childGrade)), {
+    message: "Please select your child's grade",
+    path: ["childGrade"],
+  });
 
 export async function POST(request: Request) {
   try {
@@ -47,6 +54,7 @@ export async function POST(request: Request) {
         userId: user._id,
         billingName: data.name,
         billingEmail: user.email,
+        childGrade: data.childGrade,
       });
       await claimPendingMembership(user._id.toString(), user.email);
     }

@@ -64,6 +64,7 @@ export async function PATCH(request: Request) {
         mailingAddress: body.mailingAddress,
         emergencyContact: body.emergencyContact,
         preferredCommunication: body.preferredCommunication,
+        ...(body.childGrade !== undefined ? { childGrade: body.childGrade || undefined } : {}),
       },
       { upsert: true, new: true }
     );

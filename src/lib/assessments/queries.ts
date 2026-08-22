@@ -65,65 +65,56 @@ export async function getGradeParentStudentRows(grade: GradeLevel): Promise<Grad
   const rows: GradeParentRow[] = [];
   const seen = new Set<string>();
 
-  const studentIds = await getStudentUserIdsByGrade(grade);
-  if (studentIds.length > 0) {
+  const pushRow = (row: GradeParentRow) => {
+    const key = row.studentId ? `${row.parentId}:${row.studentId}` : `${row.parentId}:profile`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rows.push(row);
+  };
+
+  const studentIdsByGrade = await getStudentUserIdsByGrade(grade);
+  if (studentIdsByGrade.length > 0) {
     const links = await GuardianStudentLink.find({
-      studentId: { $in: studentIds },
+      studentId: { $in: studentIdsByGrade },
       status: "approved",
     }).lean();
-
-    const parentIds = [...new Set(links.map((l) => l.guardianId.toString()))];
-    const [parents, students] = await Promise.all([
-      User.find({ _id: { $in: parentIds } }).select("name email").lean(),
-      User.find({ _id: { $in: studentIds } }).select("name").lean(),
-    ]);
-
-    const parentMap = new Map(parents.map((p) => [p._id.toString(), p]));
-    const studentMap = new Map(students.map((s) => [s._id.toString(), s]));
-
-    for (const link of links) {
-      const parent = parentMap.get(link.guardianId.toString());
-      const student = studentMap.get(link.studentId.toString());
-      if (!parent || !student) continue;
-      const key = `${parent._id.toString()}:${student._id.toString()}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      rows.push({
-        parentId: parent._id.toString(),
-        parentName: parent.name,
-        parentEmail: parent.email,
-        studentId: student._id.toString(),
-        studentName: student.name,
-      });
-    }
+    await appendRowsFromGuardianLinks(links, pushRow);
   }
 
-  const profileParents = await ParentProfile.find({ childGrade: grade })
-    .select("userId")
-    .lean();
-  if (profileParents.length > 0) {
-    const parents = await User.find({
-      _id: { $in: profileParents.map((p) => p.userId) },
-      role: "parent",
-      isActive: { $ne: false },
-    })
-      .select("name email")
-      .lean();
+  const profileParents = await ParentProfile.find({ childGrade: grade }).select("userId").lean();
+  const parentUserIds = profileParents.map((p) => p.userId);
+
+  if (parentUserIds.length > 0) {
+    const [parents, links] = await Promise.all([
+      User.find({
+        _id: { $in: parentUserIds },
+        role: "parent",
+        isActive: { $ne: false },
+      })
+        .select("name email")
+        .lean(),
+      GuardianStudentLink.find({
+        guardianId: { $in: parentUserIds },
+        status: "approved",
+      }).lean(),
+    ]);
+
+    await appendRowsFromGuardianLinks(links, pushRow);
+
+    const parentsWithLinkedStudent = new Set(
+      rows.filter((row) => row.studentId).map((row) => row.parentId)
+    );
 
     for (const parent of parents) {
-      const hasStudentRow = rows.some((r) => r.parentId === parent._id.toString());
-      if (!hasStudentRow) {
-        const key = `${parent._id.toString()}:profile`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          rows.push({
-            parentId: parent._id.toString(),
-            parentName: parent.name,
-            parentEmail: parent.email,
-            studentId: "",
-            studentName: "Child (link student account)",
-          });
-        }
+      const parentId = parent._id.toString();
+      if (!parentsWithLinkedStudent.has(parentId)) {
+        pushRow({
+          parentId,
+          parentName: parent.name,
+          parentEmail: parent.email,
+          studentId: "",
+          studentName: "Child (link student account)",
+        });
       }
     }
   }
@@ -135,16 +126,60 @@ export async function getGradeParentStudentRows(grade: GradeLevel): Promise<Grad
   return rows;
 }
 
+async function appendRowsFromGuardianLinks(
+  links: Array<{ guardianId: { toString(): string }; studentId: { toString(): string } }>,
+  pushRow: (row: GradeParentRow) => void
+) {
+  if (links.length === 0) return;
+
+  const parentIds = [...new Set(links.map((l) => l.guardianId.toString()))];
+  const studentIds = [...new Set(links.map((l) => l.studentId.toString()))];
+
+  const [parents, students] = await Promise.all([
+    User.find({
+      _id: { $in: parentIds },
+      role: "parent",
+      isActive: { $ne: false },
+    })
+      .select("name email")
+      .lean(),
+    User.find({ _id: { $in: studentIds }, role: "student" }).select("name").lean(),
+  ]);
+
+  const parentMap = new Map(parents.map((p) => [p._id.toString(), p]));
+  const studentMap = new Map(students.map((s) => [s._id.toString(), s]));
+
+  for (const link of links) {
+    const parent = parentMap.get(link.guardianId.toString());
+    const student = studentMap.get(link.studentId.toString());
+    if (!parent || !student) continue;
+
+    pushRow({
+      parentId: parent._id.toString(),
+      parentName: parent.name,
+      parentEmail: parent.email,
+      studentId: student._id.toString(),
+      studentName: student.name,
+    });
+  }
+}
+
 export async function getAssessmentTrackerRows(assessmentId: string, grade: GradeLevel) {
+  await connectDB();
+
   const [rows, submissions] = await Promise.all([
     getGradeParentStudentRows(grade),
     AssessmentSubmission.find({ assessmentId }).lean(),
   ]);
 
-  const submissionMap = new Map(submissions.map((s) => [s.studentId.toString(), s]));
+  const submissionByStudent = new Map(submissions.map((s) => [s.studentId.toString(), s]));
+  const submissionByParent = new Map(submissions.map((s) => [s.parentId.toString(), s]));
 
-  return rows.map((row) => {
-    const submission = row.studentId ? submissionMap.get(row.studentId) : undefined;
+  const trackerRows = rows.map((row) => {
+    const submission =
+      (row.studentId ? submissionByStudent.get(row.studentId) : undefined) ??
+      submissionByParent.get(row.parentId);
+
     return {
       ...row,
       resubmitted: Boolean(submission),
@@ -155,6 +190,43 @@ export async function getAssessmentTrackerRows(assessmentId: string, grade: Grad
       published: submission?.published ?? false,
     };
   });
+
+  const representedStudentIds = new Set(
+    rows.filter((row) => row.studentId).map((row) => row.studentId)
+  );
+
+  for (const submission of submissions) {
+    const studentId = submission.studentId.toString();
+    if (representedStudentIds.has(studentId)) continue;
+
+    const [parent, student] = await Promise.all([
+      User.findById(submission.parentId).select("name email").lean(),
+      User.findById(submission.studentId).select("name").lean(),
+    ]);
+
+    if (!parent || !student) continue;
+
+    trackerRows.push({
+      parentId: parent._id.toString(),
+      parentName: parent.name,
+      parentEmail: parent.email,
+      studentId,
+      studentName: student.name,
+      resubmitted: true,
+      submittedAt: submission.submittedAt?.toISOString(),
+      submissionId: submission._id.toString(),
+      submissionFilePath: submission.filePath,
+      letterGrade: submission.letterGrade,
+      published: submission.published ?? false,
+    });
+  }
+
+  trackerRows.sort(
+    (a, b) =>
+      a.parentName.localeCompare(b.parentName) || a.studentName.localeCompare(b.studentName)
+  );
+
+  return trackerRows;
 }
 
 export async function getAssessmentsForParent(parentId: string) {

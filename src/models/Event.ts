@@ -19,6 +19,7 @@ export interface IEvent extends Document {
   capacity?: number;
   registrationDeadline?: Date;
   ageRange?: string;
+  grade?: string;
   parentRequired: boolean;
   whatToBring?: string;
   instructions?: string;
@@ -57,6 +58,7 @@ const EventSchema = new Schema<IEvent>(
     capacity: Number,
     registrationDeadline: Date,
     ageRange: String,
+    grade: String,
     parentRequired: { type: Boolean, default: false },
     whatToBring: String,
     instructions: String,

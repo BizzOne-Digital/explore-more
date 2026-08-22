@@ -1,7 +1,7 @@
 import connectDB from "@/lib/db";
 import { readPrivateFile } from "@/lib/services/upload";
 import { readPrivateStoredFile } from "@/lib/services/private-stored-upload";
-import { Result, Certificate } from "@/models";
+import { Result, Certificate, Assessment, AssessmentSubmission } from "@/models";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { canAccessStudentData } from "@/lib/auth/access";
 import { jsonError } from "@/lib/api/response";
@@ -45,6 +45,23 @@ async function authorizeFileAccess(
     const cert = await Certificate.findOne({ filePath: relativePath });
     if (!cert) return false;
     return canAccessStudentData(user, cert.studentId.toString());
+  }
+
+  if (folder === "assessments") {
+    const assessment = await Assessment.findOne({ filePath: relativePath });
+    if (assessment) {
+      if (user.role === "parent") {
+        const { getParentChildrenGrades } = await import("@/lib/grades/queries");
+        const grades = await getParentChildrenGrades(user.id);
+        return grades.includes(assessment.grade as never);
+      }
+      return false;
+    }
+
+    const submission = await AssessmentSubmission.findOne({ filePath: relativePath });
+    if (!submission) return false;
+    if (user.role === "parent") return submission.parentId.toString() === user.id;
+    return canAccessStudentData(user, submission.studentId.toString());
   }
 
   if (folder === "documents") {

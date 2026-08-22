@@ -1,14 +1,17 @@
+import type { Metadata } from "next";
 import connectDB from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 import { Conversation } from "@/models";
-import { ParentSidebar } from "@/components/parent/ParentNav";
-import { ParentPortalHeader } from "@/components/parent/ParentPortalHeader";
-import { signOut } from "@/lib/auth";
+import { ParentShell } from "@/components/parent/ParentShell";
 import { ensureGuardianId } from "@/lib/parent/guardian-id";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Parent Portal",
+  robots: { index: false, follow: false },
+};
 
 async function getParentCounts(userId: string) {
   await connectDB();
@@ -41,22 +44,17 @@ export default async function ParentPortalLayout({ children }: { children: React
   const firstName = (session.user.name ?? "Parent").split(" ")[0];
 
   return (
-    <div className="min-h-screen w-full overflow-x-clip bg-explore-cream">
-      <ParentPortalHeader
-        firstName={firstName}
-        guardianId={guardianId ?? ""}
-        signOutAction={async () => {
-          "use server";
-          await signOut({ redirectTo: "/" });
-        }}
-      />
-
-      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-3 py-8 sm:px-6 lg:flex-row">
-        <Suspense fallback={null}>
-          <ParentSidebar unreadMessages={counts.messages} unreadNotifications={counts.notifications} />
-        </Suspense>
-        <main className="min-w-0 flex-1">{children}</main>
-      </div>
-    </div>
+    <ParentShell
+      firstName={firstName}
+      guardianId={guardianId ?? undefined}
+      unreadMessages={counts.messages}
+      unreadNotifications={counts.notifications}
+      signOutAction={async () => {
+        "use server";
+        await signOut({ redirectTo: "/" });
+      }}
+    >
+      {children}
+    </ParentShell>
   );
 }

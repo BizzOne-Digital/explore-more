@@ -29,6 +29,7 @@ const schema = z.object({
   fileType: z.enum(["image", "pdf"]),
   isShareable: z.boolean(),
   publishToStudent: z.boolean(),
+  grade: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -68,6 +69,7 @@ export function CertificateForm({
   courses = [],
   programs = [],
   events = [],
+  grade,
 }: {
   initialData?: Record<string, unknown> & { _id?: string };
   isNew?: boolean;
@@ -75,6 +77,7 @@ export function CertificateForm({
   courses?: AssociationOption[];
   programs?: AssociationOption[];
   events?: AssociationOption[];
+  grade?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +85,6 @@ export function CertificateForm({
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [filePath, setFilePath] = useState((initialData?.filePath as string) || "");
-  const [studentSearch, setStudentSearch] = useState("");
   const [issueSearch, setIssueSearch] = useState("");
   const [selectedIssueStudents, setSelectedIssueStudents] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,22 +110,13 @@ export function CertificateForm({
       fileType: (initialData?.fileType as FormData["fileType"]) ?? "pdf",
       isShareable: (initialData?.isShareable as boolean) ?? false,
       publishToStudent: Boolean(initialData?.publishedToStudent),
+      grade: (initialData?.grade as string) ?? grade ?? "",
     },
   });
 
   const fileType = watch("fileType");
   const selectedStudentId = watch("studentId");
   const publishToStudent = watch("publishToStudent");
-
-  const filteredStudents = useMemo(() => {
-    const q = studentSearch.trim().toLowerCase();
-    if (!q) return students;
-    return students.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        (s.studentId ?? "").toLowerCase().includes(q)
-    );
-  }, [students, studentSearch]);
 
   const issueCandidates = useMemo(() => {
     const q = issueSearch.trim().toLowerCase();
@@ -213,6 +206,7 @@ export function CertificateForm({
       courseId: data.courseId?.trim() || undefined,
       programId: data.programId?.trim() || undefined,
       eventId: data.eventId?.trim() || undefined,
+      grade: data.grade?.trim() || grade || undefined,
     };
 
     const url = isNew ? "/api/admin/certificates" : `/api/admin/certificates/${initialData?._id}`;
@@ -240,7 +234,9 @@ export function CertificateForm({
     }
 
     setTimeout(() => {
-      router.push("/admin/certificates");
+      router.push(
+        grade ? `/admin/certificates?grade=${encodeURIComponent(grade)}` : "/admin/certificates"
+      );
       router.refresh();
     }, 1500);
   }
@@ -339,25 +335,13 @@ export function CertificateForm({
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormSection title="Assign Student">
-          <FormField label="Search Student" className="sm:col-span-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-              <input
-                type="text"
-                value={studentSearch}
-                onChange={(e) => setStudentSearch(e.target.value)}
-                placeholder="Search by name or 6-digit Student ID..."
-                className="w-full rounded-lg border border-white/20 bg-white/5 py-2.5 pl-10 pr-4 text-white placeholder:text-white/40"
-              />
-            </div>
-          </FormField>
           <FormField label="Select Student" error={errors.studentId} required className="sm:col-span-2">
             <SelectInput
               registration={register("studentId")}
               error={errors.studentId}
               options={[
                 { value: "", label: "Select a student..." },
-                ...filteredStudents.map((s) => ({
+                ...students.map((s) => ({
                   value: s._id,
                   label: `${s.name}${s.studentId ? ` (${s.studentId})` : ""}`,
                 })),

@@ -27,6 +27,7 @@ export function mapPublicEvent(raw: EventRecord): PublicEvent {
     capacity: raw.capacity != null ? Number(raw.capacity) : undefined,
     registrationDeadline: raw.registrationDeadline ? String(raw.registrationDeadline) : undefined,
     ageRange: raw.ageRange ? String(raw.ageRange) : undefined,
+    grade: raw.grade ? String(raw.grade) : undefined,
     parentRequired: Boolean(raw.parentRequired),
     whatToBring: raw.whatToBring ? String(raw.whatToBring) : undefined,
     instructions: raw.instructions ? String(raw.instructions) : undefined,

@@ -8,6 +8,7 @@ import { FormField, TextInput, TextArea, SelectInput, FormActions, FormSection }
 import { PageHeader } from "@/components/admin/PageHeader";
 import { useState } from "react";
 import Link from "next/link";
+import { gradeSelectOptions } from "@/lib/grades";
 
 const schema = z.object({
   eventId: z.string().min(1, "Event is required"),
@@ -43,10 +44,14 @@ export function EventRegistrationForm({
   initialData,
   isNew = false,
   events,
+  grade,
+  defaultEventId,
 }: {
   initialData?: Record<string, unknown> & { _id?: string };
   isNew?: boolean;
   events: Event[];
+  grade?: string;
+  defaultEventId?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -58,10 +63,10 @@ export function EventRegistrationForm({
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      eventId: (initialData?.eventId as string) ?? "",
+      eventId: (initialData?.eventId as string) ?? defaultEventId ?? "",
       studentName: (initialData?.studentName as string) ?? "",
       studentAge: initialData?.studentAge as number | undefined,
-      studentGrade: (initialData?.studentGrade as string) ?? "",
+      studentGrade: (initialData?.studentGrade as string) ?? grade ?? "",
       guardianName: (initialData?.guardianName as string) ?? "",
       guardianEmail: (initialData?.guardianEmail as string) ?? "",
       guardianPhone: (initialData?.guardianPhone as string) ?? "",
@@ -95,7 +100,13 @@ export function EventRegistrationForm({
       setError(json.error ?? "Save failed");
       return;
     }
-    router.push("/admin/event-registrations");
+    router.push(
+      grade && defaultEventId
+        ? `/admin/event-registrations?grade=${encodeURIComponent(grade)}&event=${encodeURIComponent(defaultEventId)}`
+        : grade
+          ? `/admin/event-registrations?grade=${encodeURIComponent(grade)}`
+          : "/admin/event-registrations"
+    );
     router.refresh();
   }
 
@@ -110,7 +121,13 @@ export function EventRegistrationForm({
         setError(json.error ?? "Delete failed");
         return;
       }
-      router.push("/admin/event-registrations");
+      router.push(
+      grade && defaultEventId
+        ? `/admin/event-registrations?grade=${encodeURIComponent(grade)}&event=${encodeURIComponent(defaultEventId)}`
+        : grade
+          ? `/admin/event-registrations?grade=${encodeURIComponent(grade)}`
+          : "/admin/event-registrations"
+    );
       router.refresh();
     } catch (err) {
       setError("Delete failed");
@@ -124,6 +141,15 @@ export function EventRegistrationForm({
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormSection title="Event Selection">
+          {grade && (
+            <FormField label="Grade" className="sm:col-span-2">
+              <SelectInput
+                registration={register("studentGrade")}
+                options={gradeSelectOptions(false).filter((o) => o.value === grade)}
+                disabled
+              />
+            </FormField>
+          )}
           <FormField label="Event" error={errors.eventId} required className="sm:col-span-2">
             <SelectInput
               registration={register("eventId")}
@@ -146,9 +172,15 @@ export function EventRegistrationForm({
           <FormField label="Age" error={errors.studentAge}>
             <TextInput registration={register("studentAge")} error={errors.studentAge} type="number" />
           </FormField>
-          <FormField label="Grade" error={errors.studentGrade}>
-            <TextInput registration={register("studentGrade")} error={errors.studentGrade} placeholder="e.g., 5th Grade" />
-          </FormField>
+          {!grade && (
+            <FormField label="Grade" error={errors.studentGrade}>
+              <SelectInput
+                registration={register("studentGrade")}
+                error={errors.studentGrade}
+                options={gradeSelectOptions()}
+              />
+            </FormField>
+          )}
         </FormSection>
 
         <FormSection title="Parent/Guardian Information">
@@ -259,7 +291,13 @@ export function EventRegistrationForm({
           )}
 
           <Link
-            href="/admin/event-registrations"
+            href={
+              grade && defaultEventId
+                ? `/admin/event-registrations?grade=${encodeURIComponent(grade)}&event=${encodeURIComponent(defaultEventId)}`
+                : grade
+                  ? `/admin/event-registrations?grade=${encodeURIComponent(grade)}`
+                  : "/admin/event-registrations"
+            }
             className="rounded-lg border border-white/10 px-5 py-2 text-sm font-medium text-white/60 transition hover:text-white"
           >
             Cancel

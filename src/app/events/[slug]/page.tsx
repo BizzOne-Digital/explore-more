@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getEventBySlug } from "@/lib/queries/public";
 import { formatCents } from "@/lib/utils";
+import { formatGradeLabel } from "@/lib/grades";
 import { resolveImageUrl } from "@/lib/images/resolve";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -99,6 +100,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
         <div className="relative mx-auto flex min-h-[320px] w-full max-w-6xl flex-col justify-end px-4 pb-12 sm:px-6 lg:min-h-[380px] lg:pb-16">
           <div className="flex flex-wrap gap-2">
             {event.category && <Badge variant="lime">{event.category}</Badge>}
+            {event.grade && <Badge variant="orange">{formatGradeLabel(event.grade)}</Badge>}
             {event.isOnline && <Badge variant="teal">Online</Badge>}
             {event.eventType === "free" || event.priceCents === 0 ? (
               <Badge variant="forest">Free</Badge>

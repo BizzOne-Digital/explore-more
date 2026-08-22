@@ -4,6 +4,7 @@ import Image from "next/image";
 import { CheckCircle } from "lucide-react";
 import { getProgramBySlug } from "@/lib/queries/public";
 import { CORE_PROGRAMS, BRAND_IMAGES } from "@/lib/content/home";
+import { formatGradeLabel } from "@/lib/grades";
 import { Badge } from "@/components/ui/Badge";
 import { ServiceRequestForm } from "@/components/forms/ServiceRequestForm";
 import { FAQAccordion } from "@/components/cards/FAQAccordion";
@@ -58,6 +59,9 @@ export default async function ProgramDetailPage({ params }: Props) {
           <h1 className="mt-2 break-anywhere font-display text-3xl font-bold sm:text-4xl lg:text-5xl">{title}</h1>
           <p className="mt-4 text-lg text-white/80">{description}</p>
           {program?.ageRange && <p className="mt-3 text-sm text-white/60">Ages: {program.ageRange}</p>}
+          {program?.grade && (
+            <p className="mt-2 text-sm text-explore-lime">Grade: {formatGradeLabel(program.grade)}</p>
+          )}
         </div>
       </section>
 

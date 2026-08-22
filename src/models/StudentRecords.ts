@@ -95,6 +95,7 @@ export interface ICertificate extends Document {
   associatedCourse?: string;
   associatedProgram?: string;
   associatedEvent?: string;
+  grade?: string;
   issueDate: Date;
   filePath: string;
   fileType: "image" | "pdf";
@@ -120,6 +121,7 @@ const CertificateSchema = new Schema<ICertificate>(
     associatedCourse: String,
     associatedProgram: String,
     associatedEvent: String,
+    grade: String,
     issueDate: { type: Date, required: true },
     filePath: { type: String, required: true },
     fileType: { type: String, enum: ["image", "pdf"], default: "pdf" },

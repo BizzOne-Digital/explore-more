@@ -21,6 +21,7 @@ const certificateSchema = z.object({
   fileType: z.enum(["image", "pdf"]),
   isShareable: z.boolean().optional(),
   publishToStudent: z.boolean().optional(),
+  grade: z.string().optional(),
 });
 
 export async function GET() {
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
       title: data.title,
       description: data.description,
       ...associations,
+      grade: data.grade || undefined,
       issueDate: new Date(data.issueDate),
       filePath: data.filePath,
       fileType: data.fileType,

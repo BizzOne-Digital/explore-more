@@ -3,6 +3,11 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Enrollment, Course } from "@/models";
+import {
+  getStudentGrade,
+  getPublishedCoursesForGrade,
+} from "@/lib/grades/queries";
+import { formatGradeLabel } from "@/lib/grades";
 
 export default async function StudentCoursesPage() {
   const session = await auth();
@@ -10,35 +15,51 @@ export default async function StudentCoursesPage() {
 
   await connectDB();
 
-  const enrollments = await Enrollment.find({
-    userId: session.user.id,
-    status: { $ne: "cancelled" },
-  })
-    .populate("courseId")
-    .sort({ enrolledAt: -1 });
+  const studentGrade = await getStudentGrade(session.user.id);
+
+  const [enrollments, availableCourses] = await Promise.all([
+    Enrollment.find({
+      userId: session.user.id,
+      status: { $ne: "cancelled" },
+    })
+      .populate("courseId")
+      .sort({ enrolledAt: -1 }),
+    studentGrade ? getPublishedCoursesForGrade(studentGrade) : Promise.resolve([]),
+  ]);
+
+  const enrolledCourseIds = new Set(
+    enrollments
+      .map((e) => {
+        const course = e.courseId as { _id?: { toString(): string } } | null;
+        return course?._id?.toString();
+      })
+      .filter(Boolean)
+  );
+
+  const browseCourses = availableCourses.filter(
+    (c) => !enrolledCourseIds.has(c._id.toString())
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h2 className="font-display text-2xl text-explore-charcoal">My Courses</h2>
-        <p className="mt-1 text-explore-charcoal/70">Your enrolled courses and progress.</p>
+        <p className="mt-1 text-explore-charcoal/70">
+          Your enrolled courses and progress
+          {studentGrade ? ` · ${formatGradeLabel(studentGrade)}` : ""}.
+        </p>
       </div>
 
       {enrollments.length === 0 ? (
         <div className="rounded-2xl bg-explore-white p-8 text-center shadow-sm">
           <p className="text-explore-charcoal/60">You are not enrolled in any courses yet.</p>
-          <Link
-            href="/courses"
-            className="mt-4 inline-block rounded-lg bg-explore-orange px-5 py-2.5 text-sm font-semibold text-white"
-          >
-            Browse Courses
-          </Link>
         </div>
       ) : (
         <div className="grid gap-4">
           {enrollments.map((enrollment) => {
             const course = enrollment.courseId as unknown as InstanceType<typeof Course> | null;
             if (!course) return null;
+            if (studentGrade && course.grade && course.grade !== studentGrade) return null;
 
             const totalLessons = course.modules.reduce(
               (sum, m) => sum + m.lessons.length,
@@ -83,23 +104,32 @@ export default async function StudentCoursesPage() {
                     {enrollment.completedLessons.length} of {totalLessons} lessons completed
                   </p>
                 </div>
-
-                {course.modules.length > 0 && (
-                  <div className="mt-4 border-t border-explore-sand pt-4">
-                    <h4 className="text-sm font-semibold text-explore-charcoal">Modules</h4>
-                    <ul className="mt-2 space-y-1">
-                      {course.modules.map((mod) => (
-                        <li key={mod._id?.toString()} className="text-sm text-explore-charcoal/70">
-                          {mod.title} ({mod.lessons.length} lessons)
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </article>
             );
           })}
         </div>
+      )}
+
+      {studentGrade && browseCourses.length > 0 && (
+        <section>
+          <h3 className="font-display text-lg text-explore-charcoal">
+            Available for {formatGradeLabel(studentGrade)}
+          </h3>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {browseCourses.map((course) => (
+              <Link
+                key={course._id.toString()}
+                href={`/courses/${course.slug}`}
+                className="rounded-xl border border-explore-sand bg-explore-white p-4 shadow-sm transition hover:border-explore-teal/40"
+              >
+                <p className="font-semibold text-explore-charcoal">{course.title}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-explore-charcoal/60">
+                  {course.shortDescription}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

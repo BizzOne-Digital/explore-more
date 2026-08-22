@@ -36,7 +36,7 @@ export function CopyIdButton({
       className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${styles}`}
     >
       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-      {copied ? "Copied!" : label}
+      {label ? (copied ? "Copied!" : label) : null}
     </button>
   );
 }

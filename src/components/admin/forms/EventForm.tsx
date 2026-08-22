@@ -9,10 +9,12 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { safeSlug } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { gradeSelectOptions } from "@/lib/grades";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1),
+  grade: z.string().min(1, "Grade is required"),
   shortDescription: z.string().min(1, "Short description is required"),
   fullDescription: z.string().min(1, "Full description is required"),
   location: z.string().min(1, "Location is required"),
@@ -39,7 +41,15 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export function EventForm({ initialData, isNew = false }: { initialData?: Record<string, unknown> & { _id?: string }; isNew?: boolean }) {
+export function EventForm({
+  initialData,
+  isNew = false,
+  defaultGrade,
+}: {
+  initialData?: Record<string, unknown> & { _id?: string };
+  isNew?: boolean;
+  defaultGrade?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -56,6 +66,7 @@ export function EventForm({ initialData, isNew = false }: { initialData?: Record
       startTime: (initialData?.startTime as string) ?? "",
       endTime: (initialData?.endTime as string) ?? "",
       timezone: (initialData?.timezone as string) ?? "America/New_York",
+      grade: (initialData?.grade as string) ?? defaultGrade ?? "",
       eventType: (initialData?.eventType as FormData["eventType"]) ?? "free",
       priceAmount: (initialData?.priceAmount as number) ?? 0,
       capacity: initialData?.capacity as number | undefined,
@@ -110,7 +121,11 @@ export function EventForm({ initialData, isNew = false }: { initialData?: Record
       setError(json.error ?? "Save failed"); 
       return; 
     }
-    router.push("/admin/events");
+    router.push(
+      finalData.grade
+        ? `/admin/events?grade=${encodeURIComponent(String(finalData.grade))}`
+        : "/admin/events"
+    );
     router.refresh();
   }
 
@@ -180,6 +195,14 @@ export function EventForm({ initialData, isNew = false }: { initialData?: Record
           </FormField>
           <FormField label="Full Description" error={errors.fullDescription} required className="sm:col-span-2">
             <TextArea registration={register("fullDescription")} error={errors.fullDescription} rows={6} />
+          </FormField>
+          <FormField label="Grade" error={errors.grade} required className="sm:col-span-2">
+            <SelectInput
+              registration={register("grade")}
+              error={errors.grade}
+              options={gradeSelectOptions()}
+              disabled={Boolean(defaultGrade && isNew)}
+            />
           </FormField>
         </FormSection>
 

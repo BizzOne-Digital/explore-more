@@ -17,6 +17,7 @@ export interface IProgram extends Document {
   overview: string;
   benefits: string[];
   ageRange?: string;
+  grade?: string;
   activities: string[];
   schedule?: string;
   faqs: { question: string; answer: string }[];
@@ -50,6 +51,7 @@ const ProgramSchema = new Schema<IProgram>(
     overview: { type: String, required: true },
     benefits: [String],
     ageRange: String,
+    grade: String,
     activities: [String],
     schedule: String,
     faqs: [{ question: String, answer: String }],

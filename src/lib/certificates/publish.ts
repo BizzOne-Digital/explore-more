@@ -146,6 +146,7 @@ export async function issueCertificateToStudents(
       associatedCourse: source.associatedCourse,
       associatedProgram: source.associatedProgram,
       associatedEvent: source.associatedEvent,
+      grade: source.grade,
       issueDate: source.issueDate,
       filePath: source.filePath,
       fileType: source.fileType,

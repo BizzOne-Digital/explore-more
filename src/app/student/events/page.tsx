@@ -3,6 +3,11 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { EventRegistration, Event } from "@/models";
+import {
+  getStudentGrade,
+  getPublishedEventsForGrade,
+} from "@/lib/grades/queries";
+import { formatGradeLabel } from "@/lib/grades";
 
 export default async function StudentEventsPage() {
   const session = await auth();
@@ -10,36 +15,84 @@ export default async function StudentEventsPage() {
 
   await connectDB();
 
-  const registrations = await EventRegistration.find({ userId: session.user.id })
-    .populate("eventId")
-    .sort({ createdAt: -1 });
+  const studentGrade = await getStudentGrade(session.user.id);
+
+  const [registrations, availableEvents] = await Promise.all([
+    EventRegistration.find({ userId: session.user.id })
+      .populate("eventId")
+      .sort({ createdAt: -1 }),
+    studentGrade ? getPublishedEventsForGrade(studentGrade) : Promise.resolve([]),
+  ]);
 
   const now = new Date();
-  const upcoming = registrations.filter((r) => {
+  const gradeFiltered = registrations.filter((r) => {
+    const event = r.eventId as unknown as InstanceType<typeof Event> | null;
+    if (!event) return false;
+    if (!studentGrade) return true;
+    return !event.grade || event.grade === studentGrade;
+  });
+
+  const upcoming = gradeFiltered.filter((r) => {
     const event = r.eventId as unknown as InstanceType<typeof Event> | null;
     return event && new Date(event.startDate) >= now;
   });
-  const past = registrations.filter((r) => {
+  const past = gradeFiltered.filter((r) => {
     const event = r.eventId as unknown as InstanceType<typeof Event> | null;
     return event && new Date(event.startDate) < now;
   });
+
+  const registeredEventIds = new Set(
+    registrations
+      .map((r) => {
+        const event = r.eventId as { _id?: { toString(): string } } | null;
+        return event?._id?.toString();
+      })
+      .filter(Boolean)
+  );
+
+  const browseEvents = availableEvents.filter(
+    (e) => !registeredEventIds.has(e._id.toString()) && new Date(e.startDate) >= now
+  );
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="font-display text-2xl text-explore-charcoal">My Events</h2>
-        <p className="mt-1 text-explore-charcoal/70">Your event registrations.</p>
+        <p className="mt-1 text-explore-charcoal/70">
+          Your event registrations
+          {studentGrade ? ` · ${formatGradeLabel(studentGrade)}` : ""}.
+        </p>
       </div>
 
       <EventSection title="Upcoming Events" registrations={upcoming} emptyMessage="No upcoming events." />
       <EventSection title="Past Events" registrations={past} emptyMessage="No past events." />
 
-      <Link
-        href="/events"
-        className="inline-block rounded-lg bg-explore-orange px-5 py-2.5 text-sm font-semibold text-white"
-      >
-        Browse Events
-      </Link>
+      {studentGrade && browseEvents.length > 0 && (
+        <section>
+          <h3 className="font-display text-lg text-explore-charcoal">
+            Upcoming for {formatGradeLabel(studentGrade)}
+          </h3>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {browseEvents.map((event) => (
+              <Link
+                key={event._id.toString()}
+                href={`/events/${event.slug}`}
+                className="rounded-xl border border-explore-sand bg-explore-white p-4 shadow-sm transition hover:border-explore-teal/40"
+              >
+                <p className="font-semibold text-explore-charcoal">{event.title}</p>
+                <p className="mt-1 text-sm text-explore-charcoal/60">
+                  {new Date(event.startDate).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  {event.location ? ` · ${event.location}` : ""}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

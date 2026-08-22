@@ -21,6 +21,7 @@ const updateSchema = z.object({
   fileType: z.enum(["image", "pdf"]).optional(),
   isShareable: z.boolean().optional(),
   publishToStudent: z.boolean().optional(),
+  grade: z.string().optional(),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

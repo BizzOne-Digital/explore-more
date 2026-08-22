@@ -95,6 +95,7 @@ export interface IStudentProfile extends Document {
   userId: mongoose.Types.ObjectId;
   dateOfBirth?: Date;
   ageRange?: string;
+  grade?: string;
   schoolStatus?: "homeschool" | "traditional" | "other";
   bio?: string;
   profileComplete: number;
@@ -108,6 +109,7 @@ const StudentProfileSchema = new Schema<IStudentProfile>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
     dateOfBirth: Date,
     ageRange: String,
+    grade: String,
     schoolStatus: { type: String, enum: ["homeschool", "traditional", "other"] },
     bio: String,
     profileComplete: { type: Number, default: 0 },

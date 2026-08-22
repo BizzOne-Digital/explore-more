@@ -19,6 +19,7 @@ export interface PublicEvent {
   capacity?: number;
   registrationDeadline?: string;
   ageRange?: string;
+  grade?: string;
   parentRequired?: boolean;
   whatToBring?: string;
   instructions?: string;
@@ -45,6 +46,7 @@ export interface PublicCourse {
   coverImage?: string;
   category?: string;
   ageRange?: string;
+  grade?: string;
   difficulty?: string;
   instructor?: string;
   isFree?: boolean;
@@ -98,6 +100,7 @@ export interface PublicProgram {
   benefits: string[];
   activities: string[];
   ageRange?: string;
+  grade?: string;
   schedule?: string;
   featured?: boolean;
   faqs: { question: string; answer: string }[];

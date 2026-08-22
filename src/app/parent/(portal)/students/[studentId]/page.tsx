@@ -16,6 +16,13 @@ import {
 } from "@/models";
 import { canAccessStudentData } from "@/lib/auth/access";
 import { CertificateListItem } from "@/components/parent/CertificateListItem";
+import {
+  getPublishedCoursesForGrade,
+  getPublishedEventsForGrade,
+  getPublishedProgramsForGrade,
+} from "@/lib/grades/queries";
+import { formatGradeLabel } from "@/lib/grades";
+import type { GradeLevel } from "@/lib/grades";
 
 type PageProps = { params: Promise<{ studentId: string }> };
 
@@ -58,6 +65,27 @@ export default async function ParentStudentPage({ params }: PageProps) {
 
   if (!student) notFound();
 
+  const studentGrade = profile?.grade as GradeLevel | undefined;
+  const [availableCourses, availableEvents, availablePrograms] = studentGrade
+    ? await Promise.all([
+        getPublishedCoursesForGrade(studentGrade),
+        getPublishedEventsForGrade(studentGrade),
+        getPublishedProgramsForGrade(studentGrade),
+      ])
+    : [[], [], []];
+
+  const gradeEnrollments = enrollments.filter((e) => {
+    const course = e.courseId as unknown as InstanceType<typeof Course> | null;
+    if (!studentGrade) return true;
+    return !course?.grade || course.grade === studentGrade;
+  });
+
+  const gradeRegistrations = registrations.filter((r) => {
+    const event = r.eventId as unknown as InstanceType<typeof Event> | null;
+    if (!studentGrade) return true;
+    return !event?.grade || event.grade === studentGrade;
+  });
+
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
@@ -66,6 +94,9 @@ export default async function ParentStudentPage({ params }: PageProps) {
             ← Back to dashboard
           </Link>
           <h2 className="mt-2 font-display text-2xl text-explore-charcoal">{student.name}</h2>
+          {studentGrade && (
+            <p className="text-sm text-explore-teal">{formatGradeLabel(studentGrade)}</p>
+          )}
           {link && (
             <p className="text-sm text-explore-charcoal/60">Relationship: {link.relationship}</p>
           )}
@@ -79,11 +110,11 @@ export default async function ParentStudentPage({ params }: PageProps) {
       </div>
 
       <ParentSection title="Enrolled Courses">
-        {enrollments.length === 0 ? (
+        {gradeEnrollments.length === 0 ? (
           <p className="text-sm text-explore-charcoal/60">No enrolled courses.</p>
         ) : (
           <ul className="space-y-2">
-            {enrollments.map((e) => {
+            {gradeEnrollments.map((e) => {
               const course = e.courseId as unknown as InstanceType<typeof Course> | null;
               return (
                 <li
@@ -100,11 +131,11 @@ export default async function ParentStudentPage({ params }: PageProps) {
       </ParentSection>
 
       <ParentSection title="Event Registrations">
-        {registrations.length === 0 ? (
+        {gradeRegistrations.length === 0 ? (
           <p className="text-sm text-explore-charcoal/60">No event registrations.</p>
         ) : (
           <ul className="space-y-2">
-            {registrations.map((r) => {
+            {gradeRegistrations.map((r) => {
               const event = r.eventId as unknown as InstanceType<typeof Event> | null;
               return (
                 <li
@@ -123,6 +154,59 @@ export default async function ParentStudentPage({ params }: PageProps) {
           </ul>
         )}
       </ParentSection>
+
+      {studentGrade && availablePrograms.length > 0 && (
+        <ParentSection title={`Programs for ${formatGradeLabel(studentGrade)}`}>
+          <ul className="space-y-2">
+            {availablePrograms.map((program) => (
+              <li key={program._id.toString()}>
+                <Link
+                  href={`/programs/${program.slug}`}
+                  className="block rounded-lg bg-explore-white px-4 py-3 text-sm shadow-sm hover:border-explore-teal/30"
+                >
+                  <p className="font-medium">{program.title}</p>
+                  <p className="text-explore-charcoal/60">{program.tagline}</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </ParentSection>
+      )}
+
+      {studentGrade && (availableCourses.length > 0 || availableEvents.length > 0) && (
+        <ParentSection title={`Explore for ${formatGradeLabel(studentGrade)}`}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {availableCourses.length > 0 && (
+              <div>
+                <p className="mb-2 text-sm font-semibold text-explore-charcoal">Courses</p>
+                <ul className="space-y-2">
+                  {availableCourses.slice(0, 4).map((course) => (
+                    <li key={course._id.toString()}>
+                      <Link href={`/courses/${course.slug}`} className="text-sm text-explore-teal hover:underline">
+                        {course.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {availableEvents.length > 0 && (
+              <div>
+                <p className="mb-2 text-sm font-semibold text-explore-charcoal">Events</p>
+                <ul className="space-y-2">
+                  {availableEvents.slice(0, 4).map((event) => (
+                    <li key={event._id.toString()}>
+                      <Link href={`/events/${event.slug}`} className="text-sm text-explore-teal hover:underline">
+                        {event.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </ParentSection>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ParentSection title="Published Results">

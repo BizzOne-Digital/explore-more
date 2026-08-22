@@ -16,6 +16,7 @@ import {
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { safeSlug } from "@/lib/utils";
+import { gradeSelectOptions } from "@/lib/grades";
 
 const schema = z.object({
   title: z.string().min(1),
@@ -23,6 +24,7 @@ const schema = z.object({
   tagline: z.string().min(1),
   shortDescription: z.string().min(1),
   overview: z.string().min(1),
+  grade: z.string().min(1, "Grade is required"),
   ageRange: z.string().optional(),
   schedule: z.string().optional(),
   listingOrder: z.coerce.number(),
@@ -35,9 +37,11 @@ type FormData = z.infer<typeof schema>;
 export function ProgramForm({
   initialData,
   isNew = false,
+  defaultGrade,
 }: {
   initialData?: Record<string, unknown> & { _id?: string };
   isNew?: boolean;
+  defaultGrade?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +60,7 @@ export function ProgramForm({
       shortDescription: (initialData?.shortDescription as string) ?? "",
       overview: (initialData?.overview as string) ?? "",
       ageRange: (initialData?.ageRange as string) ?? "",
+      grade: (initialData?.grade as string) ?? defaultGrade ?? "",
       schedule: (initialData?.schedule as string) ?? "",
       listingOrder: (initialData?.listingOrder as number) ?? 0,
       featured: (initialData?.featured as boolean) ?? false,
@@ -81,7 +86,7 @@ export function ProgramForm({
       setError(json.error ?? "Save failed");
       return;
     }
-    router.push("/admin/programs");
+    router.push(data.grade ? `/admin/programs?grade=${encodeURIComponent(data.grade)}` : "/admin/programs");
     router.refresh();
   }
 
@@ -115,6 +120,14 @@ export function ProgramForm({
           </FormField>
           <FormField label="Age Range" error={errors.ageRange}>
             <TextInput registration={register("ageRange")} error={errors.ageRange} />
+          </FormField>
+          <FormField label="Grade" error={errors.grade} required>
+            <SelectInput
+              registration={register("grade")}
+              error={errors.grade}
+              options={gradeSelectOptions()}
+              disabled={Boolean(defaultGrade && isNew)}
+            />
           </FormField>
           <FormField label="Schedule" error={errors.schedule}>
             <TextInput registration={register("schedule")} error={errors.schedule} />

@@ -4,13 +4,15 @@ import { Footer } from "@/components/layout/Footer";
 import { CinematicIntro } from "@/components/intro/CinematicIntro";
 import { getSiteNavigation } from "@/lib/queries/navigation";
 
-/** Public marketing chrome — hidden on admin routes. */
+/** Public marketing chrome — hidden on admin and parent portal routes. */
 export async function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isAdmin = pathname.startsWith("/admin");
-  const navigation = isAdmin ? null : await getSiteNavigation();
+  const isParentPortal = pathname.startsWith("/parent");
+  const hidePublicChrome = isAdmin || isParentPortal;
+  const navigation = hidePublicChrome ? null : await getSiteNavigation();
 
-  if (isAdmin) {
+  if (hidePublicChrome) {
     return (
       <main id="main-content" className="w-full min-w-0 overflow-x-clip">
         {children}

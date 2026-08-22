@@ -38,15 +38,16 @@ export async function POST(request: Request) {
 
     const user = await User.create(userData);
 
-    // Create student profile if additional data provided
-    if (body.dateOfBirth || body.schoolStatus || body.bio) {
-      await StudentProfile.create({
-        userId: user._id,
+    await StudentProfile.findOneAndUpdate(
+      { userId: user._id },
+      {
         dateOfBirth: body.dateOfBirth,
         schoolStatus: body.schoolStatus,
         bio: body.bio,
-      });
-    }
+        grade: body.grade || undefined,
+      },
+      { upsert: true, new: true }
+    );
 
     return apiSuccess({ user, tempPassword }, 201);
   } catch (error) {

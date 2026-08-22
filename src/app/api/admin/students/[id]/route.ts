@@ -44,17 +44,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!user) return notFound();
     
     // Update or create profile
-    if (body.dateOfBirth || body.schoolStatus || body.bio) {
-      await StudentProfile.findOneAndUpdate(
-        { userId: id },
-        {
-          dateOfBirth: body.dateOfBirth,
-          schoolStatus: body.schoolStatus,
-          bio: body.bio,
-        },
-        { upsert: true, new: true }
-      );
-    }
+    await StudentProfile.findOneAndUpdate(
+      { userId: id },
+      {
+        dateOfBirth: body.dateOfBirth,
+        schoolStatus: body.schoolStatus,
+        bio: body.bio,
+        grade: body.grade || undefined,
+      },
+      { upsert: true, new: true }
+    );
     
     return apiSuccess(user);
   } catch (error) {

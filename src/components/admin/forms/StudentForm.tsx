@@ -16,6 +16,7 @@ import {
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Send, Trash2 } from "lucide-react";
+import { gradeSelectOptions } from "@/lib/grades";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -24,6 +25,7 @@ const schema = z.object({
   dateOfBirth: z.string().optional(),
   schoolStatus: z.enum(["homeschool", "traditional", "other", ""]).optional(),
   bio: z.string().optional(),
+  grade: z.string().min(1, "Grade is required"),
   isActive: z.boolean(),
   emailVerified: z.boolean(),
 });
@@ -77,6 +79,7 @@ export function StudentForm({
         : "",
       schoolStatus: (initialData?.schoolStatus as FormData["schoolStatus"]) ?? "",
       bio: (initialData?.bio as string) ?? "",
+      grade: (initialData?.grade as string) ?? "",
       isActive: (initialData?.isActive as boolean) ?? true,
       emailVerified: (initialData?.emailVerified as boolean) ?? false,
     },
@@ -287,6 +290,13 @@ export function StudentForm({
                 { value: "traditional", label: "Traditional School" },
                 { value: "other", label: "Other" },
               ]}
+            />
+          </FormField>
+          <FormField label="Grade" error={errors.grade} required>
+            <SelectInput
+              registration={register("grade")}
+              error={errors.grade}
+              options={gradeSelectOptions()}
             />
           </FormField>
           <FormField label="Bio" error={errors.bio} className="sm:col-span-2">

@@ -4,6 +4,7 @@ import { CheckCircle } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { getCourseBySlug } from "@/lib/queries/public";
 import { formatCents } from "@/lib/utils";
+import { formatGradeLabel } from "@/lib/grades";
 import { Badge } from "@/components/ui/Badge";
 import { EnrollmentButton } from "@/components/forms/EnrollmentButton";
 
@@ -33,6 +34,7 @@ export default async function CourseDetailPage({ params }: Props) {
         <div className="relative mx-auto w-full min-w-0 max-w-4xl px-3 sm:px-4">
           <div className="flex flex-wrap gap-2 mb-4">
             {course.category && <Badge variant="lime">{course.category}</Badge>}
+            {course.grade && <Badge variant="orange">{formatGradeLabel(course.grade)}</Badge>}
             {course.difficulty && <Badge variant="teal">{course.difficulty}</Badge>}
             {course.enrollmentStatus === "waitlist" && <Badge variant="orange">Waitlist</Badge>}
           </div>

@@ -27,6 +27,7 @@ export interface ICourse extends Document {
   instructorId?: mongoose.Types.ObjectId;
   category?: string;
   ageRange?: string;
+  grade?: string;
   difficulty?: "beginner" | "intermediate" | "advanced";
   deliveryFormat?: string;
   startDate?: Date;
@@ -83,6 +84,7 @@ const CourseSchema = new Schema<ICourse>(
     instructorId: { type: Schema.Types.ObjectId, ref: "User" },
     category: String,
     ageRange: String,
+    grade: String,
     difficulty: { type: String, enum: ["beginner", "intermediate", "advanced"] },
     deliveryFormat: String,
     startDate: Date,

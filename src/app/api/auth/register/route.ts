@@ -71,8 +71,12 @@ export async function POST(request: Request) {
       ...(process.env.NODE_ENV === "development" && !emailResult.sent
         ? { devVerificationCode: token, emailError: emailResult.error }
         : {}),
-      ...(!emailResult.sent && process.env.NODE_ENV === "production"
-        ? { message: "Account created, but we could not send the verification email. Use resend on the next screen." }
+      ...(!emailResult.sent
+        ? {
+            message:
+              "Account created, but we could not send the verification email. Use resend on the next screen.",
+            emailError: emailResult.error,
+          }
         : {}),
     });
   } catch (error) {

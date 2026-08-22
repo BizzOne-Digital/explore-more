@@ -42,6 +42,7 @@ export async function POST(request: Request) {
       ...(process.env.NODE_ENV === "development" && !emailResult.sent
         ? { devVerificationCode: token, emailError: emailResult.error }
         : {}),
+      ...(!emailResult.sent ? { emailError: emailResult.error } : {}),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

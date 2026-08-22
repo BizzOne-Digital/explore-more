@@ -1,27 +1,27 @@
 import nodemailer from "nodemailer";
 import connectDB from "@/lib/db";
 import { EmailJob } from "@/models";
+import {
+  createSmtpTransportOptions,
+  getSmtpFromAddress,
+  getSmtpSettings,
+  isSmtpConfigured,
+} from "@/lib/services/smtp-config";
+
+export { isSmtpConfigured };
 
 function getTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || "587", 10);
-  const user = process.env.SMTP_USERNAME;
-  const pass = process.env.SMTP_PASSWORD;
-
-  if (!host || !user || !pass) {
+  const settings = getSmtpSettings();
+  if (!isSmtpConfigured()) {
     return null;
   }
 
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
+  return nodemailer.createTransport(createSmtpTransportOptions(settings));
 }
 
-export function isSmtpConfigured(): boolean {
-  return !!(process.env.SMTP_HOST && process.env.SMTP_USERNAME && process.env.SMTP_PASSWORD);
+function logEmailError(context: string, error: unknown) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  console.error(`[email] ${context}: ${message}`);
 }
 
 export async function queueEmail(params: {
@@ -53,7 +53,8 @@ async function deliverEmailJob(jobId: string): Promise<void> {
     throw new Error("Email job not found");
   }
 
-  const from = `"${process.env.SMTP_SENDER_NAME || "Explore More Academy"}" <${process.env.SMTP_SENDER_EMAIL || process.env.SMTP_USERNAME}>`;
+  const settings = getSmtpSettings();
+  const from = getSmtpFromAddress(settings);
 
   job.status = "sending";
   job.attempts += 1;
@@ -63,7 +64,7 @@ async function deliverEmailJob(jobId: string): Promise<void> {
     await transporter.sendMail({
       from,
       to: job.to,
-      replyTo: process.env.SMTP_REPLY_TO,
+      replyTo: settings.replyTo || settings.username,
       subject: job.subject,
       html: job.htmlBody,
       text: job.textBody,
@@ -73,9 +74,11 @@ async function deliverEmailJob(jobId: string): Promise<void> {
     job.sentAt = new Date();
     await job.save();
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
     job.status = job.attempts >= 3 ? "failed" : "queued";
-    job.lastError = error instanceof Error ? error.message : "Unknown error";
+    job.lastError = message;
     await job.save();
+    logEmailError(`delivery failed for job ${jobId} → ${job.to}`, error);
     throw error;
   }
 }
@@ -92,13 +95,12 @@ export async function sendTransactionalEmail(params: {
   const jobId = await queueEmail(params);
 
   if (!isSmtpConfigured()) {
-    if (process.env.NODE_ENV === "development") {
-      console.info(`[email] SMTP not configured — queued only: ${params.subject} → ${params.to}`);
-      if (params.textBody) {
-        console.info(`[email] ${params.textBody}`);
-      }
+    const error = "SMTP is not configured";
+    logEmailError(`queued only (${params.template}) → ${params.to}`, error);
+    if (process.env.NODE_ENV === "development" && params.textBody) {
+      console.info(`[email] ${params.textBody}`);
     }
-    return { jobId, sent: false, error: "SMTP is not configured" };
+    return { jobId, sent: false, error };
   }
 
   try {
@@ -106,6 +108,7 @@ export async function sendTransactionalEmail(params: {
     return { jobId, sent: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Email delivery failed";
+    logEmailError(`transactional send failed (${params.template}) → ${params.to}`, error);
     return { jobId, sent: false, error: message };
   }
 }
@@ -123,8 +126,6 @@ export async function processEmailQueue(limit = 20): Promise<{ sent: number; fai
 
   let sent = 0;
   let failed = 0;
-
-  const from = `"${process.env.SMTP_SENDER_NAME || "Explore More Academy"}" <${process.env.SMTP_SENDER_EMAIL || process.env.SMTP_USERNAME}>`;
 
   for (const job of jobs) {
     try {

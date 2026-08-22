@@ -37,6 +37,12 @@ export function RegisterForm() {
       if (json.devVerificationCode) {
         params.set("token", json.devVerificationCode);
       }
+      if (json.emailSent === false) {
+        params.set("emailFailed", "1");
+        if (json.emailError) {
+          params.set("emailError", json.emailError);
+        }
+      }
       router.push(`/verify-email?${params.toString()}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

@@ -10,11 +10,14 @@ export function VerifyEmailForm() {
   const email = searchParams.get("email") || "";
   const tokenFromUrl = searchParams.get("token") || "";
   const callbackUrl = searchParams.get("callbackUrl") || "/login";
+  const emailFailed = searchParams.get("emailFailed") === "1";
+  const emailErrorFromUrl = searchParams.get("emailError") || "";
   const [token, setToken] = useState(tokenFromUrl);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [resendStatus, setResendStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [error, setError] = useState("");
   const [resendError, setResendError] = useState("");
+  const [emailDeliveryWarning, setEmailDeliveryWarning] = useState("");
   const [devCode, setDevCode] = useState("");
 
   async function verifyCode(code: string) {
@@ -71,6 +74,15 @@ export function VerifyEmailForm() {
       if (!res.ok) throw new Error(json.error || "Could not resend code");
 
       setResendStatus("sent");
+      if (json.emailSent === false) {
+        setEmailDeliveryWarning(
+          json.emailError
+            ? `Email could not be sent: ${json.emailError}`
+            : "Email could not be sent. Please try again in a few minutes or contact support."
+        );
+      } else {
+        setEmailDeliveryWarning("");
+      }
       if (json.devVerificationCode) {
         setDevCode(json.devVerificationCode);
         setToken(json.devVerificationCode);
@@ -107,6 +119,13 @@ export function VerifyEmailForm() {
       <p className="text-sm text-explore-charcoal/70">
         We sent a verification code to <strong>{email || "your email"}</strong>. Enter it below.
       </p>
+      {emailFailed && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {emailErrorFromUrl
+            ? `We could not send the verification email: ${emailErrorFromUrl}`
+            : "We could not send the verification email. Use resend below or check spam."}
+        </p>
+      )}
       <Input
         name="token"
         label="Verification Code"
@@ -134,9 +153,10 @@ export function VerifyEmailForm() {
         >
           {resendStatus === "loading" ? "Sending..." : "Resend verification code"}
         </button>
-        {resendStatus === "sent" && (
+        {resendStatus === "sent" && !emailDeliveryWarning && (
           <p className="mt-2 text-explore-forest">If your email is registered, a new code has been sent.</p>
         )}
+        {emailDeliveryWarning && <p className="mt-2 text-red-600">{emailDeliveryWarning}</p>}
         {resendError && <p className="mt-2 text-red-600">{resendError}</p>}
       </div>
     </form>

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { getAssessmentsForParent } from "@/lib/assessments/queries";
 import { Assessment, AssessmentSubmission, GuardianStudentLink } from "@/models";
+import { requireParentMembershipFeature } from "@/lib/membership/require";
 import { z } from "zod";
 import { isValidObjectId } from "@/lib/admin/api";
 
@@ -19,8 +20,15 @@ export async function GET() {
       return apiError(new Error("Unauthorized"), 401);
     }
 
-    const items = await getAssessmentsForParent(session.user.id);
-    return apiSuccess(items);
+    const gate = await requireParentMembershipFeature(
+      session.user.id,
+      "midTermAssessment",
+      session.user.role
+    );
+    if (!gate.ok) return gate.response;
+
+    const result = await getAssessmentsForParent(session.user.id);
+    return apiSuccess(result);
   } catch (error) {
     return apiError(error);
   }
@@ -32,6 +40,13 @@ export async function POST(request: Request) {
     if (!session?.user?.id || session.user.role !== "parent") {
       return apiError(new Error("Unauthorized"), 401);
     }
+
+    const gate = await requireParentMembershipFeature(
+      session.user.id,
+      "midTermAssessment",
+      session.user.role
+    );
+    if (!gate.ok) return gate.response;
 
     await connectDB();
     const body = await request.json();

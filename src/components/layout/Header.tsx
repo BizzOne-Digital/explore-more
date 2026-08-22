@@ -42,6 +42,10 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isAdmin = session?.user?.role === "administrator";
+  const isParent = session?.user?.role === "parent";
+  const isStudent = session?.user?.role === "student";
+  const parentPortalHref = isParent || isAdmin ? "/parent" : "/membership";
+  const studentPortalHref = isStudent || isAdmin ? "/student" : "/membership";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -89,23 +93,23 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
             )}
             {session ? (
               <>
-                <Link href="/student" className="hover:text-explore-lime transition-colors">
+                <Link href={studentPortalHref} className="hover:text-explore-lime transition-colors">
                   Student Portal
                 </Link>
-                <Link href="/parent" className="hover:text-explore-lime transition-colors">
+                <Link href={parentPortalHref} className="hover:text-explore-lime transition-colors">
                   Parent Portal
                 </Link>
               </>
             ) : (
               <>
-                <Link href="/student/login" className="hover:text-explore-lime transition-colors">
-                  Student Login
+                <Link href="/membership" className="hover:text-explore-lime transition-colors">
+                  Student Portal
+                </Link>
+                <Link href="/membership" className="hover:text-explore-lime transition-colors">
+                  Parent Portal
                 </Link>
                 <Link href="/parent/login" className="hover:text-explore-lime transition-colors">
-                  Parent Login
-                </Link>
-                <Link href="/register" className="hover:text-explore-lime transition-colors">
-                  Sign Up
+                  Member Login
                 </Link>
               </>
             )}
@@ -196,10 +200,10 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                         Admin Portal
                       </Link>
                     )}
-                    <Link href="/student" className="block px-4 py-2 text-sm hover:bg-explore-cream">
+                    <Link href={studentPortalHref} className="block px-4 py-2 text-sm hover:bg-explore-cream">
                       Student Portal
                     </Link>
-                    <Link href="/parent" className="block px-4 py-2 text-sm hover:bg-explore-cream">
+                    <Link href={parentPortalHref} className="block px-4 py-2 text-sm hover:bg-explore-cream">
                       Parent Portal
                     </Link>
                     <button
@@ -252,19 +256,23 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
               </Link>
             ))}
             <Link
-              href="/student"
+              href={session ? studentPortalHref : "/membership"}
               className={cn(
                 "block py-3 text-base font-medium border-b border-explore-charcoal/5",
-                pathname.startsWith("/student") ? "text-explore-teal" : "text-explore-charcoal"
+                pathname.startsWith("/student") || pathname === "/membership"
+                  ? "text-explore-teal"
+                  : "text-explore-charcoal"
               )}
             >
               Student Portal
             </Link>
             <Link
-              href="/parent"
+              href={session ? parentPortalHref : "/membership"}
               className={cn(
                 "block py-3 text-base font-medium border-b border-explore-charcoal/5",
-                pathname.startsWith("/parent") ? "text-explore-teal" : "text-explore-charcoal"
+                pathname.startsWith("/parent") || pathname === "/membership"
+                  ? "text-explore-teal"
+                  : "text-explore-charcoal"
               )}
             >
               Parent Portal

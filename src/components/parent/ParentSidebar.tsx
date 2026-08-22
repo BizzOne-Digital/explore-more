@@ -5,19 +5,21 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { parentNavGroups } from "@/lib/parent/nav";
+import type { ParentNavGroup } from "@/lib/parent/nav";
 import { CopyIdButton } from "@/components/parent/CopyIdButton";
 
 interface ParentSidebarProps {
   guardianId?: string;
   unreadMessages?: number;
   unreadNotifications?: number;
+  navGroups: ParentNavGroup[];
 }
 
 export function ParentSidebar({
   guardianId,
   unreadMessages = 0,
   unreadNotifications = 0,
+  navGroups,
 }: ParentSidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -46,7 +48,7 @@ export function ParentSidebar({
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-4" data-lenis-prevent>
-        {parentNavGroups.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.title} className="mb-5">
             <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
               {group.title}

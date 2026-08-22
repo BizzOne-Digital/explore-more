@@ -8,6 +8,7 @@ interface ParentShellProps {
   guardianId?: string;
   unreadMessages?: number;
   unreadNotifications?: number;
+  navGroups: import("@/lib/parent/nav").ParentNavGroup[];
   signOutAction: () => Promise<void>;
 }
 
@@ -17,6 +18,7 @@ export function ParentShell({
   guardianId,
   unreadMessages,
   unreadNotifications,
+  navGroups,
   signOutAction,
 }: ParentShellProps) {
   return (
@@ -26,6 +28,7 @@ export function ParentShell({
           guardianId={guardianId}
           unreadMessages={unreadMessages}
           unreadNotifications={unreadNotifications}
+          navGroups={navGroups}
         />
       </Suspense>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

@@ -43,8 +43,8 @@ export const FOOTER_NAV: Record<string, NavLink[]> = {
   Account: [
     { href: "/login", label: "Login" },
     { href: "/register", label: "Register" },
-    { href: "/student", label: "Student Portal" },
-    { href: "/parent", label: "Parent Portal" },
+    { href: "/membership", label: "Student Portal" },
+    { href: "/membership", label: "Parent Portal" },
     { pageKey: "privacy", href: "/privacy", label: "Privacy Policy" },
     { pageKey: "terms", href: "/terms", label: "Terms of Service" },
   ],

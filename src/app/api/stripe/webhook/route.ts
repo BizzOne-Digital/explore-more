@@ -207,12 +207,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     case "membership": {
       const planId = session.metadata?.planId;
+      const planSlug = session.metadata?.planSlug;
       const userId = session.metadata?.userId;
       const email = (
         session.customer_email ||
         session.customer_details?.email ||
         ""
       ).toLowerCase();
+      const customerName =
+        session.customer_details?.name ||
+        session.metadata?.customerName ||
+        "Member";
       const stripeSubscriptionId =
         typeof session.subscription === "string"
           ? session.subscription
@@ -266,6 +271,27 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           stripePriceId,
           currentPeriodEnd,
         });
+      }
+
+      if (email) {
+        try {
+          const { SubscriptionPlan } = await import("@/models");
+          const plan = await SubscriptionPlan.findById(planId).lean();
+          const amountCents = session.amount_total ?? plan?.priceCents ?? 0;
+          const priceLabel = `$${(amountCents / 100).toFixed(2)}`;
+          const { sendMembershipPurchaseEmails } = await import(
+            "@/lib/email/membership-notifications"
+          );
+          await sendMembershipPurchaseEmails({
+            customerName: String(customerName),
+            customerEmail: email,
+            planName: plan?.name ?? planSlug ?? "Membership",
+            priceLabel,
+            interval: plan?.interval === "year" ? "year" : "month",
+          });
+        } catch (err) {
+          console.error("Membership purchase emails failed:", err);
+        }
       }
       break;
     }

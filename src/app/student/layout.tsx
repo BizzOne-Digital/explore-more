@@ -1,24 +1,42 @@
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getStudentMembershipAccess } from "@/lib/membership/access";
+import {
+  filterStudentNavForMembership,
+  STUDENT_NAV_ITEMS,
+} from "@/lib/membership/nav-filter";
+import { getRequiredFeatureForStudentPath } from "@/lib/membership/route-features";
 
 export const dynamic = "force-dynamic";
 
-const navItems = [
-  { href: "/student", label: "Dashboard" },
-  { href: "/student/courses", label: "My Courses" },
-  { href: "/student/programs", label: "Programs" },
-  { href: "/student/results", label: "Results" },
-  { href: "/student/events", label: "Events" },
-  { href: "/student/certificates", label: "My Certificates" },
-  { href: "/student/resources", label: "Resources" },
-  { href: "/student/messages", label: "Messages" },
-  { href: "/student/profile", label: "Profile" },
-];
-
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (!session?.user) redirect("/login?callbackUrl=/student");
+  if (!session?.user) redirect("/student/login?callbackUrl=/student");
+
+  const pathname = (await headers()).get("x-pathname") ?? "/student";
+  const isAdmin = session.user.role === "administrator";
+  const access = isAdmin
+    ? {
+        hasActiveMembership: true,
+        hasFeature: () => true,
+        features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
+      }
+    : await getStudentMembershipAccess(session.user.id);
+
+  if (!isAdmin && !access.hasActiveMembership) {
+    redirect("/membership?reason=student-portal");
+  }
+
+  if (!isAdmin && access.hasActiveMembership) {
+    const required = getRequiredFeatureForStudentPath(pathname);
+    if (required && !access.hasFeature(required)) {
+      redirect("/student?upgrade=1");
+    }
+  }
+
+  const navItems = isAdmin ? STUDENT_NAV_ITEMS : filterStudentNavForMembership(access.features);
 
   return (
     <div className="min-h-screen w-full overflow-x-clip bg-explore-cream">

@@ -16,8 +16,8 @@ interface RegistrationData {
 
 interface EventData {
   title: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: Date | string;
+  endDate: Date | string;
   startTime: string;
   endTime: string;
   location: string;

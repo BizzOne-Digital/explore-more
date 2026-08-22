@@ -1,9 +1,9 @@
 import connectDB from "@/lib/db";
 import { Event, EventRegistration } from "@/models";
-import { queueEmail, emailTemplates } from "@/lib/services/email";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getEventPriceCents } from "@/lib/pricing";
+import { sendEventRegistrationEmails } from "@/lib/email/event-notifications";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -88,26 +88,41 @@ export async function POST(request: Request, context: RouteContext) {
     notes: parsed.data.notes,
   });
 
-  const dateStr = event.startDate.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  try {
+    await sendEventRegistrationEmails({
+      registration: {
+        registrationId: registration.registrationId,
+        studentName: registration.studentName,
+        guardianName,
+        guardianEmail,
+        guardianPhone,
+        paymentStatus: registration.paymentStatus,
+        paymentAmount: registration.paymentAmount,
+        status: registration.status,
+      },
+      event: {
+        title: event.title,
+        slug: event.slug,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        location: event.location,
+        isOnline: event.isOnline,
+        instructions: event.instructions,
+        contactName: event.contactName,
+        contactEmail: event.contactEmail,
+        contactPhone: event.contactPhone,
+      },
+    });
 
-  const template = emailTemplates.eventRegistration(
-    sessionResult.user.name,
-    event.title,
-    dateStr
-  );
-
-  await queueEmail({
-    to: sessionResult.user.email,
-    subject: template.subject,
-    htmlBody: template.html,
-    template: "eventRegistration",
-    metadata: { registrationId: registration._id.toString() },
-  });
+    await EventRegistration.findByIdAndUpdate(registration._id, {
+      confirmationEmailSent: true,
+      confirmationEmailSentAt: new Date(),
+    });
+  } catch (err) {
+    console.error("Event registration emails failed:", err);
+  }
 
   return jsonOk(
     { message: "Successfully registered for event", registrationId: registration._id.toString() },

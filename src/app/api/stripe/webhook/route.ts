@@ -14,8 +14,10 @@ import {
   activateMembershipForUser,
   savePendingMembership,
 } from "@/lib/billing/membership-activation";
-import { queueEmail, emailTemplates } from "@/lib/services/email";
+import { queueEmail, emailTemplates, sendTransactionalEmail } from "@/lib/services/email";
 import { formatCents } from "@/lib/utils";
+import { sendBookOrderEmails } from "@/lib/email/order-notifications";
+import { sendEventRegistrationEmails } from "@/lib/email/event-notifications";
 
 export const runtime = "nodejs";
 
@@ -51,18 +53,24 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         });
       }
 
-      const template = emailTemplates.orderConfirmation(
-        order.customerName,
-        order.orderNumber,
-        formatCents(order.totalCents)
-      );
-      await queueEmail({
-        to: order.customerEmail,
-        subject: template.subject,
-        htmlBody: template.html,
-        template: "orderConfirmation",
-        metadata: { orderId: order._id.toString() },
-      });
+      try {
+        await sendBookOrderEmails({
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          totalCents: order.totalCents,
+          subtotalCents: order.subtotalCents,
+          shippingCents: order.shippingCents,
+          items: order.items.map((item) => ({
+            title: item.title,
+            quantity: item.quantity,
+            priceCents: item.priceCents,
+          })),
+          shippingAddress: order.shippingAddress,
+        });
+      } catch (err) {
+        console.error("Book order emails failed:", err);
+      }
       break;
     }
 
@@ -108,28 +116,61 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       if (!registration || registration.paymentStatus === "paid") return;
 
       registration.paymentStatus = "paid";
+      registration.status = "confirmed";
       registration.stripeSessionId = session.id;
       await registration.save();
 
-      const event = registration.eventId as { title?: string; startDate?: Date } | null;
-      const user = await User.findById(registration.userId);
-      if (user && event?.title) {
-        const dateStr = event.startDate
-          ? new Date(event.startDate).toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })
-          : "TBD";
-        const template = emailTemplates.eventRegistration(user.name, event.title, dateStr);
-        await queueEmail({
-          to: user.email,
-          subject: template.subject,
-          htmlBody: template.html,
-          template: "eventRegistration",
-          metadata: { registrationId: registration._id.toString() },
-        });
+      const eventDoc = registration.eventId as {
+        title?: string;
+        slug?: string;
+        startDate?: Date;
+        endDate?: Date;
+        startTime?: string;
+        endTime?: string;
+        location?: string;
+        isOnline?: boolean;
+        instructions?: string;
+        contactName?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+      } | null;
+
+      if (eventDoc?.title) {
+        try {
+          await sendEventRegistrationEmails({
+            registration: {
+              registrationId: registration.registrationId,
+              studentName: registration.studentName,
+              guardianName: registration.guardianName,
+              guardianEmail: registration.guardianEmail,
+              guardianPhone: registration.guardianPhone,
+              paymentStatus: registration.paymentStatus,
+              paymentAmount: registration.paymentAmount,
+              status: registration.status,
+            },
+            event: {
+              title: eventDoc.title,
+              slug: eventDoc.slug,
+              startDate: eventDoc.startDate ?? new Date(),
+              endDate: eventDoc.endDate ?? new Date(),
+              startTime: eventDoc.startTime ?? "",
+              endTime: eventDoc.endTime ?? "",
+              location: eventDoc.location ?? "",
+              isOnline: eventDoc.isOnline,
+              instructions: eventDoc.instructions,
+              contactName: eventDoc.contactName,
+              contactEmail: eventDoc.contactEmail,
+              contactPhone: eventDoc.contactPhone,
+            },
+          });
+
+          await EventRegistration.findByIdAndUpdate(registration._id, {
+            confirmationEmailSent: true,
+            confirmationEmailSentAt: new Date(),
+          });
+        } catch (err) {
+          console.error("Paid event registration emails failed:", err);
+        }
       }
       break;
     }

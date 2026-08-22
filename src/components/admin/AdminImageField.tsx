@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Upload, X } from "lucide-react";
 import { deleteStoredUploadByUrl } from "@/lib/services/stored-upload-client";
 import { resolveImageUrl } from "@/lib/images/resolve";
+import { uploadAdminImage } from "@/lib/uploads/admin-image-upload";
 import type { StoredUploadFolder } from "@/lib/constants";
 
 interface AdminImageFieldProps {
@@ -11,12 +12,21 @@ interface AdminImageFieldProps {
   value: string;
   onChange: (url: string) => void;
   folder: StoredUploadFolder;
+  /** Legacy UPLOAD_DIRS key (e.g. events, books) for older API compatibility. */
+  legacyCategory?: string;
   className?: string;
 }
 
 type Toast = { type: "success" | "error"; message: string };
 
-export function AdminImageField({ label, value, onChange, folder, className }: AdminImageFieldProps) {
+export function AdminImageField({
+  label,
+  value,
+  onChange,
+  folder,
+  legacyCategory,
+  className,
+}: AdminImageFieldProps) {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,26 +57,19 @@ export function AdminImageField({ label, value, onChange, folder, className }: A
     const previousUrl = value;
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", folder);
-
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const json = await res.json();
-
-      if (!res.ok || !json.success || !json.url) {
-        setToast({ type: "error", message: json.error ?? "Upload failed" });
-        return;
-      }
+      const { url } = await uploadAdminImage(file, folder, legacyCategory);
 
       if (previousUrl) {
         await deleteStoredUploadByUrl(previousUrl);
       }
 
-      onChange(json.url);
+      onChange(url);
       setToast({ type: "success", message: "Image uploaded successfully." });
-    } catch {
-      setToast({ type: "error", message: "Upload failed. Please try again." });
+    } catch (err) {
+      setToast({
+        type: "error",
+        message: err instanceof Error ? err.message : "Upload failed. Please try again.",
+      });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

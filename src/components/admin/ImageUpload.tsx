@@ -32,6 +32,7 @@ export function ImageUpload({ label, value, onChange, folder = "misc" }: ImageUp
       value={value}
       onChange={onChange}
       folder={resolveFolder(folder)}
+      legacyCategory={folder}
     />
   );
 }

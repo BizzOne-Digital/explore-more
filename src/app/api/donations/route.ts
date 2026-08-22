@@ -4,6 +4,8 @@ import connectDB from "@/lib/db";
 import { DonationCampaign, Donation } from "@/models";
 import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stripe";
 import { auth } from "@/lib/auth";
+import { sendDonationEmails } from "@/lib/email/donation-notifications";
+import { getCampaignGoalCents } from "@/lib/pricing";
 
 const schema = z.object({
   campaignId: z.string(),
@@ -46,10 +48,27 @@ export async function POST(request: Request) {
 
     const stripe = getStripe();
     if (!stripe) {
-      await Donation.findByIdAndUpdate(donation._id, { paymentStatus: "paid" });
+      await Donation.findByIdAndUpdate(donation._id, { paymentStatus: "paid", receiptSent: true });
       await DonationCampaign.findByIdAndUpdate(campaign._id, {
-        $inc: { raisedCents: data.amountCents },
+        $inc: { raisedAmount: data.amountCents / 100 },
       });
+
+      await sendDonationEmails({
+        donation: {
+          donationId: donation._id.toString(),
+          donorName: data.donorName,
+          donorEmail: data.donorEmail,
+          amountCents: data.amountCents,
+          isAnonymous: data.isAnonymous,
+          message: data.message,
+        },
+        campaign: {
+          title: campaign.title,
+          slug: campaign.slug,
+          goalCents: getCampaignGoalCents(campaign),
+        },
+      }).catch((err) => console.error("[email] donation:", err));
+
       return NextResponse.json({ success: true, manual: true });
     }
 
@@ -66,7 +85,7 @@ export async function POST(request: Request) {
       ],
       mode: "payment",
       metadata: {
-        type: "donation",
+        checkoutType: "donation",
         donationId: donation._id.toString(),
         campaignId: campaign._id.toString(),
       },

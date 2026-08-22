@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import connectDB from "@/lib/db";
-import { ServiceRequest } from "@/models";
-import { queueEmail, emailTemplates } from "@/lib/services/email";
+import { Program, ServiceRequest } from "@/models";
+import { sendProgramBookingEmails } from "@/lib/email/program-notifications";
 
 const schema = z.object({
   programId: z.string(),
@@ -27,21 +27,40 @@ export async function POST(request: Request) {
     const data = schema.parse(body);
     await connectDB();
 
-    const program = await ServiceRequest.create({
+    const programDoc = await Program.findById(data.programId).lean();
+    const programTitle = programDoc?.title ?? data.programSlug;
+
+    const serviceRequest = await ServiceRequest.create({
       ...data,
       programId: data.programId,
       status: "new",
     });
 
-    const tpl = emailTemplates.serviceRequest(data.parentName, data.programSlug);
-    await queueEmail({
-      to: data.email,
-      subject: tpl.subject,
-      htmlBody: tpl.html,
-      template: "serviceRequest",
-    }).catch(() => {});
+    await sendProgramBookingEmails({
+      booking: {
+        requestId: serviceRequest._id.toString(),
+        parentName: data.parentName,
+        email: data.email,
+        phone: data.phone,
+        studentName: data.studentName,
+        studentAge: data.studentAge,
+        preferredSchedule: data.preferredSchedule,
+        requestType: data.requestType,
+        schoolStatus: data.schoolStatus,
+        goals: data.goals,
+        accessibilityNeeds: data.accessibilityNeeds,
+        additionalNotes: data.additionalNotes,
+      },
+      program: {
+        title: programTitle,
+        slug: data.programSlug,
+        schedule: programDoc?.schedule,
+        ageRange: programDoc?.ageRange,
+        shortDescription: programDoc?.shortDescription,
+      },
+    }).catch((err) => console.error("[email] program booking:", err));
 
-    return NextResponse.json({ success: true, id: program._id.toString() });
+    return NextResponse.json({ success: true, id: serviceRequest._id.toString() });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid form data" }, { status: 400 });

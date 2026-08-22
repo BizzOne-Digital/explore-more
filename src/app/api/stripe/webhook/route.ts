@@ -14,11 +14,11 @@ import {
   activateMembershipForUser,
   savePendingMembership,
 } from "@/lib/billing/membership-activation";
-import { queueEmail, emailTemplates } from "@/lib/services/email";
-import { formatCents } from "@/lib/utils";
 import { sendBookOrderEmails } from "@/lib/email/order-notifications";
 import { sendEventRegistrationEmails } from "@/lib/email/event-notifications";
 import { sendCourseEnrollmentEmails } from "@/lib/email/course-notifications";
+import { sendDonationEmails } from "@/lib/email/donation-notifications";
+import { getCampaignGoalCents, getCampaignRaisedCents } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 
@@ -27,7 +27,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const checkoutType =
     metadata.checkoutType ||
     (metadata.type === "order" ? "books" : undefined) ||
-    (metadata.type === "enrollment" ? "course" : undefined);
+    (metadata.type === "enrollment" ? "course" : undefined) ||
+    (metadata.type === "donation" ? "donation" : undefined);
   if (!checkoutType) return;
 
   await connectDB();
@@ -285,25 +286,39 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       await donation.save();
 
       await DonationCampaign.findByIdAndUpdate(donation.campaignId, {
-        $inc: { raisedCents: donation.amountCents },
+        $inc: { raisedAmount: donation.amountCents / 100 },
       });
 
-      const campaign = donation.campaignId as { title?: string } | null;
+      const campaign = donation.campaignId as {
+        title?: string;
+        slug?: string;
+        goalAmount?: number;
+        raisedAmount?: number;
+      } | null;
+
       if (!donation.receiptSent) {
-        const template = emailTemplates.donationConfirmation(
-          donation.donorName,
-          formatCents(donation.amountCents),
-          campaign?.title ?? "Explore More Academy"
-        );
-        await queueEmail({
-          to: donation.donorEmail,
-          subject: template.subject,
-          htmlBody: template.html,
-          template: "donationConfirmation",
-          metadata: { donationId: donation._id.toString() },
-        });
-        donation.receiptSent = true;
-        await donation.save();
+        try {
+          await sendDonationEmails({
+            donation: {
+              donationId: donation._id.toString(),
+              donorName: donation.donorName,
+              donorEmail: donation.donorEmail,
+              amountCents: donation.amountCents,
+              isAnonymous: donation.isAnonymous,
+              message: donation.message,
+            },
+            campaign: {
+              title: campaign?.title ?? "Explore More Academy",
+              slug: campaign?.slug,
+              goalCents: campaign?.goalAmount != null ? getCampaignGoalCents({ goalAmount: campaign.goalAmount }) : undefined,
+              raisedCents: campaign?.raisedAmount != null ? getCampaignRaisedCents({ raisedAmount: campaign.raisedAmount }) : undefined,
+            },
+          });
+          donation.receiptSent = true;
+          await donation.save();
+        } catch (err) {
+          console.error("Donation emails failed:", err);
+        }
       }
       break;
     }

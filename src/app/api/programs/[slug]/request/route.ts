@@ -1,7 +1,7 @@
 import { z } from "zod";
 import connectDB from "@/lib/db";
 import { Program, ServiceRequest } from "@/models";
-import { queueEmail, emailTemplates } from "@/lib/services/email";
+import { sendProgramBookingEmails } from "@/lib/email/program-notifications";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { rateLimit } from "@/lib/api/rate-limit";
 
@@ -58,15 +58,29 @@ export async function POST(request: Request, context: RouteContext) {
     status: "new",
   });
 
-  const template = emailTemplates.serviceRequest(parsed.data.parentName, program.title);
-
-  await queueEmail({
-    to: parsed.data.email,
-    subject: template.subject,
-    htmlBody: template.html,
-    template: "serviceRequest",
-    metadata: { requestId: serviceRequest._id.toString() },
-  });
+  await sendProgramBookingEmails({
+    booking: {
+      requestId: serviceRequest._id.toString(),
+      parentName: parsed.data.parentName,
+      email: parsed.data.email,
+      phone: parsed.data.phone,
+      studentName: parsed.data.studentName,
+      studentAge: parsed.data.studentAge,
+      preferredSchedule: parsed.data.preferredSchedule,
+      requestType: parsed.data.requestType,
+      schoolStatus: parsed.data.schoolStatus,
+      goals: parsed.data.goals,
+      accessibilityNeeds: parsed.data.accessibilityNeeds,
+      additionalNotes: parsed.data.additionalNotes,
+    },
+    program: {
+      title: program.title,
+      slug: program.slug,
+      schedule: program.schedule,
+      ageRange: program.ageRange,
+      shortDescription: program.shortDescription,
+    },
+  }).catch((err) => console.error("[email] program booking:", err));
 
   return jsonOk(
     {

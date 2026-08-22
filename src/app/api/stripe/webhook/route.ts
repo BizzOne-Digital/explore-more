@@ -14,10 +14,11 @@ import {
   activateMembershipForUser,
   savePendingMembership,
 } from "@/lib/billing/membership-activation";
-import { queueEmail, emailTemplates, sendTransactionalEmail } from "@/lib/services/email";
+import { queueEmail, emailTemplates } from "@/lib/services/email";
 import { formatCents } from "@/lib/utils";
 import { sendBookOrderEmails } from "@/lib/email/order-notifications";
 import { sendEventRegistrationEmails } from "@/lib/email/event-notifications";
+import { sendCourseEnrollmentEmails } from "@/lib/email/course-notifications";
 
 export const runtime = "nodejs";
 
@@ -93,17 +94,45 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       enrollment.status = "active";
       await enrollment.save();
 
-      const course = enrollment.courseId as { title?: string } | null;
+      const courseDoc = enrollment.courseId as {
+        title?: string;
+        slug?: string;
+        instructor?: string;
+        schedule?: string;
+        deliveryFormat?: string;
+        shortDescription?: string;
+        priceAmount?: number;
+        isFree?: boolean;
+      } | null;
       const user = await User.findById(enrollment.userId);
-      if (user && course?.title) {
-        const template = emailTemplates.enrollmentConfirmation(user.name, course.title);
-        await queueEmail({
-          to: user.email,
-          subject: template.subject,
-          htmlBody: template.html,
-          template: "enrollmentConfirmation",
-          metadata: { enrollmentId: enrollment._id.toString() },
-        });
+
+      if (user && courseDoc?.title) {
+        try {
+          const priceCents = courseDoc.isFree || !courseDoc.priceAmount
+            ? 0
+            : Math.round(courseDoc.priceAmount * 100);
+
+          await sendCourseEnrollmentEmails({
+            enrollment: {
+              enrollmentId: enrollment._id.toString(),
+              studentName: user.name,
+              studentEmail: user.email,
+              paymentStatus: "paid",
+              priceCents,
+              status: enrollment.status,
+            },
+            course: {
+              title: courseDoc.title,
+              slug: courseDoc.slug,
+              instructor: courseDoc.instructor,
+              schedule: courseDoc.schedule,
+              deliveryFormat: courseDoc.deliveryFormat,
+              shortDescription: courseDoc.shortDescription,
+            },
+          });
+        } catch (err) {
+          console.error("Paid course enrollment emails failed:", err);
+        }
       }
       break;
     }

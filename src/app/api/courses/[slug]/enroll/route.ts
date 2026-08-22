@@ -1,9 +1,9 @@
 import connectDB from "@/lib/db";
 import { Course, Enrollment } from "@/models";
-import { queueEmail, emailTemplates } from "@/lib/services/email";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getCoursePriceCents } from "@/lib/pricing";
+import { sendCourseEnrollmentEmails } from "@/lib/email/course-notifications";
 
 type RouteContext = { params: Promise<{ slug: string }> };
 
@@ -57,18 +57,28 @@ export async function POST(_request: Request, context: RouteContext) {
     await enrollment.save();
   }
 
-  const template = emailTemplates.enrollmentConfirmation(
-    sessionResult.user.name,
-    course.title
-  );
-
-  await queueEmail({
-    to: sessionResult.user.email,
-    subject: template.subject,
-    htmlBody: template.html,
-    template: "enrollmentConfirmation",
-    metadata: { enrollmentId: enrollment._id.toString() },
-  });
+  try {
+    await sendCourseEnrollmentEmails({
+      enrollment: {
+        enrollmentId: enrollment._id.toString(),
+        studentName: sessionResult.user.name,
+        studentEmail: sessionResult.user.email,
+        paymentStatus: "free",
+        priceCents: 0,
+        status: enrollment.status,
+      },
+      course: {
+        title: course.title,
+        slug: course.slug,
+        instructor: course.instructor,
+        schedule: course.schedule,
+        deliveryFormat: course.deliveryFormat,
+        shortDescription: course.shortDescription,
+      },
+    });
+  } catch (err) {
+    console.error("Course enrollment emails failed:", err);
+  }
 
   return jsonOk(
     { message: "Successfully enrolled", enrollmentId: enrollment._id.toString() },

@@ -16,13 +16,11 @@ import {
   FormSection,
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { ImageUpload } from "@/components/admin/ImageUpload";
 import { safeSlug } from "@/lib/utils";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1),
-  coverImage: z.string().optional(),
   shortDescription: z.string().min(1, "Short description is required"),
   fullDescription: z.string().min(1, "Full description is required"),
   instructor: z.string().optional(),
@@ -66,7 +64,6 @@ export function CourseForm({
     defaultValues: {
       title: (initialData?.title as string) ?? "",
       slug: (initialData?.slug as string) ?? "",
-      coverImage: (initialData?.coverImage as string) ?? "",
       shortDescription: (initialData?.shortDescription as string) ?? "",
       fullDescription: (initialData?.fullDescription as string) ?? "",
       instructor: (initialData?.instructor as string) ?? "",
@@ -190,17 +187,6 @@ export function CourseForm({
           <FormField label="Full Description" error={errors.fullDescription} required className="sm:col-span-2">
             <TextArea registration={register("fullDescription")} error={errors.fullDescription} rows={6} />
           </FormField>
-        </FormSection>
-
-        <FormSection title="Course Image">
-          <div className="sm:col-span-2">
-            <ImageUpload
-              label="Course Cover Image"
-              value={watch("coverImage") || ""}
-              onChange={(url) => setValue("coverImage", url)}
-              folder="courses"
-            />
-          </div>
         </FormSection>
 
         <FormSection title="Course Schedule & Logistics">

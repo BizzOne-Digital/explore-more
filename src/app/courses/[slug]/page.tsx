@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import { CheckCircle } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { getCourseBySlug } from "@/lib/queries/public";
@@ -27,17 +26,10 @@ export default async function CourseDetailPage({ params }: Props) {
   const [course, session] = await Promise.all([getCourseBySlug(slug), auth()]);
   if (!course) notFound();
 
-  const cover =
-    course.coverImage ||
-    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&q=80";
-
   return (
     <>
       <section className="relative w-full overflow-x-clip bg-explore-charcoal text-white pt-28 pb-16">
-        <div className="absolute inset-0">
-          <Image src={cover} alt="" fill className="object-cover opacity-30" sizes="100vw" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-explore-charcoal via-explore-charcoal/80 to-explore-charcoal/60" />
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-explore-charcoal via-explore-teal/20 to-explore-charcoal" />
         <div className="relative mx-auto w-full min-w-0 max-w-4xl px-3 sm:px-4">
           <div className="flex flex-wrap gap-2 mb-4">
             {course.category && <Badge variant="lime">{course.category}</Badge>}

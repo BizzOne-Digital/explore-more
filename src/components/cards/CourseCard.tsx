@@ -1,4 +1,4 @@
-import { Card, CardImage, CardBody, CardTitle, CardDescription } from "@/components/ui/Card";
+import { Card, CardBody, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCents } from "@/lib/utils";
 
@@ -8,12 +8,9 @@ interface CourseCardProps {
   course: PublicCourse;
 }
 
-const FALLBACK = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=80";
-
 export function CourseCard({ course }: CourseCardProps) {
   return (
     <Card href={`/courses/${course.slug}`}>
-      <CardImage src={course.coverImage || FALLBACK} alt={course.title} />
       <CardBody>
         <div className="mb-3 flex flex-wrap gap-2">
           {course.category && <Badge variant="teal">{course.category}</Badge>}

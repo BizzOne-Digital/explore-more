@@ -20,6 +20,7 @@ import type {
   PublicTestimonial,
   PublicFAQ,
 } from "@/types/public";
+import { mapPublicEvent, mapPublicEvents } from "@/lib/content/public-event";
 
 async function withDb<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -40,7 +41,7 @@ export async function getUpcomingEvents(limit = 6): Promise<PublicEvent[]> {
       .sort({ startDate: 1 })
       .limit(limit)
       .lean();
-    return serialize(events) as unknown as PublicEvent[];
+    return mapPublicEvents(serialize(events) as unknown as Record<string, unknown>[]);
   }, []);
 }
 
@@ -86,7 +87,7 @@ export async function getProgramBySlug(slug: string): Promise<PublicProgram | nu
 export async function getEventBySlug(slug: string): Promise<PublicEvent | null> {
   return withDb(async () => {
     const event = await Event.findOne({ slug, status: "published" }).lean();
-    return event ? (serialize(event) as unknown as PublicEvent) : null;
+    return event ? mapPublicEvent(serialize(event) as unknown as Record<string, unknown>) : null;
   }, null);
 }
 
@@ -99,7 +100,7 @@ export async function getAllPublishedEvents(): Promise<PublicEvent[]> {
     })
       .sort({ startDate: 1 })
       .lean();
-    return serialize(events) as unknown as PublicEvent[];
+    return mapPublicEvents(serialize(events) as unknown as Record<string, unknown>[]);
   }, []);
 }
 

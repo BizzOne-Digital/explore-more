@@ -16,7 +16,8 @@ export function getCoursePriceCents(course: PricedItem): number {
   return dollarsToCents(course.priceAmount);
 }
 
-export function getEventPriceCents(event: { priceAmount: number }): number {
+export function getEventPriceCents(event: { priceAmount: number; eventType?: string }): number {
+  if (event.eventType === "free" || event.priceAmount === 0) return 0;
   return dollarsToCents(event.priceAmount);
 }
 

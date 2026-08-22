@@ -20,7 +20,7 @@ export function EventCard({ event }: EventCardProps) {
         <div className="mb-3 flex flex-wrap gap-2">
           {event.category && <Badge variant="teal">{event.category}</Badge>}
           {event.isOnline && <Badge variant="lime">Online</Badge>}
-          {event.priceCents === 0 ? (
+          {event.eventType === "free" || event.priceCents === 0 ? (
             <Badge variant="forest">Free</Badge>
           ) : (
             <Badge variant="orange">{formatCents(event.priceCents)}</Badge>

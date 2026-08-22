@@ -160,22 +160,26 @@ export async function getAssessmentTrackerRows(assessmentId: string, grade: Grad
 export async function getAssessmentsForParent(parentId: string) {
   await connectDB();
 
-  const [links, parentProfile] = await Promise.all([
+  const [links, pendingLinks, parentProfile] = await Promise.all([
     GuardianStudentLink.find({
       guardianId: parentId,
       status: "approved",
     })
       .select("studentId")
       .lean(),
+    GuardianStudentLink.countDocuments({
+      guardianId: parentId,
+      status: "pending",
+    }),
     ParentProfile.findOne({ userId: parentId }).select("childGrade").lean(),
   ]);
 
-  const studentIds = links.map((l) => l.studentId);
+  const approvedStudentIds = links.map((l) => l.studentId.toString());
   const { StudentProfile } = await import("@/models");
 
   const profiles =
-    studentIds.length > 0
-      ? await StudentProfile.find({ userId: { $in: studentIds } }).select("userId grade").lean()
+    approvedStudentIds.length > 0
+      ? await StudentProfile.find({ userId: { $in: approvedStudentIds } }).select("userId grade").lean()
       : [];
 
   const grades = new Set<string>();
@@ -188,13 +192,17 @@ export async function getAssessmentsForParent(parentId: string) {
     }
   }
 
-  if (grades.size === 0) return [];
+  if (grades.size === 0) {
+    return { items: [], hasPendingLink: pendingLinks > 0 };
+  }
 
   const assessments = await Assessment.find({ grade: { $in: [...grades] } })
     .sort({ createdAt: -1 })
     .lean();
 
-  if (assessments.length === 0) return [];
+  if (assessments.length === 0) {
+    return { items: [], hasPendingLink: pendingLinks > 0 };
+  }
 
   const submissions = await AssessmentSubmission.find({
     assessmentId: { $in: assessments.map((a) => a._id) },
@@ -206,8 +214,8 @@ export async function getAssessmentsForParent(parentId: string) {
   );
 
   const students =
-    studentIds.length > 0
-      ? await User.find({ _id: { $in: studentIds } }).select("name").lean()
+    approvedStudentIds.length > 0
+      ? await User.find({ _id: { $in: approvedStudentIds } }).select("name").lean()
       : [];
   const studentNameMap = new Map(students.map((s) => [s._id.toString(), s.name]));
 
@@ -230,11 +238,26 @@ export async function getAssessmentsForParent(parentId: string) {
   }> = [];
 
   for (const assessment of assessments) {
-    const matchingProfiles = profiles.filter((p) => p.grade === assessment.grade);
+    const studentsForAssessment = new Map<string, boolean>();
 
-    if (matchingProfiles.length > 0) {
-      for (const profile of matchingProfiles) {
-        const studentId = profile.userId.toString();
+    for (const profile of profiles) {
+      if (profile.grade === assessment.grade) {
+        studentsForAssessment.set(profile.userId.toString(), true);
+      }
+    }
+
+    // Parent signup grade can differ from the student profile grade field — still allow resubmit
+    // when the child is linked and approved.
+    if (parentProfile?.childGrade === assessment.grade) {
+      for (const studentId of approvedStudentIds) {
+        if (!studentsForAssessment.has(studentId)) {
+          studentsForAssessment.set(studentId, true);
+        }
+      }
+    }
+
+    if (studentsForAssessment.size > 0) {
+      for (const [studentId] of studentsForAssessment) {
         const submission = submissionByKey.get(`${assessment._id.toString()}:${studentId}`);
         items.push({
           assessmentId: assessment._id.toString(),
@@ -256,38 +279,22 @@ export async function getAssessmentsForParent(parentId: string) {
             : null,
         });
       }
-    } else if (parentProfile?.childGrade === assessment.grade) {
-      const linkedStudentForGrade = matchingProfiles[0];
-      const studentId = linkedStudentForGrade?.userId?.toString() ?? null;
-      const submission = studentId
-        ? submissionByKey.get(`${assessment._id.toString()}:${studentId}`)
-        : submissions.find(
-            (s) => s.assessmentId.toString() === assessment._id.toString() && !studentId
-          );
+      continue;
+    }
 
+    if (parentProfile?.childGrade === assessment.grade) {
       items.push({
         assessmentId: assessment._id.toString(),
         title: assessment.title,
         grade: assessment.grade,
         filePath: assessment.filePath,
-        studentId,
-        studentName: studentId
-          ? (studentNameMap.get(studentId) ?? "Student")
-          : "Your child",
-        canResubmit: Boolean(studentId),
-        submission: submission
-          ? {
-              _id: submission._id.toString(),
-              filePath: submission.filePath,
-              submittedAt: submission.submittedAt.toISOString(),
-              letterGrade: submission.letterGrade,
-              published: submission.published,
-              publishedAt: submission.publishedAt?.toISOString(),
-            }
-          : null,
+        studentId: null,
+        studentName: "Your child",
+        canResubmit: false,
+        submission: null,
       });
     }
   }
 
-  return items;
+  return { items, hasPendingLink: pendingLinks > 0 };
 }

@@ -26,14 +26,14 @@ export async function getLinkedStudents(guardianId: string): Promise<LinkedStude
       if (!student) return null;
 
       const studentId = student._id.toString();
-      const profile = await StudentProfile.findOne({ userId: studentId }).select("ageRange").lean();
+      const profile = await StudentProfile.findOne({ userId: studentId }).select("grade ageRange").lean();
 
       return {
         id: studentId,
         name: student.name,
         studentId: student.studentId,
         relationship: link.relationship,
-        grade: profile?.ageRange,
+        grade: profile?.grade || profile?.ageRange,
         status: "approved" as const,
       };
     })

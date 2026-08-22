@@ -10,7 +10,7 @@ export default async function ParentAssessmentsPage() {
   const session = await auth();
   if (!session?.user) redirect("/parent/login?callbackUrl=/parent/assessments");
 
-  const items = (await getAssessmentsForParent(session.user.id)) as ParentAssessmentItem[];
+  const { items, hasPendingLink } = await getAssessmentsForParent(session.user.id);
 
   return (
     <div className="space-y-6">
@@ -20,7 +20,7 @@ export default async function ParentAssessmentsPage() {
           Download assessments for your children, complete them, and resubmit the PDF.
         </p>
       </div>
-      <ParentAssessmentsClient items={items} />
+      <ParentAssessmentsClient items={items as ParentAssessmentItem[]} hasPendingLink={hasPendingLink} />
     </div>
   );
 }

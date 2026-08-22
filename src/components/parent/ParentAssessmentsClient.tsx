@@ -24,7 +24,13 @@ export interface ParentAssessmentItem {
   } | null;
 }
 
-export function ParentAssessmentsClient({ items }: { items: ParentAssessmentItem[] }) {
+export function ParentAssessmentsClient({
+  items,
+  hasPendingLink = false,
+}: {
+  items: ParentAssessmentItem[];
+  hasPendingLink?: boolean;
+}) {
   const router = useRouter();
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [submittingKey, setSubmittingKey] = useState<string | null>(null);
@@ -104,6 +110,7 @@ export function ParentAssessmentsClient({ items }: { items: ParentAssessmentItem
           <AssessmentCard
             key={`${item.assessmentId}-${item.studentId}`}
             item={item}
+            hasPendingLink={hasPendingLink}
             uploading={uploadingKey === `${item.assessmentId}:${item.studentId}`}
             submitting={submittingKey === `${item.assessmentId}:${item.studentId}`}
             onResubmit={(file) => handleResubmit(item, file)}
@@ -156,6 +163,7 @@ function AssessmentCard({
   submitting,
   readOnly,
   showGrade,
+  hasPendingLink,
 }: {
   item: ParentAssessmentItem;
   onResubmit?: (file: File) => void;
@@ -163,6 +171,7 @@ function AssessmentCard({
   submitting?: boolean;
   readOnly?: boolean;
   showGrade?: boolean;
+  hasPendingLink?: boolean;
 }) {
   return (
     <article className="rounded-2xl border border-explore-sand bg-explore-white p-5 shadow-sm">
@@ -195,11 +204,20 @@ function AssessmentCard({
 
       {!readOnly && !item.canResubmit && (
         <p className="mt-4 border-t border-explore-sand pt-4 text-sm text-explore-charcoal/60">
-          Link your child from{" "}
-          <a href="/parent/students" className="text-explore-teal hover:underline">
-            My Children
-          </a>{" "}
-          to resubmit this assessment.
+          {hasPendingLink ? (
+            <>
+              Your child link request is waiting for admin approval. Once approved, you can resubmit
+              here.
+            </>
+          ) : (
+            <>
+              Link your child from{" "}
+              <a href="/parent/students" className="text-explore-teal hover:underline">
+                My Children
+              </a>{" "}
+              to resubmit this assessment.
+            </>
+          )}
         </p>
       )}
 

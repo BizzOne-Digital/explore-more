@@ -111,7 +111,7 @@ export default function NewGalleryPage() {
         formData.append("file", image.file);
         formData.append("folder", "gallery");
 
-        const uploadRes = await fetch("/api/upload/public", {
+        const uploadRes = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
@@ -128,7 +128,7 @@ export default function NewGalleryPage() {
           title: image.title,
           caption: image.caption || undefined,
           description: image.description || undefined,
-          imageUrl: uploadData.data.url,
+          imageUrl: uploadData.url,
           altText: image.altText || image.title,
           categoryId: categoryId || undefined,
           featured,

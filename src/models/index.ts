@@ -29,3 +29,4 @@ export { StaffProfile, Conversation, ConversationMessage } from "./Messaging";
 export { ParentNotification, ParentNotificationRead } from "./ParentNotification";
 export { AccountNote } from "./Note";
 export { SubscriptionPlan, ParentSubscription, PendingMembership } from "./Billing";
+export { StoredUpload } from "./StoredUpload";

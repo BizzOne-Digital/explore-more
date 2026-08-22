@@ -1,12 +1,11 @@
 import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
-import { LEGACY_UPLOAD_FOLDER_MAP, UPLOAD_DIRS } from "@/lib/constants";
 import { storeUploadedImage, isStoredUploadFolder } from "@/lib/services/stored-upload";
+import { STORED_UPLOAD_FOLDERS } from "@/lib/constants";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-/** @deprecated Prefer POST /api/upload — kept for older admin callers. */
 export async function POST(request: Request) {
   const authResult = await requireRole(["administrator"]);
   if ("error" in authResult) return authResult.error;
@@ -19,25 +18,15 @@ export async function POST(request: Request) {
   }
 
   const file = formData.get("file");
-  const rawFolder = String(
-    formData.get("folder") ?? formData.get("category") ?? ""
-  ).trim();
+  const folder = String(formData.get("folder") ?? formData.get("category") ?? "").trim();
 
   if (!(file instanceof File)) {
     return NextResponse.json({ success: false, error: "No file provided" }, { status: 400 });
   }
 
-  let folder = rawFolder;
-  if (folder in UPLOAD_DIRS) {
-    folder = LEGACY_UPLOAD_FOLDER_MAP[folder as keyof typeof UPLOAD_DIRS];
-  }
-
-  if (!isStoredUploadFolder(folder)) {
+  if (!folder || !isStoredUploadFolder(folder)) {
     return NextResponse.json(
-      {
-        success: false,
-        error: `Invalid folder. Allowed: products, gallery, pages, misc`,
-      },
+      { success: false, error: `Invalid folder. Allowed: ${STORED_UPLOAD_FOLDERS.join(", ")}` },
       { status: 400 }
     );
   }
@@ -48,7 +37,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        data: { url: result.url, filename: result.filename },
         url: result.url,
         filename: result.filename,
         size: result.size,

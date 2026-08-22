@@ -5,11 +5,13 @@ import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_PORTFOLIO_EXTENSIONS,
   ALLOWED_CAMPAIGN_EXTENSIONS,
+  LEGACY_UPLOAD_FOLDER_MAP,
   MAX_PORTFOLIO_UPLOAD_SIZE,
   MAX_UPLOAD_SIZE,
   MAX_CAMPAIGN_UPLOAD_SIZE,
   UPLOAD_DIRS,
 } from "@/lib/constants";
+import { deleteStoredUploadByUrl, storeUploadedImage } from "@/lib/services/stored-upload";
 
 const PUBLIC_UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
 const PRIVATE_STORAGE_ROOT = path.join(process.cwd(), "storage", "private");
@@ -53,25 +55,9 @@ export async function uploadPublicImage(
   file: File,
   category: UploadCategory
 ): Promise<{ url: string; filename: string }> {
-  validateImage({ type: file.type, size: file.size });
-
-  const filename = safeFilename(file.name);
-  const dir = path.join(PUBLIC_UPLOAD_ROOT, UPLOAD_DIRS[category]);
-  await fs.mkdir(dir, { recursive: true });
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const filepath = path.join(dir, filename);
-
-  // Prevent path traversal
-  if (!filepath.startsWith(dir)) {
-    throw new Error("Invalid upload path");
-  }
-
-  await fs.writeFile(filepath, buffer);
-  return {
-    url: `/uploads/${UPLOAD_DIRS[category]}/${filename}`,
-    filename,
-  };
+  const folder = LEGACY_UPLOAD_FOLDER_MAP[category];
+  const result = await storeUploadedImage(file, folder);
+  return { url: result.url, filename: result.filename };
 }
 
 export async function uploadCampaignFile(
@@ -148,6 +134,10 @@ export async function uploadPortfolioFiles(
 }
 
 export async function deletePublicImage(url: string): Promise<void> {
+  if (url.startsWith("/api/uploads/")) {
+    await deleteStoredUploadByUrl(url);
+    return;
+  }
   if (!url.startsWith("/uploads/")) return;
   const filepath = path.join(process.cwd(), "public", url);
   const resolved = path.resolve(filepath);

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { formatCents } from "@/lib/utils";
 import { bookCoverPath } from "@/lib/content/books";
 import { AddToCartButton } from "@/components/forms/AddToCartButton";
+import { AppImage } from "@/components/ui/AppImage";
+import { resolveImageUrl } from "@/lib/images/resolve";
 
 import type { PublicBook } from "@/types/public";
 
@@ -20,8 +21,8 @@ export function BookCard({ book }: BookCardProps) {
     <article className="flex flex-col overflow-hidden rounded-2xl border border-explore-charcoal/8 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
       <Link href={`/books/${book.slug}`} className="block">
         <div className="relative aspect-[3/4] overflow-hidden bg-white">
-          <Image
-            src={book.coverImage || bookCoverPath(book.slug)}
+          <AppImage
+            src={book.coverImage ? resolveImageUrl(book.coverImage) : bookCoverPath(book.slug)}
             alt={book.title}
             fill
             className="object-contain p-2 transition-transform duration-500 hover:scale-105"

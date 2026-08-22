@@ -28,6 +28,32 @@ export const UPLOAD_DIRS = {
   settings: "settings",
 } as const;
 
+/** MongoDB-backed admin image folders (serverless-safe). */
+export const STORED_UPLOAD_FOLDERS = ["products", "gallery", "pages", "misc"] as const;
+export type StoredUploadFolder = (typeof STORED_UPLOAD_FOLDERS)[number];
+
+/** Map legacy upload categories to MongoDB storage folders. */
+export const LEGACY_UPLOAD_FOLDER_MAP: Record<keyof typeof UPLOAD_DIRS, StoredUploadFolder> = {
+  books: "products",
+  courses: "products",
+  events: "products",
+  programs: "products",
+  gallery: "gallery",
+  pages: "pages",
+  testimonials: "misc",
+  campaigns: "misc",
+  settings: "pages",
+};
+
+export const PLACEHOLDER_IMAGE = "/images/placeholder.svg";
+export const MAX_STORED_IMAGE_SIZE = 8 * 1024 * 1024; // 8MB
+export const STORED_IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+] as const;
+
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
 export const MAX_PORTFOLIO_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 /** Campaign attachments/images — no practical cap for admin uploads (server memory still applies). */

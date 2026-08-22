@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Upload, X, File, FileText, FileImage } from "lucide-react";
+import { LEGACY_UPLOAD_FOLDER_MAP, UPLOAD_DIRS } from "@/lib/constants";
+import type { StoredUploadFolder } from "@/lib/constants";
 
 interface FileUploadProps {
   label: string;
@@ -22,6 +24,16 @@ interface FileUploadProps {
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/svg+xml";
 const FILE_ACCEPT =
   ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.mp4,.mov,.mp3,.wav,image/*";
+
+function resolveStoredFolder(category: string): StoredUploadFolder {
+  if (category === "products" || category === "gallery" || category === "pages" || category === "misc") {
+    return category;
+  }
+  if (category in LEGACY_UPLOAD_FOLDER_MAP) {
+    return LEGACY_UPLOAD_FOLDER_MAP[category as keyof typeof UPLOAD_DIRS];
+  }
+  return "misc";
+}
 
 function isImageFile(name: string, url: string) {
   const source = (name || url).toLowerCase();
@@ -65,10 +77,10 @@ export function FileUpload({
 
         const useCampaignApi = uploadEndpoint === "/api/admin/email-campaigns/upload";
         if (!useCampaignApi) {
-          formData.append("category", category);
+          formData.append("folder", resolveStoredFolder(category));
         }
 
-        const res = await fetch(useCampaignApi ? uploadEndpoint : "/api/upload/public", {
+        const res = await fetch(useCampaignApi ? uploadEndpoint : "/api/upload", {
           method: "POST",
           body: formData,
         });

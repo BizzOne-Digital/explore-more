@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@/lib/cn";
+import { AppImage } from "@/components/ui/AppImage";
 
 interface CardProps {
   href?: string;
@@ -38,7 +38,7 @@ export function CardImage({ src, alt, aspect = "video", priority }: CardImagePro
 
   return (
     <div className={cn("relative overflow-hidden bg-explore-sand", aspectClass)}>
-      <Image
+      <AppImage
         src={src}
         alt={alt}
         fill

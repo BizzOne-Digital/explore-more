@@ -6,6 +6,7 @@ import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stri
 import { auth } from "@/lib/auth";
 import { sendDonationEmails } from "@/lib/email/donation-notifications";
 import { getCampaignGoalCents } from "@/lib/pricing";
+import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const schema = z.object({
   campaignId: z.string(),
@@ -77,7 +78,10 @@ export async function POST(request: Request) {
         {
           price_data: {
             currency: "usd",
-            product_data: { name: `Donation: ${campaign.title}` },
+            product_data: stripeProductData(
+              { name: `Donation: ${campaign.title}` },
+              "donations"
+            ),
             unit_amount: data.amountCents,
           },
           quantity: 1,

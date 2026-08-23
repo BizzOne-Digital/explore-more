@@ -6,6 +6,7 @@ import { generateOrderNumber } from "@/lib/password";
 import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stripe";
 import { auth } from "@/lib/auth";
 import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
+import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const checkoutSchema = z.object({
   items: z.array(
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
       lineItems: orderItems.map((item) => ({
         price_data: {
           currency: "usd",
-          product_data: { name: item.title },
+          product_data: stripeProductData({ name: item.title }, "books"),
           unit_amount: item.priceCents,
         },
         quantity: item.quantity,

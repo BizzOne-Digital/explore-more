@@ -5,6 +5,7 @@ import { createCheckoutSession, getAppUrl, isStripeConfigured } from "@/lib/serv
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getCoursePriceCents } from "@/lib/pricing";
+import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const checkoutSchema = z.object({
   courseSlug: z.string().min(1),
@@ -80,7 +81,10 @@ export async function POST(request: Request) {
       {
         price_data: {
           currency: "usd",
-          product_data: { name: course.title, description: course.shortDescription },
+          product_data: stripeProductData(
+            { name: course.title, description: course.shortDescription },
+            "courses"
+          ),
           unit_amount: priceCents,
         },
         quantity: 1,

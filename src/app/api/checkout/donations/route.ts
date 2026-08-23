@@ -4,6 +4,7 @@ import { DonationCampaign, Donation } from "@/models";
 import { createCheckoutSession, getAppUrl, isStripeConfigured } from "@/lib/services/stripe";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
+import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const checkoutSchema = z.object({
   campaignSlug: z.string().min(1),
@@ -69,10 +70,13 @@ export async function POST(request: Request) {
       {
         price_data: {
           currency: "usd",
-          product_data: {
-            name: `Donation: ${campaign.title}`,
-            description: campaign.description.slice(0, 200),
-          },
+          product_data: stripeProductData(
+            {
+              name: `Donation: ${campaign.title}`,
+              description: campaign.description.slice(0, 200),
+            },
+            "donations"
+          ),
           unit_amount: parsed.data.amountCents,
         },
         quantity: 1,

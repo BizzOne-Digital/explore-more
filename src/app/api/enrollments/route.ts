@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { Course, Enrollment } from "@/models";
 import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stripe";
 import { getCoursePriceCents } from "@/lib/pricing";
+import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const schema = z.object({
   courseId: z.string(),
@@ -83,7 +84,10 @@ export async function POST(request: Request) {
         {
           price_data: {
             currency: "usd",
-            product_data: { name: course.title, description: course.shortDescription },
+            product_data: stripeProductData(
+              { name: course.title, description: course.shortDescription },
+              "courses"
+            ),
             unit_amount: priceCents,
           },
           quantity: 1,

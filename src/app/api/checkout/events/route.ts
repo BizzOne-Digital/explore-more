@@ -6,6 +6,7 @@ import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getEventPriceCents } from "@/lib/pricing";
 import { generateEventRegistrationId } from "@/lib/events/generate-registration-id";
+import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const checkoutSchema = z.object({
   eventSlug: z.string().min(1),
@@ -96,7 +97,10 @@ export async function POST(request: Request) {
       {
         price_data: {
           currency: "usd",
-          product_data: { name: event.title, description: event.shortDescription },
+          product_data: stripeProductData(
+            { name: event.title, description: event.shortDescription },
+            "events"
+          ),
           unit_amount: priceCents,
         },
         quantity: 1,

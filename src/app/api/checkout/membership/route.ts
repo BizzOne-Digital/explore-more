@@ -10,6 +10,7 @@ import {
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { auth } from "@/lib/auth";
 import { getOrCreateStripeCustomer } from "@/lib/billing/stripe-customer";
+import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const checkoutSchema = z.object({
   planSlug: z.string().min(1),
@@ -83,10 +84,13 @@ export async function POST(request: Request) {
       : {
           price_data: {
             currency: "usd",
-            product_data: {
-              name: plan.name,
-              description: plan.description || undefined,
-            },
+            product_data: stripeProductData(
+              {
+                name: plan.name,
+                description: plan.description || undefined,
+              },
+              "membership"
+            ),
             unit_amount: plan.priceCents,
             recurring: {
               interval: plan.interval,

@@ -6,6 +6,7 @@ import { generateOrderNumber } from "@/lib/password";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
+import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const itemSchema = z.object({
   bookId: z.string(),
@@ -65,7 +66,14 @@ export async function POST(request: Request) {
     quantity: number;
     priceCents: number;
   }[] = [];
-  const lineItems: { price_data: { currency: string; product_data: { name: string }; unit_amount: number }; quantity: number }[] = [];
+  const lineItems: {
+    price_data: {
+      currency: string;
+      product_data: ReturnType<typeof stripeProductData>;
+      unit_amount: number;
+    };
+    quantity: number;
+  }[] = [];
 
   let subtotalCents = 0;
 
@@ -91,7 +99,7 @@ export async function POST(request: Request) {
     lineItems.push({
       price_data: {
         currency: "usd",
-        product_data: { name: book.title },
+        product_data: stripeProductData({ name: book.title }, "books"),
         unit_amount: priceCents,
       },
       quantity: item.quantity,

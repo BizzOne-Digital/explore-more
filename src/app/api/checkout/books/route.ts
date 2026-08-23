@@ -137,6 +137,7 @@ export async function POST(request: Request) {
       orderId: order._id.toString(),
     },
     customerEmail: parsed.data.customerEmail,
+    managedPayments: false,
     successUrl: `${appUrl}/order-success?session_id={CHECKOUT_SESSION_ID}`,
     cancelUrl: `${appUrl}/cart`,
   });

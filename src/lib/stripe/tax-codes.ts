@@ -1,22 +1,22 @@
 /**
  * Stripe product tax codes for Managed Payments.
- * @see https://docs.stripe.com/tax/tax-categories
+ * Managed Payments only accepts digital-goods PTCs (not physical services like txcd_2006xxxx).
+ * @see https://docs.stripe.com/payments/managed-payments/eligibility#product-tax-code-requirements
  */
 export const STRIPE_TAX_CODES = {
-  /** Educational services, tutoring, homeschool programs */
-  education: process.env.STRIPE_TAX_CODE_EDUCATION || "txcd_20060052",
-  /** Membership / subscription access */
-  membership: process.env.STRIPE_TAX_CODE_MEMBERSHIP || "txcd_20060052",
-  /** Digital books and downloadable materials */
-  books: process.env.STRIPE_TAX_CODE_BOOKS || "txcd_20030000",
-  /** Online courses and digital learning */
-  courses: process.env.STRIPE_TAX_CODE_COURSES || "txcd_10501000",
-  /** Events, workshops, field trips */
+  /** Subscription access to the online parent/student portal (SaaS) */
+  membership: process.env.STRIPE_TAX_CODE_MEMBERSHIP || "txcd_10103000",
+  /** Self-study / streamed online courses */
+  education: process.env.STRIPE_TAX_CODE_EDUCATION || "txcd_20060158",
+  courses: process.env.STRIPE_TAX_CODE_COURSES || "txcd_20060158",
+  /** Digital book downloads (physical bookstore checkout disables Managed Payments) */
+  books: process.env.STRIPE_TAX_CODE_BOOKS || "txcd_10302000",
+  /** In-person events — checkout passes managedPayments: false */
   events: process.env.STRIPE_TAX_CODE_EVENTS || "txcd_20060052",
-  /** Charitable donations */
+  /** Donations — checkout passes managedPayments: false */
   donations: process.env.STRIPE_TAX_CODE_DONATIONS || "txcd_20030003",
-  /** General fallback */
-  general: process.env.STRIPE_DEFAULT_TAX_CODE || "txcd_20060052",
+  /** General digitally supplied services */
+  general: process.env.STRIPE_DEFAULT_TAX_CODE || "txcd_10000000",
 } as const;
 
 export type StripeTaxCodeKey = keyof typeof STRIPE_TAX_CODES;

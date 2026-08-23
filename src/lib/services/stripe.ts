@@ -47,6 +47,8 @@ export async function createCheckoutSession(params: {
   customer?: string;
   successUrl: string;
   cancelUrl: string;
+  /** Set false for physical goods, in-person events, donations, etc. */
+  managedPayments?: boolean;
 }): Promise<Stripe.Checkout.Session> {
   const stripe = getStripe();
   if (!stripe) {
@@ -61,7 +63,10 @@ export async function createCheckoutSession(params: {
     customer_email: params.customer ? undefined : params.customerEmail,
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-  });
+    ...(params.managedPayments === false
+      ? { managed_payments: { enabled: false } }
+      : {}),
+  } as Stripe.Checkout.SessionCreateParams);
 }
 
 export async function retrieveCheckoutSession(

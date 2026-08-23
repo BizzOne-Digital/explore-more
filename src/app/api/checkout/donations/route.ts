@@ -89,6 +89,7 @@ export async function POST(request: Request) {
       campaignId: campaign._id.toString(),
     },
     customerEmail: parsed.data.donorEmail,
+    managedPayments: false,
     successUrl: `${appUrl}/donate/${campaign.slug}?success=true`,
     cancelUrl: `${appUrl}/donate/${campaign.slug}`,
   });

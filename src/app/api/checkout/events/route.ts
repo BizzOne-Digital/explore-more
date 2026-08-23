@@ -113,6 +113,7 @@ export async function POST(request: Request) {
       eventId: event._id.toString(),
     },
     customerEmail: sessionResult.user.email,
+    managedPayments: false,
     successUrl: `${appUrl}/events/${event.slug}?registered=true&confirmation=${encodeURIComponent(registration.registrationId)}`,
     cancelUrl: `${appUrl}/events/${event.slug}`,
   });

@@ -99,6 +99,7 @@ export async function POST(request: Request) {
       mode: "payment",
       metadata: { checkoutType: "books", orderId: order._id.toString(), orderNumber },
       customerEmail: data.customerEmail,
+      managedPayments: false,
       successUrl: `${getAppUrl()}/order-success?order=${orderNumber}`,
       cancelUrl: `${getAppUrl()}/checkout`,
     });

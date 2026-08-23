@@ -94,6 +94,7 @@ export async function POST(request: Request) {
         campaignId: campaign._id.toString(),
       },
       customerEmail: data.donorEmail,
+      managedPayments: false,
       successUrl: `${getAppUrl()}/sponsor-a-kid?donated=${campaign.slug}`,
       cancelUrl: `${getAppUrl()}/donate/${campaign.slug}`,
     });

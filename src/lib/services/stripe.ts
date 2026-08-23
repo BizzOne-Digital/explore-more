@@ -11,8 +11,19 @@ export function getStripe(): Stripe | null {
   return stripeInstance;
 }
 
+/** True when Stripe Checkout / payments can be created (secret key only). */
+export function isStripeCheckoutConfigured(): boolean {
+  return !!process.env.STRIPE_SECRET_KEY?.trim();
+}
+
+/** True when Stripe webhooks can be verified (needs webhook signing secret). */
+export function isStripeWebhookConfigured(): boolean {
+  return !!(process.env.STRIPE_SECRET_KEY?.trim() && process.env.STRIPE_WEBHOOK_SECRET?.trim());
+}
+
+/** @deprecated Use isStripeCheckoutConfigured() for payments or isStripeWebhookConfigured() for webhooks. */
 export function isStripeConfigured(): boolean {
-  return !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
+  return isStripeCheckoutConfigured();
 }
 
 export function getAppUrl(): string {

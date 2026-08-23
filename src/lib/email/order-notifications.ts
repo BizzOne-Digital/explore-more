@@ -1,6 +1,6 @@
 import { sendTransactionalEmail, wrapEmailTemplate } from "@/lib/services/email";
 import { formatCents } from "@/lib/utils";
-import { getAdminEmail } from "@/lib/email/get-admin-email";
+import { getAdminEmail, getPublicContactEmail } from "@/lib/email/get-admin-email";
 
 export interface OrderEmailData {
   orderNumber: string;
@@ -81,7 +81,7 @@ export async function sendBookOrderEmails(order: OrderEmailData): Promise<void> 
       ${itemsHtml}
       <h3 style="color:#101315;font-size:16px;margin-top:24px">Shipping address</h3>
       <p style="font-size:14px;color:#444">${shippingHtml}</p>
-      <p style="margin-top:24px;font-size:14px;color:#666">We'll notify you when your order ships. Questions? Reply to this email or contact us at ${getAdminEmail()}.</p>
+      <p style="margin-top:24px;font-size:14px;color:#666">We'll notify you when your order ships. Questions? Reply to this email or contact us at ${getPublicContactEmail()}.</p>
       <p style="margin-top:16px"><a href="${appUrl}/parent/receipts" style="color:#0c8991;font-weight:600">View your receipts</a></p>
     `),
     textBody: `Thank you for your order ${order.orderNumber}. Total: ${formatCents(order.totalCents)}.`,

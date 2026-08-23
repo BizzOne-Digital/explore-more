@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import { Order, OrderModificationRequest } from "@/models";
 import type { IOrder, IOrderItem } from "@/models/Book";
 import { sendTransactionalEmail } from "@/lib/services/email";
+import { getPublicContactEmail } from "@/lib/email/get-admin-email";
 import type { Types } from "mongoose";
 
 type PopulatedUser = { name: string; email: string };
@@ -124,7 +125,7 @@ export async function PUT(
           </div>
 
           <p style="color: #666; font-size: 12px; margin-top: 30px;">
-            If you have any questions, please contact us at ${process.env.ADMIN_EMAIL || 'chris@exploremoreacademy.com'}
+            If you have any questions, please contact us at ${getPublicContactEmail()}
           </p>
         </div>
       `,

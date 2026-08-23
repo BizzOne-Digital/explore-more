@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, UserPlus, Upload, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { COMPANY } from "@/lib/constants";
 
 export function QuickStartGuide() {
   const [dismissed, setDismissed] = useState(false);
@@ -99,8 +100,8 @@ export function QuickStartGuide() {
       <div className="mt-4 rounded-lg bg-white/10 p-3">
         <p className="text-xs text-white/90">
           <strong>Need Help?</strong> Contact us at{" "}
-          <a href="mailto:chris@exploremoreacademy.com" className="underline">
-            chris@exploremoreacademy.com
+          <a href={`mailto:${COMPANY.email}`} className="underline">
+            {COMPANY.email}
           </a>
         </p>
       </div>

@@ -1,6 +1,6 @@
 import { sendTransactionalEmail, wrapEmailTemplate } from "@/lib/services/email";
 import { formatCents } from "@/lib/utils";
-import { getAdminEmail } from "@/lib/email/get-admin-email";
+import { getAdminEmail, getPublicContactEmail } from "@/lib/email/get-admin-email";
 
 export interface DonationEmailData {
   donationId: string;
@@ -48,7 +48,7 @@ export async function sendDonationEmails({
       ${donation.message ? `<p style="font-size:14px;color:#555"><strong>Your message:</strong> ${donation.message}</p>` : ""}
       <p>Your support helps us provide outdoor education and opportunities for youth in our community.</p>
       <p style="margin-top:20px"><a href="${campaignUrl}" style="display:inline-block;background:#ff5a16;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">View Campaign</a></p>
-      <p style="margin-top:20px;font-size:14px;color:#666">Questions? Contact us at ${getAdminEmail()}.</p>
+      <p style="margin-top:20px;font-size:14px;color:#666">Questions? Contact us at ${getPublicContactEmail()}.</p>
     `),
     textBody: `Thank you for your donation of ${amount} to ${campaign.title}. Donation ID: ${donation.donationId}.`,
   });

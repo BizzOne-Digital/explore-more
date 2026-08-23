@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { Order, OrderModificationRequest } from "@/models";
 import { sendTransactionalEmail } from "@/lib/services/email";
+import { getAdminEmail } from "@/lib/email/get-admin-email";
 import { z } from "zod";
 
 const requestSchema = z.object({
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Send email to admin
-    const adminEmail = process.env.ADMIN_EMAIL || "chris@exploremoreacademy.com";
+    const adminEmail = getAdminEmail();
     
     const requestTypeLabels = {
       add_item: "Add Item(s)",

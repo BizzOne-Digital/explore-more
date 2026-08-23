@@ -1,6 +1,9 @@
 export const COMPANY = {
   name: "Explore More Academy LLC",
-  email: "chris@exploremoreacademy.com",
+  /** Shown on the public site, contact forms, and customer-facing emails */
+  email: "hello@exploremoreacademy.com",
+  /** Admin inbox for orders, registrations, form submissions, and backend alerts */
+  adminEmail: "chris@exploremoreacademy.com",
   phone: "+1 (240) 944-1959",
   website: "https://www.exploremoreacademy.com",
   tagline: "Learn Wild. Live Big.",

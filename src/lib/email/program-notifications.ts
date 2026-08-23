@@ -1,5 +1,5 @@
 import { sendTransactionalEmail, wrapEmailTemplate } from "@/lib/services/email";
-import { getAdminEmail } from "@/lib/email/get-admin-email";
+import { getAdminEmail, getPublicContactEmail } from "@/lib/email/get-admin-email";
 
 export interface ProgramBookingEmailData {
   requestId: string;
@@ -67,7 +67,7 @@ export async function sendProgramBookingEmails({
         ${program.ageRange ? `<p style="margin:0"><strong>Age Range:</strong> ${program.ageRange}</p>` : ""}
       </div>
       <p><a href="${programUrl}" style="display:inline-block;background:#ff5a16;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">View Program</a></p>
-      <p style="margin-top:20px;font-size:14px;color:#666">Questions? Contact us at ${getAdminEmail()}.</p>
+      <p style="margin-top:20px;font-size:14px;color:#666">Questions? Contact us at ${getPublicContactEmail()}.</p>
     `),
     textBody: `Your request for ${program.title} was received. Request ID: ${booking.requestId}. We will contact you within 2 business days.`,
   });

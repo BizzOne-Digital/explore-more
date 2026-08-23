@@ -7,6 +7,7 @@ import {
   getSmtpSettings,
   isSmtpConfigured,
 } from "@/lib/services/smtp-config";
+import { getPublicContactEmail } from "@/lib/email/get-admin-email";
 
 export { isSmtpConfigured };
 
@@ -154,7 +155,7 @@ export function wrapEmailTemplate(content: string, unsubscribeUrl?: string): str
     ${content}
     <hr style="border:none;border-top:1px solid #e5e5e5;margin:32px 0">
     <p style="font-size:11px;color:#888;text-align:center">
-      Explore More Academy LLC · chris@exploremoreacademy.com<br>
+      Explore More Academy LLC · ${getPublicContactEmail()}<br>
       <a href="${unsub}" style="color:#0c8991">Unsubscribe</a>
     </p>
   </div>

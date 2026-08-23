@@ -54,7 +54,6 @@ export async function createCheckoutSession(params: {
   }
 
   return stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
     line_items: params.lineItems,
     mode: params.mode,
     metadata: params.metadata,

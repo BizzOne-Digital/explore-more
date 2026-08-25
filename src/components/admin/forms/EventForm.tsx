@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/admin/PageHeader";
 import { safeSlug } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { gradeSelectOptions } from "@/lib/grades";
+import { gradeSelectOptions, ALL_GRADES_VALUE } from "@/lib/grades";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -122,7 +122,7 @@ export function EventForm({
       return; 
     }
     router.push(
-      finalData.grade
+      finalData.grade && finalData.grade !== ALL_GRADES_VALUE
         ? `/admin/events?grade=${encodeURIComponent(String(finalData.grade))}`
         : "/admin/events"
     );
@@ -200,7 +200,7 @@ export function EventForm({
             <SelectInput
               registration={register("grade")}
               error={errors.grade}
-              options={gradeSelectOptions()}
+              options={gradeSelectOptions(false, true)}
               disabled={Boolean(defaultGrade && isNew)}
             />
           </FormField>

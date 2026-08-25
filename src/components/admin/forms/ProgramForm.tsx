@@ -16,7 +16,7 @@ import {
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { safeSlug } from "@/lib/utils";
-import { gradeSelectOptions } from "@/lib/grades";
+import { gradeSelectOptions, ALL_GRADES_VALUE } from "@/lib/grades";
 
 const schema = z.object({
   title: z.string().min(1),
@@ -86,7 +86,11 @@ export function ProgramForm({
       setError(json.error ?? "Save failed");
       return;
     }
-    router.push(data.grade ? `/admin/programs?grade=${encodeURIComponent(data.grade)}` : "/admin/programs");
+    router.push(
+      data.grade && data.grade !== ALL_GRADES_VALUE
+        ? `/admin/programs?grade=${encodeURIComponent(data.grade)}`
+        : "/admin/programs"
+    );
     router.refresh();
   }
 
@@ -125,7 +129,7 @@ export function ProgramForm({
             <SelectInput
               registration={register("grade")}
               error={errors.grade}
-              options={gradeSelectOptions()}
+              options={gradeSelectOptions(false, true)}
               disabled={Boolean(defaultGrade && isNew)}
             />
           </FormField>

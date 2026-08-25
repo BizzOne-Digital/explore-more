@@ -1,5 +1,5 @@
 import { ProgramForm } from "@/components/admin/forms/ProgramForm";
-import { isGradeLevel } from "@/lib/grades";
+import { ALL_GRADES_VALUE, isGradeOrAll } from "@/lib/grades";
 import { redirect } from "next/navigation";
 
 export default async function NewProgramPage({
@@ -8,8 +8,12 @@ export default async function NewProgramPage({
   searchParams: Promise<{ grade?: string }>;
 }) {
   const { grade } = await searchParams;
-  if (!grade || !isGradeLevel(grade)) {
+
+  if (grade && !isGradeOrAll(grade)) {
     redirect("/admin/programs");
   }
-  return <ProgramForm isNew defaultGrade={grade} />;
+
+  const defaultGrade = !grade || grade === ALL_GRADES_VALUE ? ALL_GRADES_VALUE : grade;
+
+  return <ProgramForm isNew defaultGrade={defaultGrade} />;
 }

@@ -7,7 +7,7 @@ import {
   getStudentGrade,
   getPublishedCoursesForGrade,
 } from "@/lib/grades/queries";
-import { formatGradeLabel } from "@/lib/grades";
+import { formatGradeLabel, matchesStudentGrade } from "@/lib/grades";
 
 export default async function StudentCoursesPage() {
   const session = await auth();
@@ -59,7 +59,7 @@ export default async function StudentCoursesPage() {
           {enrollments.map((enrollment) => {
             const course = enrollment.courseId as unknown as InstanceType<typeof Course> | null;
             if (!course) return null;
-            if (studentGrade && course.grade && course.grade !== studentGrade) return null;
+            if (studentGrade && !matchesStudentGrade(course.grade, studentGrade)) return null;
 
             const totalLessons = course.modules.reduce(
               (sum, m) => sum + m.lessons.length,

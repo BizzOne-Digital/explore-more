@@ -20,21 +20,37 @@ export function DownloadButton({ bookId, orderId, fileName, className }: Downloa
     setError("");
 
     try {
-      // Get the signed download URL from API
       const response = await fetch(`/api/books/download/${bookId}?orderId=${orderId}`);
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
 
       if (!response.ok) {
-        throw new Error(data.error || "Download failed");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Download failed"
+        );
       }
 
-      // Redirect to the signed URL (browser will start download)
-      window.location.href = data.downloadUrl;
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        if (!data.downloadUrl) {
+          throw new Error("Download link not available");
+        }
+        window.location.href = data.downloadUrl;
+      } else {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName || "book.pdf";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
 
-      // Show success message
       setTimeout(() => {
         setDownloading(false);
-      }, 2000);
+      }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Download failed");
       setDownloading(false);
@@ -51,20 +67,18 @@ export function DownloadButton({ bookId, orderId, fileName, className }: Downloa
       >
         {downloading ? (
           <>
-            <Loader className="h-4 w-4 animate-spin mr-2" />
+            <Loader className="mr-2 h-4 w-4 animate-spin" />
             Preparing Download...
           </>
         ) : (
           <>
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="mr-2 h-4 w-4" />
             Download {fileName}
           </>
         )}
       </Button>
-      
-      {error && (
-        <p className="text-sm text-red-600 mt-2">{error}</p>
-      )}
+
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </div>
   );
 }

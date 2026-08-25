@@ -7,6 +7,7 @@ import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stri
 import { auth } from "@/lib/auth";
 import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
 import { stripeProductData } from "@/lib/stripe/tax-codes";
+import { fulfillBookOrder } from "@/lib/orders/fulfill-book-order";
 
 const checkoutSchema = z.object({
   items: z.array(
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
 
     const stripe = getStripe();
     if (!stripe) {
-      await Order.findByIdAndUpdate(order._id, { paymentStatus: "manual" });
+      await fulfillBookOrder(order._id.toString());
       return NextResponse.json({ success: true, orderNumber, manual: true });
     }
 
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
       metadata: { checkoutType: "books", orderId: order._id.toString(), orderNumber },
       customerEmail: data.customerEmail,
       managedPayments: false,
-      successUrl: `${getAppUrl()}/order-success?order=${orderNumber}`,
+      successUrl: `${getAppUrl()}/order-success?order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${getAppUrl()}/checkout`,
     });
 

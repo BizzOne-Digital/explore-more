@@ -7,11 +7,12 @@ import { GradeHub } from "@/components/admin/GradeHub";
 import { GradeBreadcrumb } from "@/components/admin/GradeBreadcrumb";
 import { EventsGradeList } from "@/components/admin/EventsGradeList";
 import { serializeAdmin } from "@/lib/admin/serialize";
-import { formatGradeLabel, isGradeLevel } from "@/lib/grades";
+import { formatGradeLabel, gradeFilterForLevel, isGradeLevel } from "@/lib/grades";
+import type { GradeLevel } from "@/lib/grades";
 
 async function getEventsForGrade(grade: string) {
   await connectDB();
-  const events = await Event.find({ grade }).sort({ startDate: -1 }).lean();
+  const events = await Event.find(gradeFilterForLevel(grade as GradeLevel)).sort({ startDate: -1 }).lean();
   const counts = await EventRegistration.aggregate([
     { $match: { eventId: { $in: events.map((e) => e._id) } } },
     { $group: { _id: "$eventId", count: { $sum: 1 } } },

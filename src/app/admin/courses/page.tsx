@@ -6,11 +6,13 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { GradeHub } from "@/components/admin/GradeHub";
 import { GradeBreadcrumb } from "@/components/admin/GradeBreadcrumb";
 import { serialize } from "@/lib/admin/serialize";
-import { formatGradeLabel, isGradeLevel } from "@/lib/grades";
+import { formatGradeLabel, gradeFilterForLevel, isGradeLevel, type GradeLevel } from "@/lib/grades";
 
-async function getData(grade: string) {
+async function getData(grade: GradeLevel) {
   await connectDB();
-  const items = await Course.find({ grade }).sort({ createdAt: -1 }).lean();
+  const items = await Course.find(gradeFilterForLevel(grade))
+    .sort({ createdAt: -1 })
+    .lean();
   return serialize(items);
 }
 
@@ -27,6 +29,7 @@ export default async function Page({
         title="Courses"
         description="Manage courses and curriculum by grade"
         basePath="/admin/courses"
+        newAction={{ label: "Add New Course", href: "/admin/courses/new" }}
       />
     );
   }

@@ -13,11 +13,12 @@ import {
 import {
   getUpcomingEvents,
   getFeaturedCourses,
-  getFeaturedBooks,
+  getHomepageBooks,
   getFeaturedGalleryImages,
   getFeaturedTestimonials,
   getFeaturedFAQs,
 } from "@/lib/queries/public";
+import { getCatalogBooksForHomepage } from "@/lib/content/books";
 import { createSectionChecker, getPageSectionVisibility } from "@/lib/queries/pages";
 import type { PublicEvent, PublicCourse, PublicBook, PublicGalleryImage, PublicTestimonial, PublicFAQ } from "@/types/public";
 import { Button } from "@/components/ui/Button";
@@ -33,14 +34,15 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function HomePage() {
   const show = createSectionChecker(await getPageSectionVisibility("home"));
-  const [events, courses, books, gallery, testimonials, faqs] = await Promise.all([
+  const [events, courses, dbBooks, gallery, testimonials, faqs] = await Promise.all([
     getUpcomingEvents(3).catch((): PublicEvent[] => []),
     getFeaturedCourses(4).catch((): PublicCourse[] => []),
-    getFeaturedBooks(4).catch((): PublicBook[] => []),
+    getHomepageBooks(4).catch((): PublicBook[] => []),
     getFeaturedGalleryImages(6).catch((): PublicGalleryImage[] => []),
     getFeaturedTestimonials(3).catch((): PublicTestimonial[] => []),
     getFeaturedFAQs(4).catch((): PublicFAQ[] => []),
   ]);
+  const books = dbBooks.length > 0 ? dbBooks : getCatalogBooksForHomepage(4);
 
   return (
     <>
@@ -240,15 +242,11 @@ export default async function HomePage() {
             <SectionHeading eyebrow="Shop" title="Bookstore" description="Curated books that inspire wild minds and bold hearts." />
             <Button href="/books" variant="outline">Visit Bookstore</Button>
           </div>
-          {books.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {books.map((book) => (
-                <BookCard key={book._id} book={book} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="Books coming soon" actionLabel="Contact Us" actionHref="/contact" />
-          )}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {books.map((book) => (
+              <BookCard key={book._id} book={book} />
+            ))}
+          </div>
         </div>
       </section>
       )}

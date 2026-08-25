@@ -7,7 +7,7 @@ import {
   getStudentGrade,
   getPublishedEventsForGrade,
 } from "@/lib/grades/queries";
-import { formatGradeLabel } from "@/lib/grades";
+import { formatGradeLabel, matchesStudentGrade } from "@/lib/grades";
 
 export default async function StudentEventsPage() {
   const session = await auth();
@@ -29,7 +29,7 @@ export default async function StudentEventsPage() {
     const event = r.eventId as unknown as InstanceType<typeof Event> | null;
     if (!event) return false;
     if (!studentGrade) return true;
-    return !event.grade || event.grade === studentGrade;
+    return matchesStudentGrade(event.grade, studentGrade);
   });
 
   const upcoming = gradeFiltered.filter((r) => {

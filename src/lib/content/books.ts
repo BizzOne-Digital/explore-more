@@ -48,6 +48,10 @@ export function bookCoverPath(slug: string) {
 export function getCatalogBook(slug: string): PublicBook | null {
   const book = BOOK_CATALOG.find((entry) => entry.slug === slug);
   if (!book) return null;
+  return catalogEntryToPublicBook(book);
+}
+
+function catalogEntryToPublicBook(book: BookCatalogEntry): PublicBook {
   return {
     _id: `catalog-${book.slug}`,
     slug: book.slug,
@@ -61,6 +65,19 @@ export function getCatalogBook(slug: string): PublicBook | null {
     featured: book.featured,
     format: "Paperback",
   };
+}
+
+/** Fallback storefront books when no published DB books exist yet. */
+export function getCatalogBooksForHomepage(limit = 4): PublicBook[] {
+  const featured = BOOK_CATALOG.filter((book) => book.featured).map(catalogEntryToPublicBook);
+  if (featured.length >= limit) return featured.slice(0, limit);
+
+  const featuredSlugs = new Set(featured.map((book) => book.slug));
+  const rest = BOOK_CATALOG.filter((book) => !featuredSlugs.has(book.slug)).map(
+    catalogEntryToPublicBook
+  );
+
+  return [...featured, ...rest].slice(0, limit);
 }
 
 export const BOOK_CATALOG: BookCatalogEntry[] = [

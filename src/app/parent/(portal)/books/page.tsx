@@ -6,6 +6,7 @@ import { formatCents } from "@/lib/utils";
 import { format } from "date-fns";
 import { Download, BookOpen, Package } from "lucide-react";
 import Link from "next/link";
+import { DownloadButton } from "@/components/books/DownloadButton";
 
 export const dynamic = "force-dynamic";
 
@@ -186,13 +187,12 @@ export default async function ParentBooksPage() {
                   </p>
 
                   {/* Download Button */}
-                  <a
-                    href={`/api/books/download/${book._id}?orderId=${book.orderId}`}
-                    className="flex items-center justify-center gap-2 w-full rounded-lg bg-explore-teal px-4 py-2.5 text-sm font-semibold text-white hover:bg-explore-teal/90 transition-colors"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download Book
-                  </a>
+                  <DownloadButton
+                    bookId={book._id.toString()}
+                    orderId={book.orderId?.toString() ?? ""}
+                    fileName={book.digitalFile?.fileName || "book.pdf"}
+                    className="w-full"
+                  />
 
                   {/* Order Link */}
                   <Link

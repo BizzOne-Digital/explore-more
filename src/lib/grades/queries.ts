@@ -1,7 +1,7 @@
 import connectDB from "@/lib/db";
 import { StudentProfile, User } from "@/models";
 import type { GradeLevel } from "@/lib/grades";
-import { isGradeLevel } from "@/lib/grades";
+import { isGradeLevel, gradeFilterForLevel } from "@/lib/grades";
 
 export async function getStudentUserIdsByGrade(grade: GradeLevel): Promise<string[]> {
   await connectDB();
@@ -65,7 +65,7 @@ export async function getParentChildrenGrades(parentUserId: string): Promise<Gra
 export async function getPublishedCoursesForGrade(grade: GradeLevel) {
   await connectDB();
   const { Course } = await import("@/models");
-  return Course.find({ grade, status: "published" })
+  return Course.find({ ...gradeFilterForLevel(grade), status: "published" })
     .select("title slug shortDescription instructor")
     .sort({ title: 1 })
     .lean();
@@ -74,7 +74,7 @@ export async function getPublishedCoursesForGrade(grade: GradeLevel) {
 export async function getPublishedEventsForGrade(grade: GradeLevel) {
   await connectDB();
   const { Event } = await import("@/models");
-  return Event.find({ grade, status: "published" })
+  return Event.find({ ...gradeFilterForLevel(grade), status: "published" })
     .select("title slug startDate location")
     .sort({ startDate: 1 })
     .lean();
@@ -83,7 +83,7 @@ export async function getPublishedEventsForGrade(grade: GradeLevel) {
 export async function getPublishedProgramsForGrade(grade: GradeLevel) {
   await connectDB();
   const { Program } = await import("@/models");
-  return Program.find({ grade, status: "published" })
+  return Program.find({ ...gradeFilterForLevel(grade), status: "published" })
     .select("title slug tagline shortDescription")
     .sort({ listingOrder: 1, title: 1 })
     .lean();

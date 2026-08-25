@@ -6,11 +6,12 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { GradeHub } from "@/components/admin/GradeHub";
 import { GradeBreadcrumb } from "@/components/admin/GradeBreadcrumb";
 import { serialize, formatDate } from "@/lib/admin/serialize";
-import { formatGradeLabel, isGradeLevel } from "@/lib/grades";
+import { formatGradeLabel, gradeFilterForLevel, isGradeLevel } from "@/lib/grades";
+import type { GradeLevel } from "@/lib/grades";
 
 async function getData(grade: string) {
   await connectDB();
-  const programIds = await Program.find({ grade }).select("_id").lean();
+  const programIds = await Program.find(gradeFilterForLevel(grade as GradeLevel)).select("_id").lean();
   const ids = programIds.map((p) => p._id);
   const items = await ServiceRequest.find({ programId: { $in: ids } })
     .populate("programId", "title grade")

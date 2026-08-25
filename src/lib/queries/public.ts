@@ -21,6 +21,11 @@ import type {
   PublicFAQ,
 } from "@/types/public";
 import { mapPublicEvent, mapPublicEvents } from "@/lib/content/public-event";
+import {
+  mapPublicBook,
+  mapPublicBooks,
+  PUBLISHED_BOOK_FILTER,
+} from "@/lib/content/public-book";
 
 async function withDb<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -59,12 +64,17 @@ export async function getFeaturedCourses(limit = 4): Promise<PublicCourse[]> {
 }
 
 export async function getFeaturedBooks(limit = 4): Promise<PublicBook[]> {
+  return getHomepageBooks(limit);
+}
+
+/** Published books for storefront sections — featured first, then by title. */
+export async function getHomepageBooks(limit = 4): Promise<PublicBook[]> {
   return withDb(async () => {
-    const books = await Book.find({ published: true, featured: true })
-      .sort({ createdAt: -1 })
+    const books = await Book.find(PUBLISHED_BOOK_FILTER)
+      .sort({ featured: -1, title: 1 })
       .limit(limit)
       .lean();
-    return serialize(books) as unknown as PublicBook[];
+    return mapPublicBooks(serialize(books) as unknown as Record<string, unknown>[]);
   }, []);
 }
 
@@ -122,17 +132,19 @@ export async function getCourseBySlug(slug: string): Promise<PublicCourse | null
 
 export async function getAllPublishedBooks(): Promise<PublicBook[]> {
   return withDb(async () => {
-    const books = await Book.find({ published: true })
+    const books = await Book.find(PUBLISHED_BOOK_FILTER)
       .sort({ featured: -1, title: 1 })
       .lean();
-    return serialize(books) as unknown as PublicBook[];
+    return mapPublicBooks(serialize(books) as unknown as Record<string, unknown>[]);
   }, []);
 }
 
 export async function getBookBySlug(slug: string): Promise<PublicBook | null> {
   return withDb(async () => {
-    const book = await Book.findOne({ slug, published: true }).lean();
-    return book ? (serialize(book) as unknown as PublicBook) : null;
+    const book = await Book.findOne({ slug, ...PUBLISHED_BOOK_FILTER }).lean();
+    return book
+      ? mapPublicBook(serialize(book) as unknown as Record<string, unknown>)
+      : null;
   }, null);
 }
 

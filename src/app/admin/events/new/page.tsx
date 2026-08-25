@@ -1,5 +1,5 @@
 import { EventForm } from "@/components/admin/forms/EventForm";
-import { isGradeLevel } from "@/lib/grades";
+import { ALL_GRADES_VALUE, isGradeOrAll } from "@/lib/grades";
 import { redirect } from "next/navigation";
 
 export default async function Page({
@@ -8,8 +8,12 @@ export default async function Page({
   searchParams: Promise<{ grade?: string }>;
 }) {
   const { grade } = await searchParams;
-  if (!grade || !isGradeLevel(grade)) {
+
+  if (grade && !isGradeOrAll(grade)) {
     redirect("/admin/events");
   }
-  return <EventForm isNew defaultGrade={grade} />;
+
+  const defaultGrade = !grade || grade === ALL_GRADES_VALUE ? ALL_GRADES_VALUE : grade;
+
+  return <EventForm isNew defaultGrade={defaultGrade} />;
 }

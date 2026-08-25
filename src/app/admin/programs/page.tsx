@@ -6,11 +6,13 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { GradeHub } from "@/components/admin/GradeHub";
 import { GradeBreadcrumb } from "@/components/admin/GradeBreadcrumb";
 import { serialize } from "@/lib/admin/serialize";
-import { formatGradeLabel, isGradeLevel } from "@/lib/grades";
+import { formatGradeLabel, gradeFilterForLevel, isGradeLevel, type GradeLevel } from "@/lib/grades";
 
-async function getData(grade: string) {
+async function getData(grade: GradeLevel) {
   await connectDB();
-  const items = await Program.find({ grade }).sort({ listingOrder: 1 }).lean();
+  const items = await Program.find(gradeFilterForLevel(grade))
+    .sort({ listingOrder: 1 })
+    .lean();
   return serialize(items);
 }
 
@@ -27,6 +29,7 @@ export default async function Page({
         title="Programs"
         description="Manage adventure programs by grade"
         basePath="/admin/programs"
+        newAction={{ label: "Add New Program", href: "/admin/programs/new" }}
       />
     );
   }

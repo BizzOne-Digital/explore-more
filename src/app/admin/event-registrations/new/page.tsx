@@ -3,12 +3,15 @@ import connectDB from "@/lib/db";
 import { Event } from "@/models";
 import { EventRegistrationForm } from "@/components/admin/forms/EventRegistrationForm";
 import { serializeAdmin } from "@/lib/admin/serialize";
-import { isGradeLevel, type GradeLevel } from "@/lib/grades";
+import { isGradeLevel, gradeFilterForLevel, type GradeLevel } from "@/lib/grades";
 import { redirect } from "next/navigation";
 
 async function getEvents(grade: GradeLevel) {
   await connectDB();
-  const events = await Event.find({ grade, status: { $in: ["draft", "published"] } })
+  const events = await Event.find({
+    ...gradeFilterForLevel(grade),
+    status: { $in: ["draft", "published"] },
+  })
     .sort({ startDate: 1 })
     .lean();
   return serializeAdmin(events);

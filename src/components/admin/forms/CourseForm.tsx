@@ -17,7 +17,7 @@ import {
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { safeSlug } from "@/lib/utils";
-import { gradeSelectOptions } from "@/lib/grades";
+import { gradeSelectOptions, ALL_GRADES_VALUE } from "@/lib/grades";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -128,7 +128,7 @@ export function CourseForm({
       return;
     }
     router.push(
-      finalData.grade
+      finalData.grade && finalData.grade !== ALL_GRADES_VALUE
         ? `/admin/courses?grade=${encodeURIComponent(String(finalData.grade))}`
         : "/admin/courses"
     );
@@ -182,7 +182,7 @@ export function CourseForm({
             <SelectInput
               registration={register("grade")}
               error={errors.grade}
-              options={gradeSelectOptions()}
+              options={gradeSelectOptions(false, true)}
               disabled={Boolean(defaultGrade && isNew)}
             />
           </FormField>

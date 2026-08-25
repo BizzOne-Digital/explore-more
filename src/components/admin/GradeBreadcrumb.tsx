@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatGradeLabel, isGradeLevel } from "@/lib/grades";
+import { formatGradeLabel, isGradeLevel, isGradeOrAll } from "@/lib/grades";
 
 interface GradeBreadcrumbProps {
   basePath: string;
@@ -8,7 +8,7 @@ interface GradeBreadcrumbProps {
 }
 
 export function GradeBreadcrumb({ basePath, grade, segments = [] }: GradeBreadcrumbProps) {
-  const gradeLabel = isGradeLevel(grade) ? formatGradeLabel(grade) : grade;
+  const gradeLabel = isGradeLevel(grade) || isGradeOrAll(grade) ? formatGradeLabel(grade) : grade;
 
   return (
     <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-white/60">

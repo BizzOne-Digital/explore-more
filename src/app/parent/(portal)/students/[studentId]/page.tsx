@@ -21,7 +21,7 @@ import {
   getPublishedEventsForGrade,
   getPublishedProgramsForGrade,
 } from "@/lib/grades/queries";
-import { formatGradeLabel } from "@/lib/grades";
+import { formatGradeLabel, matchesStudentGrade } from "@/lib/grades";
 import type { GradeLevel } from "@/lib/grades";
 
 type PageProps = { params: Promise<{ studentId: string }> };
@@ -77,13 +77,13 @@ export default async function ParentStudentPage({ params }: PageProps) {
   const gradeEnrollments = enrollments.filter((e) => {
     const course = e.courseId as unknown as InstanceType<typeof Course> | null;
     if (!studentGrade) return true;
-    return !course?.grade || course.grade === studentGrade;
+    return matchesStudentGrade(course?.grade, studentGrade);
   });
 
   const gradeRegistrations = registrations.filter((r) => {
     const event = r.eventId as unknown as InstanceType<typeof Event> | null;
     if (!studentGrade) return true;
-    return !event?.grade || event.grade === studentGrade;
+    return matchesStudentGrade(event?.grade, studentGrade);
   });
 
   return (

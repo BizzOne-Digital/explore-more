@@ -3,8 +3,6 @@ import connectDB from "@/lib/db";
 import {
   EventRegistration,
   User,
-  Order,
-  Book,
   Enrollment,
   Donation,
   DonationCampaign,
@@ -22,12 +20,13 @@ import {
   paymentIntentFailedReason,
   resolveCheckoutSessionFromPaymentIntent,
 } from "@/lib/billing/payment-failure";
-import { sendBookOrderEmails } from "@/lib/email/order-notifications";
+
 import { sendEventRegistrationEmails } from "@/lib/email/event-notifications";
 import { sendCourseEnrollmentEmails } from "@/lib/email/course-notifications";
 import { sendDonationEmails } from "@/lib/email/donation-notifications";
 import { upsertSponsorFromDonation } from "@/lib/sponsors/sync";
 import { getCampaignGoalCents, getCampaignRaisedCents } from "@/lib/pricing";
+import { fulfillBookOrder } from "@/lib/orders/fulfill-book-order";
 
 export const runtime = "nodejs";
 
@@ -46,42 +45,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     case "books": {
       const orderId = session.metadata?.orderId;
       if (!orderId) return;
-
-      const order = await Order.findById(orderId);
-      if (!order || order.paymentStatus === "paid") return;
-
-      order.paymentStatus = "paid";
-      order.stripeSessionId = session.id;
-      order.stripePaymentIntentId =
-        typeof session.payment_intent === "string"
-          ? session.payment_intent
-          : session.payment_intent?.id;
-      await order.save();
-
-      for (const item of order.items) {
-        await Book.findByIdAndUpdate(item.bookId, {
-          $inc: { inventory: -item.quantity },
-        });
-      }
-
-      try {
-        await sendBookOrderEmails({
-          orderNumber: order.orderNumber,
-          customerName: order.customerName,
-          customerEmail: order.customerEmail,
-          totalCents: order.totalCents,
-          subtotalCents: order.subtotalCents,
-          shippingCents: order.shippingCents,
-          items: order.items.map((item) => ({
-            title: item.title,
-            quantity: item.quantity,
-            priceCents: item.priceCents,
-          })),
-          shippingAddress: order.shippingAddress,
-        });
-      } catch (err) {
-        console.error("Book order emails failed:", err);
-      }
+      await fulfillBookOrder(orderId, session);
       break;
     }
 

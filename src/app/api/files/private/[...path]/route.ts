@@ -65,7 +65,7 @@ async function authorizeFileAccess(
   }
 
   if (folder === "books") {
-    return user.role === "administrator";
+    return false;
   }
 
   if (folder === "documents") {

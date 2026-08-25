@@ -1,4 +1,5 @@
 import connectDB from "@/lib/db";
+import mongoose from "mongoose";
 import { Donation, Sponsor } from "@/models";
 import type { SponsorStatus } from "@/models/Sponsor";
 
@@ -37,7 +38,7 @@ export async function upsertSponsorFromDonation(donation: {
       sponsor.name = donation.donorName.trim();
     }
     if (donation.userId && !sponsor.userId) {
-      sponsor.userId = donation.userId;
+      sponsor.userId = new mongoose.Types.ObjectId(donation.userId);
     }
     sponsor.status = statusFromTotal(sponsor.totalDonatedCents);
     await sponsor.save();
@@ -51,7 +52,7 @@ export async function upsertSponsorFromDonation(donation: {
     donationCount: 1,
     firstDonationAt: donatedAt,
     lastDonationAt: donatedAt,
-    userId: donation.userId,
+    userId: donation.userId ? new mongoose.Types.ObjectId(donation.userId) : undefined,
     status: statusFromTotal(donation.amountCents),
     source: "website",
     type: "individual",

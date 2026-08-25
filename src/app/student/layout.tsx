@@ -22,8 +22,11 @@ export default async function StudentLayout({ children }: { children: React.Reac
     access = isAdmin
       ? {
           hasActiveMembership: true,
-          hasFeature: () => true,
+          tierId: "legacy" as const,
+          planName: "Administrator",
+          planSlug: null,
           features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
+          hasFeature: () => true,
         }
       : await getStudentMembershipAccess(session.user.id);
   } catch (error) {

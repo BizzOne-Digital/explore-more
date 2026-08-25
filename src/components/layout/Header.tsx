@@ -106,9 +106,6 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                 <Link href="/membership" className="hover:text-explore-lime transition-colors">
                   Parent Portal
                 </Link>
-                <Link href="/parent/login" className="hover:text-explore-lime transition-colors">
-                  Member Login
-                </Link>
               </>
             )}
           </div>

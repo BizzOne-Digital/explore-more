@@ -398,6 +398,10 @@ export default function SponsorDetailPage({ params }: { params: Promise<{ id: st
           border-color: #0c8991;
           box-shadow: 0 0 0 1px #0c8991;
         }
+        .input-admin option {
+          color: #101315;
+          background-color: #ffffff;
+        }
       `}</style>
     </div>
   );

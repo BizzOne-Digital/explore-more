@@ -124,3 +124,10 @@ canvas {
     scroll-behavior: auto !important;
   }
 }
+
+/* Admin dark UI: native select options use OS light dropdown — keep text readable */
+#admin-main-scroll select option,
+.input-admin option {
+  color: #101315;
+  background-color: #ffffff;
+}

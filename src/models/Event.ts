@@ -1,5 +1,6 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 import { generateEventRegistrationId } from "@/lib/events/generate-registration-id";
+import type { EventPackage, EventRegistrationLineItem } from "@/lib/events/packages";
 
 export interface IEvent extends Document {
   title: string;
@@ -28,6 +29,7 @@ export interface IEvent extends Document {
   contactPhone?: string;
   eventType: "free" | "paid";
   priceAmount: number;
+  packages: EventPackage[];
   registrationEnabled: boolean;
   featured: boolean;
   category?: string;
@@ -67,6 +69,21 @@ const EventSchema = new Schema<IEvent>(
     contactPhone: String,
     eventType: { type: String, enum: ["free", "paid"], default: "free" },
     priceAmount: { type: Number, default: 0 },
+    packages: {
+      type: [
+        {
+          id: { type: String, required: true },
+          name: { type: String, required: true },
+          description: String,
+          imageUrl: String,
+          priceAmount: { type: Number, default: 0 },
+          itemType: { type: String, enum: ["package", "addon"], default: "package" },
+          enabled: { type: Boolean, default: true },
+          sortOrder: { type: Number, default: 0 },
+        },
+      ],
+      default: [],
+    },
     registrationEnabled: { type: Boolean, default: true },
     featured: { type: Boolean, default: false },
     category: String,
@@ -118,6 +135,7 @@ export interface IEventRegistration extends Document {
   registrationType: "free" | "paid";
   paymentStatus: "free" | "pending" | "paid" | "failed" | "refunded";
   paymentAmount?: number;
+  lineItems: EventRegistrationLineItem[];
   stripeSessionId?: string;
   
   // Custom Questions/Options
@@ -179,6 +197,19 @@ const EventRegistrationSchema = new Schema<IEventRegistration>(
       default: "free",
     },
     paymentAmount: Number,
+    lineItems: {
+      type: [
+        {
+          packageId: { type: String, required: true },
+          name: { type: String, required: true },
+          priceAmount: { type: Number, required: true },
+          quantity: { type: Number, required: true, min: 1 },
+          imageUrl: String,
+          itemType: { type: String, enum: ["package", "addon"] },
+        },
+      ],
+      default: [],
+    },
     stripeSessionId: String,
     
     // Custom Questions/Options

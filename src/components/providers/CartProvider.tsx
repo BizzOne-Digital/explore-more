@@ -2,13 +2,15 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { CartItem } from "@/types";
+import { getCartItemKey, normalizeCartItem, type AddCartItemInput } from "@/lib/cart/items";
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
-  removeItem: (bookId: string) => void;
-  updateQuantity: (bookId: string, quantity: number) => void;
+  addItem: (item: AddCartItemInput) => void;
+  removeItem: (key: string) => void;
+  updateQuantity: (key: string, quantity: number) => void;
   clearCart: () => void;
+  clearEventPackages: (eventId?: string) => void;
   itemCount: number;
   subtotalCents: number;
 }
@@ -24,7 +26,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     queueMicrotask(() => {
       try {
         const stored = localStorage.getItem(CART_KEY);
-        if (stored) setItems(JSON.parse(stored));
+        if (stored) {
+          const parsed = JSON.parse(stored) as CartItem[];
+          setItems(parsed.map((item) => normalizeCartItem(item)));
+        }
       } catch {
         /* ignore */
       }
@@ -38,45 +43,69 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, loaded]);
 
-  const addItem = useCallback(
-    (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
-      setItems((prev) => {
-        const existing = prev.find((i) => i.bookId === item.bookId);
-        if (existing) {
-          return prev.map((i) =>
-            i.bookId === item.bookId
-              ? { ...i, quantity: i.quantity + (item.quantity || 1) }
-              : i
-          );
-        }
-        return [...prev, { ...item, quantity: item.quantity || 1 }];
-      });
-    },
-    []
-  );
-
-  const removeItem = useCallback((bookId: string) => {
-    setItems((prev) => prev.filter((i) => i.bookId !== bookId));
+  const addItem = useCallback((item: AddCartItemInput) => {
+    const normalized = normalizeCartItem({ ...item, quantity: item.quantity || 1 } as CartItem);
+    const key = getCartItemKey(normalized);
+    setItems((prev) => {
+      const base =
+        normalized.type === "event_package"
+          ? prev.filter(
+              (i) => i.type !== "event_package" || i.eventId === normalized.eventId
+            )
+          : prev;
+      const existing = base.find((i) => getCartItemKey(i) === key);
+      if (existing) {
+        return base.map((i) =>
+          getCartItemKey(i) === key
+            ? { ...i, quantity: i.quantity + (item.quantity || 1) }
+            : i
+        );
+      }
+      return [...base, { ...normalized, quantity: item.quantity || 1 }];
+    });
   }, []);
 
-  const updateQuantity = useCallback((bookId: string, quantity: number) => {
+  const removeItem = useCallback((key: string) => {
+    setItems((prev) => prev.filter((i) => getCartItemKey(i) !== key));
+  }, []);
+
+  const updateQuantity = useCallback((key: string, quantity: number) => {
     if (quantity <= 0) {
-      setItems((prev) => prev.filter((i) => i.bookId !== bookId));
+      setItems((prev) => prev.filter((i) => getCartItemKey(i) !== key));
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (i.bookId === bookId ? { ...i, quantity } : i))
+      prev.map((i) => (getCartItemKey(i) === key ? { ...i, quantity } : i))
     );
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);
+
+  const clearEventPackages = useCallback((eventId?: string) => {
+    setItems((prev) =>
+      prev.filter((item) => {
+        if (item.type !== "event_package") return true;
+        if (!eventId) return false;
+        return item.eventId !== eventId;
+      })
+    );
+  }, []);
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotalCents = items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, clearCart, itemCount, subtotalCents }}
+      value={{
+        items,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clearCart,
+        clearEventPackages,
+        itemCount,
+        subtotalCents,
+      }}
     >
       {children}
     </CartContext.Provider>

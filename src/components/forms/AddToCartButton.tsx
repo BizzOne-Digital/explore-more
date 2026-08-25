@@ -29,6 +29,7 @@ export function AddToCartButton({ book, variant = "default", className }: AddToC
 
   function handleAdd() {
     addItem({
+      type: "book",
       bookId: book._id,
       slug: book.slug,
       title: book.title,

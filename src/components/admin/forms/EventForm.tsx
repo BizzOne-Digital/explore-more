@@ -10,6 +10,8 @@ import { safeSlug } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { gradeSelectOptions, ALL_GRADES_VALUE } from "@/lib/grades";
+import { EventPackagesEditor } from "@/components/admin/EventPackagesEditor";
+import { normalizeEventPackages, type EventPackage } from "@/lib/events/packages";
 
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -53,6 +55,9 @@ export function EventForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const [packages, setPackages] = useState<EventPackage[]>(
+    () => normalizeEventPackages(initialData?.packages)
+  );
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -110,11 +115,16 @@ export function EventForm({
       finalData.publishedToWebsite = false;
     }
 
+    if (packages.some((pkg) => !pkg.name.trim())) {
+      setError("Each package or add-on needs a name.");
+      return;
+    }
+
     const url = isNew ? "/api/admin/events" : `/api/admin/events/${initialData?._id}`;
     const res = await fetch(url, { 
       method: isNew ? "POST" : "PUT", 
       headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify(finalData) 
+      body: JSON.stringify({ ...finalData, packages }) 
     });
     const json = await res.json();
     if (!json.success) { 
@@ -240,10 +250,16 @@ export function EventForm({
               { value: "paid", label: "Paid Event" },
             ]} />
           </FormField>
-          {eventType === "paid" && (
+          {eventType === "paid" && packages.length === 0 && (
             <FormField label="Price (USD)" error={errors.priceAmount} required>
               <TextInput registration={register("priceAmount")} error={errors.priceAmount} type="number" step="0.01" placeholder="25.00" />
             </FormField>
+          )}
+          <EventPackagesEditor value={packages} onChange={setPackages} />
+          {packages.length > 0 && (
+            <p className="sm:col-span-2 text-xs text-white/50">
+              When packages are added, customers choose packages/add-ons instead of the single event price.
+            </p>
           )}
         </FormSection>
 

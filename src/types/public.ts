@@ -35,6 +35,17 @@ export interface PublicEvent {
   status: string;
   metaTitle?: string;
   metaDescription?: string;
+  packages?: PublicEventPackage[];
+}
+
+export interface PublicEventPackage {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  priceAmount: number;
+  priceCents: number;
+  itemType: "package" | "addon";
 }
 
 export interface PublicCourse {

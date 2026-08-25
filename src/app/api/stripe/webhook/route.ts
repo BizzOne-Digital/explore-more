@@ -150,6 +150,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
               paymentStatus: registration.paymentStatus,
               paymentAmount: registration.paymentAmount,
               status: registration.status,
+              lineItems: registration.lineItems?.map((item) => ({
+                name: item.name,
+                quantity: item.quantity,
+                priceAmount: item.priceAmount,
+              })),
             },
             event: {
               title: eventDoc.title,

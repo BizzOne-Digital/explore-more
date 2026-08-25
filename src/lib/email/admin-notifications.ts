@@ -10,6 +10,11 @@ export interface EventRegistrationEmailData {
   paymentStatus: string;
   paymentAmount?: number;
   status: string;
+  lineItems?: Array<{
+    name: string;
+    quantity: number;
+    priceAmount: number;
+  }>;
 }
 
 export interface EventEmailData {
@@ -64,7 +69,20 @@ export async function sendAdminEventRegistrationNotification({
       <p style="font-size:14px;color:#444;margin:0 0 4px"><strong>Email:</strong> <a href="mailto:${registration.guardianEmail}">${registration.guardianEmail}</a></p>
       ${registration.guardianPhone ? `<p style="font-size:14px;color:#444;margin:0 0 4px"><strong>Phone:</strong> ${registration.guardianPhone}</p>` : ""}
       <p style="font-size:14px;color:#444;margin:0 0 4px"><strong>Status:</strong> ${registration.status}</p>
-      <p style="font-size:14px;color:#444;margin:0"><strong>Payment:</strong> ${paymentLine}</p>
+      <p style="font-size:14px;color:#444;margin:0 0 4px"><strong>Payment:</strong> ${paymentLine}</p>
+      ${
+        registration.lineItems?.length
+          ? `<h3 style="font-size:16px;color:#101315;margin-top:16px">Packages</h3>
+      <ul style="font-size:14px;color:#444;padding-left:18px;margin:8px 0 0">
+        ${registration.lineItems
+          .map(
+            (item) =>
+              `<li>${item.name} × ${item.quantity} — $${(item.priceAmount * item.quantity).toFixed(2)}</li>`
+          )
+          .join("")}
+      </ul>`
+          : ""
+      }
       <p style="margin-top:20px">
         <a href="${appUrl}/admin/event-registrations" style="display:inline-block;background:#0c8991;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">View Registrations in Admin</a>
       </p>

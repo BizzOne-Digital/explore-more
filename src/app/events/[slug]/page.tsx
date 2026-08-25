@@ -19,6 +19,7 @@ import { resolveImageUrl } from "@/lib/images/resolve";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { AppImage } from "@/components/ui/AppImage";
+import { EventPackagePicker } from "@/components/events/EventPackagePicker";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -79,6 +80,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
     isUpcoming &&
     event.registrationEnabled &&
     (!event.registrationDeadline || new Date(event.registrationDeadline) >= now);
+  const hasPackages = (event.packages?.length ?? 0) > 0;
 
   return (
     <>
@@ -186,6 +188,20 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
               </div>
             )}
 
+            {hasPackages && registrationOpen && (
+              <div>
+                <h2 className="font-display text-2xl font-bold text-explore-charcoal">
+                  Packages &amp; Add-ons
+                </h2>
+                <p className="mt-2 text-sm text-explore-charcoal/70">
+                  Choose the packages you want and add them to your cart. You can select as many as you like.
+                </p>
+                <div className="mt-6">
+                  <EventPackagePicker event={event} />
+                </div>
+              </div>
+            )}
+
             {event.gallery && event.gallery.length > 0 && (
               <div>
                 <h2 className="font-display text-2xl font-bold text-explore-charcoal">Gallery</h2>
@@ -215,7 +231,9 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-explore-charcoal/50">
                   Registration
                 </p>
-                <p className="mt-1 font-display text-3xl font-bold text-explore-charcoal">{priceLabel}</p>
+                <p className="mt-1 font-display text-3xl font-bold text-explore-charcoal">
+                  {hasPackages ? "Package pricing" : priceLabel}
+                </p>
               </div>
 
               <dl className="space-y-3 border-t border-explore-charcoal/10 pt-4 text-sm">
@@ -266,13 +284,19 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
               )}
 
               {registrationOpen ? (
-                <Button
-                  href={`/login?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
-                  className="w-full"
-                  size="lg"
-                >
-                  Register Now
-                </Button>
+                hasPackages ? (
+                  <Button href="/cart" className="w-full" size="lg">
+                    Go to Cart
+                  </Button>
+                ) : (
+                  <Button
+                    href={`/login?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
+                    className="w-full"
+                    size="lg"
+                  >
+                    Register Now
+                  </Button>
+                )
               ) : (
                 <Button disabled className="w-full" size="lg" variant="outline">
                   Registration Closed

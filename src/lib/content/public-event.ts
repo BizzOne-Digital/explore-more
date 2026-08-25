@@ -1,5 +1,6 @@
 import { getEventPriceCents } from "@/lib/pricing";
-import type { PublicEvent } from "@/types/public";
+import { getEnabledEventPackages, getPackagePriceCents } from "@/lib/events/packages";
+import type { PublicEvent, PublicEventPackage } from "@/types/public";
 
 type EventRecord = Record<string, unknown>;
 
@@ -7,6 +8,18 @@ export function mapPublicEvent(raw: EventRecord): PublicEvent {
   const priceAmount = Number(raw.priceAmount ?? 0);
   const eventType = (raw.eventType as PublicEvent["eventType"]) ?? (priceAmount > 0 ? "paid" : "free");
   const isFree = eventType === "free" || priceAmount === 0;
+
+  const enabledPackages = getEnabledEventPackages(raw).map(
+    (pkg): PublicEventPackage => ({
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description,
+      imageUrl: pkg.imageUrl,
+      priceAmount: pkg.priceAmount,
+      priceCents: getPackagePriceCents(pkg),
+      itemType: pkg.itemType,
+    })
+  );
 
   return {
     _id: String(raw._id),
@@ -43,6 +56,7 @@ export function mapPublicEvent(raw: EventRecord): PublicEvent {
     status: String(raw.status ?? "draft"),
     metaTitle: raw.metaTitle ? String(raw.metaTitle) : undefined,
     metaDescription: raw.metaDescription ? String(raw.metaDescription) : undefined,
+    packages: enabledPackages,
   };
 }
 

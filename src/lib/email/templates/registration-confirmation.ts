@@ -12,6 +12,11 @@ interface RegistrationData {
   paymentStatus: string;
   paymentAmount?: number;
   status: string;
+  lineItems?: Array<{
+    name: string;
+    quantity: number;
+    priceAmount: number;
+  }>;
 }
 
 interface EventData {
@@ -90,6 +95,22 @@ export async function sendRegistrationConfirmation({
               ? `<p><strong>Payment Status:</strong> Pending ${registration.paymentAmount ? `($${registration.paymentAmount.toFixed(2)})` : ""}</p>`
               : `<p><strong>Payment Status:</strong> Free Event</p>`
           }
+          ${
+            registration.lineItems?.length
+              ? `
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee;">
+          <p style="margin: 0 0 8px;"><strong>Your selections:</strong></p>
+          <ul style="margin: 0; padding-left: 20px;">
+            ${registration.lineItems
+              .map(
+                (item) =>
+                  `<li>${item.name} × ${item.quantity} — $${(item.priceAmount * item.quantity).toFixed(2)}</li>`
+              )
+              .join("")}
+          </ul>
+        </div>`
+              : ""
+          }
         </div>
         
         ${
@@ -157,7 +178,7 @@ Confirmation Number: ${registration.registrationId}
 Student Name: ${registration.studentName}
 Registration Status: ${registration.status}
 ${registration.paymentStatus === "paid" ? `Payment Status: Paid ${registration.paymentAmount ? `($${registration.paymentAmount.toFixed(2)})` : ""}` : registration.paymentStatus === "pending" ? `Payment Status: Pending ${registration.paymentAmount ? `($${registration.paymentAmount.toFixed(2)})` : ""}` : "Payment Status: Free Event"}
-
+${registration.lineItems?.length ? `\nYOUR SELECTIONS\n${registration.lineItems.map((item) => `- ${item.name} × ${item.quantity} — $${(item.priceAmount * item.quantity).toFixed(2)}`).join("\n")}\n` : ""}
 ${event.instructions ? `IMPORTANT INSTRUCTIONS\n${event.instructions}\n\n` : ""}
 
 ${event.contactName || event.contactEmail || event.contactPhone ? `CONTACT INFORMATION\n${event.contactName ? `Contact: ${event.contactName}\n` : ""}${event.contactEmail ? `Email: ${event.contactEmail}\n` : ""}${event.contactPhone ? `Phone: ${event.contactPhone}\n` : ""}\n` : ""}

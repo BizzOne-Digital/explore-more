@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 export function StudentLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/student";
+  const callbackUrl = searchParams.get("callbackUrl") || "/membership";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 

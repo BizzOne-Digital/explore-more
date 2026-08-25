@@ -10,7 +10,7 @@ import { GRADE_LEVELS, formatGradeLabel } from "@/lib/grades";
 export function ParentSignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/parent";
+  const callbackUrl = searchParams.get("callbackUrl") || "/membership";
   const defaultEmail = searchParams.get("email") || "";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);

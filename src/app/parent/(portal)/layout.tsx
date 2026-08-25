@@ -45,16 +45,22 @@ export default async function ParentPortalLayout({ children }: { children: React
 
   const pathname = (await headers()).get("x-pathname") ?? "/parent";
   const isAdmin = session.user.role === "administrator";
-  const access = isAdmin
-    ? {
-        hasActiveMembership: true,
-        tierId: "legacy" as const,
-        planName: "Administrator",
-        planSlug: null,
-        features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
-        hasFeature: () => true,
-      }
-    : await getParentMembershipAccess(session.user.id);
+  let access: Awaited<ReturnType<typeof getParentMembershipAccess>>;
+  try {
+    access = isAdmin
+      ? {
+          hasActiveMembership: true,
+          tierId: "legacy" as const,
+          planName: "Administrator",
+          planSlug: null,
+          features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
+          hasFeature: () => true,
+        }
+      : await getParentMembershipAccess(session.user.id);
+  } catch (error) {
+    console.error("Parent membership access check failed:", error);
+    redirect("/membership?reason=subscription-required");
+  }
 
   if (!isAdmin && !access.hasActiveMembership) {
     redirect("/membership?reason=subscription-required");

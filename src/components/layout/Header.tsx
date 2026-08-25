@@ -42,10 +42,8 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isAdmin = session?.user?.role === "administrator";
-  const isParent = session?.user?.role === "parent";
-  const isStudent = session?.user?.role === "student";
-  const parentPortalHref = isParent || isAdmin ? "/parent" : "/membership";
-  const studentPortalHref = isStudent || isAdmin ? "/student" : "/membership";
+  const parentPortalHref = isAdmin ? "/parent" : "/membership";
+  const studentPortalHref = isAdmin ? "/student" : "/membership";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -256,7 +254,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
               </Link>
             ))}
             <Link
-              href={session ? studentPortalHref : "/membership"}
+              href={studentPortalHref}
               className={cn(
                 "block py-3 text-base font-medium border-b border-explore-charcoal/5",
                 pathname.startsWith("/student") || pathname === "/membership"
@@ -267,7 +265,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
               Student Portal
             </Link>
             <Link
-              href={session ? parentPortalHref : "/membership"}
+              href={parentPortalHref}
               className={cn(
                 "block py-3 text-base font-medium border-b border-explore-charcoal/5",
                 pathname.startsWith("/parent") || pathname === "/membership"

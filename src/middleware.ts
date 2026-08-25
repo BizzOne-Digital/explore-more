@@ -66,7 +66,7 @@ export async function middleware(request: NextRequest) {
     if (pathname === "/student/signup" || pathname === "/student/login") {
       // If already logged in as student, redirect to student portal
       if (session?.user?.role === "student") {
-        return NextResponse.redirect(new URL("/student", request.url));
+        return NextResponse.redirect(new URL("/membership", request.url));
       }
       return withPathname(request, pathname);
     }
@@ -104,7 +104,7 @@ export async function middleware(request: NextRequest) {
     if (pathname === "/parent/signup" || pathname === "/parent/login") {
       // If already logged in as parent, redirect to parent portal
       if (session?.user?.role === "parent") {
-        return NextResponse.redirect(new URL("/parent", request.url));
+        return NextResponse.redirect(new URL("/membership", request.url));
       }
       return withPathname(request, pathname);
     }

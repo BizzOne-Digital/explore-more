@@ -17,13 +17,19 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   const pathname = (await headers()).get("x-pathname") ?? "/student";
   const isAdmin = session.user.role === "administrator";
-  const access = isAdmin
-    ? {
-        hasActiveMembership: true,
-        hasFeature: () => true,
-        features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
-      }
-    : await getStudentMembershipAccess(session.user.id);
+  let access: Awaited<ReturnType<typeof getStudentMembershipAccess>>;
+  try {
+    access = isAdmin
+      ? {
+          hasActiveMembership: true,
+          hasFeature: () => true,
+          features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
+        }
+      : await getStudentMembershipAccess(session.user.id);
+  } catch (error) {
+    console.error("Student membership access check failed:", error);
+    redirect("/membership?reason=student-portal");
+  }
 
   if (!isAdmin && !access.hasActiveMembership) {
     redirect("/membership?reason=student-portal");

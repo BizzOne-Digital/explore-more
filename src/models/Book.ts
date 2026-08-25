@@ -25,7 +25,7 @@ export interface IBook extends Document {
   metaDescription?: string;
   digitalFile?: {
     enabled: boolean;
-    storage?: "r2" | "local";
+    storage?: "r2" | "local" | "mongo";
     r2Key?: string;
     localPath?: string;
     fileName: string;
@@ -71,7 +71,7 @@ const BookSchema = new Schema<IBook>(
     metaDescription: String,
     digitalFile: {
       enabled: { type: Boolean, default: false },
-      storage: { type: String, enum: ["r2", "local"] },
+      storage: { type: String, enum: ["r2", "local", "mongo"] },
       r2Key: String,
       localPath: String,
       fileName: String,

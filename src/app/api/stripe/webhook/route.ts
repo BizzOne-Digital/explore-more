@@ -14,6 +14,14 @@ import {
   activateMembershipForUser,
   savePendingMembership,
 } from "@/lib/billing/membership-activation";
+import {
+  expiredCheckoutReason,
+  asyncPaymentFailedReason,
+  handleCheckoutPaymentFailure,
+  handleInvoicePaymentFailed,
+  paymentIntentFailedReason,
+  resolveCheckoutSessionFromPaymentIntent,
+} from "@/lib/billing/payment-failure";
 import { sendBookOrderEmails } from "@/lib/email/order-notifications";
 import { sendEventRegistrationEmails } from "@/lib/email/event-notifications";
 import { sendCourseEnrollmentEmails } from "@/lib/email/course-notifications";
@@ -372,6 +380,29 @@ export async function POST(request: Request) {
     if (session.payment_status === "paid" || session.mode === "subscription") {
       await handleCheckoutCompleted(session);
     }
+  }
+
+  if (event.type === "checkout.session.expired") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    await handleCheckoutPaymentFailure(session, expiredCheckoutReason());
+  }
+
+  if (event.type === "checkout.session.async_payment_failed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    await handleCheckoutPaymentFailure(session, asyncPaymentFailedReason());
+  }
+
+  if (event.type === "payment_intent.payment_failed") {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    const session = await resolveCheckoutSessionFromPaymentIntent(paymentIntent);
+    if (session) {
+      await handleCheckoutPaymentFailure(session, paymentIntentFailedReason(paymentIntent));
+    }
+  }
+
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object as Stripe.Invoice;
+    await handleInvoicePaymentFailed(invoice);
   }
 
   return new Response(JSON.stringify({ received: true }), {

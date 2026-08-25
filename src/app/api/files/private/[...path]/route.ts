@@ -64,6 +64,10 @@ async function authorizeFileAccess(
     return canAccessStudentData(user, submission.studentId.toString());
   }
 
+  if (folder === "books") {
+    return user.role === "administrator";
+  }
+
   if (folder === "documents") {
     return user.role === "student" || user.role === "parent";
   }

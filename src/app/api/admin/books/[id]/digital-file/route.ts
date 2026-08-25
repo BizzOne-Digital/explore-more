@@ -3,7 +3,7 @@ import { Book } from "@/models";
 import { requireRole } from "@/lib/api/auth-helpers";
 import { jsonError } from "@/lib/api/response";
 import { getR2DownloadUrl } from "@/lib/services/r2-storage";
-import { readLocalBookFile } from "@/lib/services/book-digital-storage";
+import { readBookDigitalFile } from "@/lib/services/book-digital-storage";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -19,13 +19,16 @@ export async function GET(_request: Request, { params }: RouteParams) {
     return jsonError("Digital file not found", 404);
   }
 
-  if (book.digitalFile.storage === "local" && book.digitalFile.localPath) {
+  if (
+    (book.digitalFile.storage === "local" || book.digitalFile.storage === "mongo") &&
+    book.digitalFile.localPath
+  ) {
     try {
-      const buffer = await readLocalBookFile(book.digitalFile.localPath);
+      const { buffer, mimeType } = await readBookDigitalFile(book.digitalFile);
       const filename = book.digitalFile.fileName || "book.pdf";
       return new Response(new Uint8Array(buffer), {
         headers: {
-          "Content-Type": "application/pdf",
+          "Content-Type": mimeType,
           "Content-Disposition": `inline; filename="${filename.replace(/"/g, "")}"`,
           "Cache-Control": "private, max-age=3600",
         },

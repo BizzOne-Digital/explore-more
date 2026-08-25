@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
       message:
         uploaded.storage === "r2"
           ? "Digital file uploaded to cloud storage"
-          : "Digital file uploaded locally",
+          : uploaded.storage === "mongo"
+            ? "Digital file saved to database storage"
+            : "Digital file uploaded locally",
       digitalFile: book.digitalFile,
     });
   } catch (error) {

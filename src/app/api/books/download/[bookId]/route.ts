@@ -59,14 +59,17 @@ export async function GET(
     }
 
     // Generate signed download URL or serve local file
-    if (book.digitalFile.storage === "local" && book.digitalFile.localPath) {
-      const { readLocalBookFile } = await import("@/lib/services/book-digital-storage");
-      const buffer = await readLocalBookFile(book.digitalFile.localPath);
+    if (
+      (book.digitalFile.storage === "local" || book.digitalFile.storage === "mongo") &&
+      book.digitalFile.localPath
+    ) {
+      const { readBookDigitalFile } = await import("@/lib/services/book-digital-storage");
+      const { buffer, mimeType } = await readBookDigitalFile(book.digitalFile);
       const filename = book.digitalFile.fileName || "book.pdf";
 
       return new Response(new Uint8Array(buffer), {
         headers: {
-          "Content-Type": "application/pdf",
+          "Content-Type": mimeType,
           "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
           "Cache-Control": "private, no-store",
         },

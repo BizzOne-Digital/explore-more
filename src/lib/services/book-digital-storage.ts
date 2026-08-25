@@ -1,10 +1,17 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import connectDB from "@/lib/db";
+import { StoredUpload } from "@/models";
 import { uploadToR2 } from "@/lib/services/r2-storage";
+import { readPrivateStoredFile } from "@/lib/services/private-stored-upload";
 
 const LOCAL_BOOKS_DIR = path.join(process.cwd(), "storage", "private", "books");
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+/** MongoDB documents are capped at 16 MB — keep a safe margin for metadata. */
+const MAX_MONGO_BOOK_SIZE = 15 * 1024 * 1024;
+
+export type BookDigitalStorage = "r2" | "local" | "mongo";
 
 export function isR2Configured(): boolean {
   return Boolean(
@@ -14,6 +21,14 @@ export function isR2Configured(): boolean {
       !process.env.R2_ACCESS_KEY_ID.includes("your_") &&
       !process.env.R2_ACCOUNT_ID?.includes("your_")
   );
+}
+
+function isServerlessEnvironment(): boolean {
+  return process.env.VERCEL === "1" || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
+}
+
+function canUseLocalFilesystem(): boolean {
+  return !isServerlessEnvironment() && process.env.NODE_ENV !== "production";
 }
 
 /** Sanitize original filename while preserving extension. */
@@ -49,11 +64,59 @@ export function detectBookFileType(file: File): string {
   return "pdf";
 }
 
+function bookMimeType(file: File, fileType: string): string {
+  if (file.type) return file.type;
+  if (fileType === "epub") return "application/epub+zip";
+  if (fileType === "mobi") return "application/x-mobipocket-ebook";
+  if (fileType === "zip") return "application/zip";
+  return "application/pdf";
+}
+
+async function uploadBookToMongo(
+  file: File,
+  bookId: string,
+  sanitizedName: string,
+  fileType: string
+): Promise<{
+  storage: "mongo";
+  localPath: string;
+  fileName: string;
+  fileSizeBytes: number;
+  fileType: string;
+}> {
+  if (file.size > MAX_MONGO_BOOK_SIZE) {
+    throw new Error(
+      "This file is too large for serverless storage (max 15 MB). Configure Cloudflare R2 in Vercel env vars for larger PDFs, or compress the file."
+    );
+  }
+
+  const storedName = `${bookId}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${sanitizedName}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const mimeType = bookMimeType(file, fileType);
+
+  await connectDB();
+  await StoredUpload.create({
+    folder: "books",
+    filename: storedName,
+    mimeType,
+    size: file.size,
+    data: buffer,
+  });
+
+  return {
+    storage: "mongo",
+    localPath: `books/${storedName}`,
+    fileName: file.name,
+    fileSizeBytes: buffer.length,
+    fileType,
+  };
+}
+
 export async function uploadBookDigitalFile(
   file: File,
   bookId: string
 ): Promise<{
-  storage: "r2" | "local";
+  storage: BookDigitalStorage;
   r2Key?: string;
   localPath?: string;
   fileName: string;
@@ -81,6 +144,10 @@ export async function uploadBookDigitalFile(
       fileSizeBytes: result.size,
       fileType,
     };
+  }
+
+  if (isServerlessEnvironment() || !canUseLocalFilesystem()) {
+    return uploadBookToMongo(file, bookId, sanitizedName, fileType);
   }
 
   await fs.mkdir(LOCAL_BOOKS_DIR, { recursive: true });
@@ -114,4 +181,24 @@ export function getLocalBookAbsolutePath(relativePath: string): string {
 
 export async function readLocalBookFile(relativePath: string): Promise<Buffer> {
   return fs.readFile(getLocalBookAbsolutePath(relativePath));
+}
+
+export async function readBookDigitalFile(digitalFile: {
+  storage?: BookDigitalStorage;
+  localPath?: string;
+}): Promise<{ buffer: Buffer; mimeType: string }> {
+  if (digitalFile.storage === "mongo" && digitalFile.localPath) {
+    const stored = await readPrivateStoredFile(digitalFile.localPath);
+    if (!stored) {
+      throw new Error("Digital file not found in database");
+    }
+    return { buffer: stored.buffer, mimeType: stored.mimeType };
+  }
+
+  if (digitalFile.storage === "local" && digitalFile.localPath) {
+    const buffer = await readLocalBookFile(digitalFile.localPath);
+    return { buffer, mimeType: "application/pdf" };
+  }
+
+  throw new Error("Digital file path missing");
 }

@@ -9,7 +9,8 @@ export async function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isAdmin = pathname.startsWith("/admin");
   const isParentPortal = pathname.startsWith("/parent");
-  const hidePublicChrome = isAdmin || isParentPortal;
+  const isStudentPortal = pathname.startsWith("/student");
+  const hidePublicChrome = isAdmin || isParentPortal || isStudentPortal;
   const navigation = hidePublicChrome ? null : await getSiteNavigation();
 
   if (hidePublicChrome) {

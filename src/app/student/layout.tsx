@@ -13,30 +13,37 @@ export const dynamic = "force-dynamic";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (!session?.user) redirect("/student/login?callbackUrl=/student");
+  if (!session?.user) redirect("/membership?reason=student-portal");
+
+  const isAdmin = session.user.role === "administrator";
+
+  if (!isAdmin) {
+    if (session.user.role !== "student") {
+      redirect("/membership?reason=student-portal");
+    }
+
+    try {
+      const gateAccess = await getStudentMembershipAccess(session.user.id);
+      if (!gateAccess.hasActiveMembership) {
+        redirect("/membership?reason=student-portal");
+      }
+    } catch (error) {
+      console.error("Student membership access check failed:", error);
+      redirect("/membership?reason=student-portal");
+    }
+  }
 
   const pathname = (await headers()).get("x-pathname") ?? "/student";
-  const isAdmin = session.user.role === "administrator";
-  let access: Awaited<ReturnType<typeof getStudentMembershipAccess>>;
-  try {
-    access = isAdmin
-      ? {
-          hasActiveMembership: true,
-          tierId: "legacy" as const,
-          planName: "Administrator",
-          planSlug: null,
-          features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
-          hasFeature: () => true,
-        }
-      : await getStudentMembershipAccess(session.user.id);
-  } catch (error) {
-    console.error("Student membership access check failed:", error);
-    redirect("/membership?reason=student-portal");
-  }
-
-  if (!isAdmin && !access.hasActiveMembership) {
-    redirect("/membership?reason=student-portal");
-  }
+  const access = isAdmin
+    ? {
+        hasActiveMembership: true,
+        tierId: "legacy" as const,
+        planName: "Administrator",
+        planSlug: null,
+        features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
+        hasFeature: () => true,
+      }
+    : await getStudentMembershipAccess(session.user.id);
 
   if (!isAdmin && access.hasActiveMembership) {
     const required = getRequiredFeatureForStudentPath(pathname);
@@ -48,8 +55,8 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const navItems = isAdmin ? STUDENT_NAV_ITEMS : filterStudentNavForMembership(access.features);
 
   return (
-    <div className="min-h-screen w-full overflow-x-clip bg-explore-cream">
-      <div className="border-b border-explore-charcoal/10 bg-explore-white">
+    <div className="fixed inset-0 z-[100] flex h-dvh flex-col overflow-hidden bg-explore-cream">
+      <header className="shrink-0 border-b border-explore-charcoal/10 bg-white">
         <div className="mx-auto flex w-full min-w-0 max-w-7xl items-center justify-between px-3 py-4 sm:px-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-explore-teal">
@@ -73,10 +80,10 @@ export default async function StudentLayout({ children }: { children: React.Reac
             </button>
           </form>
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-3 py-8 sm:px-6 lg:flex-row">
-        <nav className="lg:w-56 shrink-0">
+      <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-7xl flex-1 flex-col gap-6 overflow-hidden px-3 py-6 sm:px-6 lg:flex-row">
+        <nav className="shrink-0 lg:w-56">
           <ul className="flex flex-wrap gap-2 lg:flex-col">
             {navItems.map((item) => (
               <li key={item.href}>
@@ -90,7 +97,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
             ))}
           </ul>
         </nav>
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import connectDB from "@/lib/db";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Conversation } from "@/models";
@@ -9,6 +9,7 @@ import { ensureGuardianId } from "@/lib/parent/guardian-id";
 import { getParentMembershipAccess } from "@/lib/membership/access";
 import { filterParentNavForMembership } from "@/lib/membership/nav-filter";
 import { getRequiredFeatureForParentPath } from "@/lib/membership/route-features";
+import { parentSignOut } from "@/app/parent/(portal)/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -43,27 +44,37 @@ export default async function ParentPortalLayout({ children }: { children: React
   const session = await auth();
   if (!session?.user) redirect("/parent/login?callbackUrl=/parent");
 
-  const pathname = (await headers()).get("x-pathname") ?? "/parent";
   const isAdmin = session.user.role === "administrator";
-  let access: Awaited<ReturnType<typeof getParentMembershipAccess>>;
-  try {
-    access = isAdmin
-      ? {
-          hasActiveMembership: true,
-          tierId: "legacy" as const,
-          planName: "Administrator",
-          planSlug: null,
-          features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
-          hasFeature: () => true,
-        }
-      : await getParentMembershipAccess(session.user.id);
-  } catch (error) {
-    console.error("Parent membership access check failed:", error);
-    redirect("/membership?reason=subscription-required");
+
+  if (!isAdmin) {
+    if (session.user.role !== "parent") {
+      redirect("/membership?reason=subscription-required");
+    }
+
+    try {
+      const access = await getParentMembershipAccess(session.user.id);
+      if (!access.hasActiveMembership) {
+        redirect("/membership?reason=subscription-required");
+      }
+    } catch (error) {
+      console.error("Parent membership access check failed:", error);
+      redirect("/membership?reason=subscription-required");
+    }
   }
 
-  if (!isAdmin && !access.hasActiveMembership) {
-    redirect("/membership?reason=subscription-required");
+  const pathname = (await headers()).get("x-pathname") ?? "/parent";
+  let access: Awaited<ReturnType<typeof getParentMembershipAccess>>;
+  if (isAdmin) {
+    access = {
+      hasActiveMembership: true,
+      tierId: "legacy" as const,
+      planName: "Administrator",
+      planSlug: null,
+      features: [] as import("@/lib/membership/entitlements").MembershipFeature[],
+      hasFeature: () => true,
+    };
+  } else {
+    access = await getParentMembershipAccess(session.user.id);
   }
 
   if (!isAdmin && access.hasActiveMembership) {
@@ -81,21 +92,24 @@ export default async function ParentPortalLayout({ children }: { children: React
     ? (await import("@/lib/parent/nav")).parentNavGroups
     : filterParentNavForMembership(access.features);
 
-  const guardianId = await ensureGuardianId(session.user.id);
-  const counts = await getParentCounts(session.user.id);
+  let guardianId: string | undefined;
+  let counts = { messages: 0, notifications: 0 };
+  try {
+    guardianId = (await ensureGuardianId(session.user.id)) ?? undefined;
+    counts = await getParentCounts(session.user.id);
+  } catch (error) {
+    console.error("Parent portal shell data failed:", error);
+  }
   const firstName = (session.user.name ?? "Parent").split(" ")[0];
 
   return (
     <ParentShell
       firstName={firstName}
-      guardianId={guardianId ?? undefined}
+      guardianId={guardianId}
       unreadMessages={counts.messages}
       unreadNotifications={counts.notifications}
       navGroups={navGroups}
-      signOutAction={async () => {
-        "use server";
-        await signOut({ redirectTo: "/" });
-      }}
+      signOutAction={parentSignOut}
     >
       {children}
     </ParentShell>

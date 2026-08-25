@@ -62,16 +62,14 @@ export async function middleware(request: NextRequest) {
 
   // Student portal
   if (pathname.startsWith("/student")) {
-    // Allow public access to signup and login pages
     if (pathname === "/student/signup" || pathname === "/student/login") {
-      // If already logged in as student, redirect to student portal
       if (session?.user?.role === "student") {
         return NextResponse.redirect(new URL("/membership", request.url));
       }
       return withPathname(request, pathname);
     }
     if (!session || !["student", "administrator"].includes(session.user.role)) {
-      return NextResponse.redirect(new URL("/student/login?callbackUrl=" + encodeURIComponent(pathname), request.url));
+      return NextResponse.redirect(new URL("/membership?reason=student-portal", request.url));
     }
     return withPathname(request, pathname);
   }
@@ -100,16 +98,14 @@ export async function middleware(request: NextRequest) {
 
   // Parent portal
   if (pathname.startsWith("/parent")) {
-    // Allow public access to signup and login pages
     if (pathname === "/parent/signup" || pathname === "/parent/login") {
-      // If already logged in as parent, redirect to parent portal
       if (session?.user?.role === "parent") {
         return NextResponse.redirect(new URL("/membership", request.url));
       }
       return withPathname(request, pathname);
     }
     if (!session || !["parent", "administrator"].includes(session.user.role)) {
-      return NextResponse.redirect(new URL("/parent/login?callbackUrl=" + encodeURIComponent(pathname), request.url));
+      return NextResponse.redirect(new URL("/membership?reason=subscription-required", request.url));
     }
     return withPathname(request, pathname);
   }

@@ -31,12 +31,16 @@ export function MembershipSuccessClient() {
   }, [sessionId]);
 
   const signupHref = email
-    ? `/parent/signup?email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent("/parent/billing")}`
-    : `/parent/signup?callbackUrl=${encodeURIComponent("/parent/billing")}`;
+    ? `/parent/signup?email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent("/parent")}`
+    : `/parent/signup?callbackUrl=${encodeURIComponent("/parent")}`;
+
+  const studentSignupHref = email
+    ? `/student/signup?parentEmail=${encodeURIComponent(email)}`
+    : "/student/signup";
 
   const loginHref = email
-    ? `/parent/login?email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent("/parent/billing")}`
-    : `/parent/login?callbackUrl=${encodeURIComponent("/parent/billing")}`;
+    ? `/parent/login?email=${encodeURIComponent(email)}&callbackUrl=${encodeURIComponent("/parent")}`
+    : `/parent/login?callbackUrl=${encodeURIComponent("/parent")}`;
 
   return (
     <section className="flex min-h-[70vh] w-full items-center justify-center overflow-x-clip bg-explore-cream pt-28 pb-16">
@@ -66,15 +70,21 @@ export function MembershipSuccessClient() {
               <Button href={signupHref} size="lg">
                 Create Parent Account
               </Button>
-              <Button href={loginHref} variant="outline" size="lg">
-                I Already Have an Account
+              <Button href={studentSignupHref} variant="outline" size="lg">
+                Create Student Account
+              </Button>
+            </div>
+            <div className="mt-3">
+              <Button href={loginHref} variant="ghost" size="lg" className="w-full">
+                I Already Have a Parent Account
               </Button>
             </div>
             <p className="mt-6 text-xs text-explore-charcoal/50">
-              Already signed in?{" "}
-              <Link href="/parent/billing" className="text-explore-teal hover:underline">
-                Go to Billing & Subscription
+              After creating your parent account, you can open the{" "}
+              <Link href="/parent" className="text-explore-teal hover:underline">
+                Parent Portal
               </Link>
+              .
             </p>
           </div>
         )}

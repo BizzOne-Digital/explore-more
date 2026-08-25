@@ -26,6 +26,7 @@ import { sendBookOrderEmails } from "@/lib/email/order-notifications";
 import { sendEventRegistrationEmails } from "@/lib/email/event-notifications";
 import { sendCourseEnrollmentEmails } from "@/lib/email/course-notifications";
 import { sendDonationEmails } from "@/lib/email/donation-notifications";
+import { upsertSponsorFromDonation } from "@/lib/sponsors/sync";
 import { getCampaignGoalCents, getCampaignRaisedCents } from "@/lib/pricing";
 
 export const runtime = "nodejs";
@@ -322,6 +323,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       await DonationCampaign.findByIdAndUpdate(donation.campaignId, {
         $inc: { raisedAmount: donation.amountCents / 100 },
       });
+
+      try {
+        await upsertSponsorFromDonation({
+          donorEmail: donation.donorEmail,
+          donorName: donation.donorName,
+          amountCents: donation.amountCents,
+          isAnonymous: donation.isAnonymous,
+          userId: donation.userId?.toString(),
+          donatedAt: donation.createdAt,
+        });
+      } catch (err) {
+        console.error("Sponsor CRM sync failed:", err);
+      }
 
       const campaign = donation.campaignId as {
         title?: string;

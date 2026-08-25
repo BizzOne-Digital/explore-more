@@ -11,6 +11,7 @@ import {
   Compass,
   Inbox,
   Heart,
+  HeartHandshake,
   DollarSign,
   Users,
   ClipboardCheck,
@@ -77,8 +78,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     ],
   },
   {
-    title: "Donations",
+    title: "Sponsorship",
     items: [
+      { label: "Sponsor CRM", href: "/admin/sponsors", icon: HeartHandshake },
       { label: "Campaigns", href: "/admin/campaigns", icon: Heart },
       { label: "Donations", href: "/admin/donations", icon: DollarSign },
     ],

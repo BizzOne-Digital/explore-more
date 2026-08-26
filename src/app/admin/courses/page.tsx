@@ -1,7 +1,7 @@
 import connectDB from "@/lib/db";
 import { Course } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { DataTable } from "@/components/admin/DataTable";
+import { DeletableDataTable } from "@/components/admin/DeletableDataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { GradeHub } from "@/components/admin/GradeHub";
 import { GradeBreadcrumb } from "@/components/admin/GradeBreadcrumb";
@@ -47,7 +47,7 @@ export default async function Page({
           href: `/admin/courses/new?grade=${encodeURIComponent(grade)}`,
         }}
       />
-      <DataTable
+      <DeletableDataTable
         columns={[
           { key: "title", header: "Title" },
           { key: "instructor", header: "Instructor" },
@@ -78,8 +78,10 @@ export default async function Page({
             render: (row) => <StatusBadge status={String(row.enrollmentStatus)} />,
           },
         ]}
-        data={data}
+        data={data as unknown as { _id: string; title?: string; courseType?: string; priceAmount?: number; status?: string; publishedToWebsite?: boolean; enrollmentStatus?: string }[]}
         rowHref={(row) => "/admin/courses/" + String(row._id)}
+        deleteUrl={(row) => `/api/admin/courses/${row._id}`}
+        itemLabel={(row) => String(row.title ?? "this course")}
         emptyMessage="No courses found for this grade."
       />
     </div>

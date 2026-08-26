@@ -3,7 +3,7 @@ import Image from "next/image";
 import connectDB from "@/lib/db";
 import { Book } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { DataTable } from "@/components/admin/DataTable";
+import { DeletableDataTable } from "@/components/admin/DeletableDataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { serialize } from "@/lib/admin/serialize";
 
@@ -23,7 +23,7 @@ export default async function Page() {
         description="Manage bookstore inventory"
         action={{ label: "New Book", href: "/admin/books/new" }}
       />
-      <DataTable
+      <DeletableDataTable
         columns={[
           {
             key: "coverImage",
@@ -49,22 +49,23 @@ export default async function Page() {
             header: "Status",
             render: (row) => <StatusBadge status={String(row.status)} />,
           },
-          { 
-            key: "publishedToWebsite", 
-            header: "Website", 
-            render: (row) => (
+          {
+            key: "publishedToWebsite",
+            header: "Website",
+            render: (row) =>
               row.publishedToWebsite ? (
                 <span className="text-xs text-green-400">✓ Published</span>
               ) : (
                 <span className="text-xs text-white/40">Not published</span>
-              )
-            )
+              ),
           },
           { key: "stockStatus", header: "Stock", render: (row) => <StatusBadge status={String(row.stockStatus)} /> },
           { key: "inventory", header: "Qty" },
         ]}
-        data={data}
+        data={data as unknown as { _id: string; title?: string; coverImage?: string; author?: string; priceAmount?: number; status?: string; publishedToWebsite?: boolean; stockStatus?: string; inventory?: number }[]}
         rowHref={(row) => "/admin/books/" + String(row._id)}
+        deleteUrl={(row) => `/api/admin/books/${row._id}`}
+        itemLabel={(row) => String(row.title ?? "this book")}
         emptyMessage="No records found."
       />
     </div>

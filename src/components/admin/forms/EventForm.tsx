@@ -162,7 +162,7 @@ export function EventForm({
 
   async function handleDelete() {
     if (!initialData?._id) return;
-    if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
+    if (!confirm("Are you sure you want to delete this event? This permanently removes it from admin and the public website. This cannot be undone.")) return;
     
     try {
       const res = await fetch(`/api/admin/events/${initialData._id}`, { method: "DELETE" });

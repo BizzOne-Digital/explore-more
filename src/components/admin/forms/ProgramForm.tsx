@@ -5,13 +5,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   FormField,
   TextInput,
   TextArea,
   SelectInput,
   CheckboxInput,
-  FormActions,
   FormSection,
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -98,6 +98,35 @@ export function ProgramForm({
     router.refresh();
   }
 
+  async function handleDelete() {
+    if (!initialData?._id) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete this program?\n\nThis permanently removes it from admin and the public website (Programs page and Sponsor a Kid). This cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/programs/${initialData._id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error ?? "Delete failed");
+        return;
+      }
+      const grade = initialData.grade as string | undefined;
+      router.push(
+        grade && grade !== ALL_GRADES_VALUE
+          ? `/admin/programs?grade=${encodeURIComponent(grade)}`
+          : "/admin/programs"
+      );
+      router.refresh();
+    } catch {
+      setError("Delete failed");
+    }
+  }
+
   return (
     <div>
       <PageHeader title={isNew ? "New Program" : "Edit Program"} />
@@ -172,7 +201,30 @@ export function ProgramForm({
             />
           </FormField>
         </FormSection>
-        <FormActions isSubmitting={isSubmitting} cancelHref="/admin/programs" />
+        <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-6">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-lg bg-explore-lime px-5 py-2 text-sm font-semibold text-explore-black transition hover:bg-explore-lime/90 disabled:opacity-50"
+          >
+            {isSubmitting ? "Saving…" : "Save"}
+          </button>
+          {!isNew && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="rounded-lg border border-red-500/30 px-5 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+            >
+              Delete
+            </button>
+          )}
+          <Link
+            href="/admin/programs"
+            className="rounded-lg border border-white/10 px-5 py-2 text-sm font-medium text-white/60 transition hover:text-white"
+          >
+            Cancel
+          </Link>
+        </div>
       </form>
     </div>
   );

@@ -27,7 +27,7 @@ export function EventsTable({ data }: { data: EventRow[] }) {
     e.stopPropagation();
 
     const title = String(row.title ?? "this event");
-    if (!confirm(`Delete "${title}"?\n\nThis permanently removes the event. This cannot be undone.`)) {
+    if (!confirm(`Delete "${title}"?\n\nThis permanently removes the event from admin and the public website. This cannot be undone.`)) {
       return;
     }
 

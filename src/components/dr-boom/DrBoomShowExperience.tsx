@@ -51,10 +51,12 @@ export function DrBoomShowExperience() {
             alt=""
             fill
             priority
-            className="object-cover object-center opacity-80"
+            quality={100}
+            unoptimized
+            className="object-cover object-center opacity-60"
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-explore-black/35 via-explore-black/15 to-explore-black/75" />
+          <div className="absolute inset-0 bg-gradient-to-b from-explore-black/60 via-explore-black/35 to-explore-black/90" />
         </div>
 
         <div className="relative mx-auto flex min-h-[calc(90vh-7rem)] w-full max-w-7xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 md:min-h-[calc(90vh-8rem)]">

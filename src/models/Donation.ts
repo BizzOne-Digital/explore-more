@@ -62,7 +62,8 @@ export const DonationCampaign: Model<IDonationCampaign> =
   mongoose.model<IDonationCampaign>("DonationCampaign", DonationCampaignSchema);
 
 export interface IDonation extends Document {
-  campaignId: mongoose.Types.ObjectId;
+  campaignId?: mongoose.Types.ObjectId;
+  programId?: mongoose.Types.ObjectId;
   userId?: mongoose.Types.ObjectId;
   amountCents: number;
   donorName: string;
@@ -79,7 +80,8 @@ export interface IDonation extends Document {
 
 const DonationSchema = new Schema<IDonation>(
   {
-    campaignId: { type: Schema.Types.ObjectId, ref: "DonationCampaign", required: true },
+    campaignId: { type: Schema.Types.ObjectId, ref: "DonationCampaign" },
+    programId: { type: Schema.Types.ObjectId, ref: "Program" },
     userId: { type: Schema.Types.ObjectId, ref: "User" },
     amountCents: { type: Number, required: true },
     donorName: { type: String, required: true },

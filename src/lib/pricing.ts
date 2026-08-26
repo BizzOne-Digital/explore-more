@@ -6,8 +6,20 @@ export function priceAmountToCents(amount: number): number {
   return dollarsToCents(amount);
 }
 
+/** Sale price only applies when set, positive, and lower than regular price. */
+export function getEffectiveBookSaleAmount(book: PricedItem): number | undefined {
+  const regular = Number(book.priceAmount ?? 0);
+  const sale =
+    book.salePriceAmount != null ? Number(book.salePriceAmount) : undefined;
+  if (sale == null || !Number.isFinite(sale) || sale <= 0 || sale >= regular) {
+    return undefined;
+  }
+  return sale;
+}
+
 export function getBookPriceCents(book: PricedItem): number {
-  const amount = book.salePriceAmount ?? book.priceAmount;
+  const sale = getEffectiveBookSaleAmount(book);
+  const amount = sale ?? Number(book.priceAmount ?? 0);
   return dollarsToCents(amount);
 }
 

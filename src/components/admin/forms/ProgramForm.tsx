@@ -29,6 +29,8 @@ const schema = z.object({
   schedule: z.string().optional(),
   listingOrder: z.coerce.number(),
   featured: z.boolean(),
+  sponsorshipEnabled: z.boolean(),
+  sponsorshipAmount: z.coerce.number().min(0),
   status: z.enum(["draft", "published", "archived"]),
 });
 
@@ -64,6 +66,8 @@ export function ProgramForm({
       schedule: (initialData?.schedule as string) ?? "",
       listingOrder: (initialData?.listingOrder as number) ?? 0,
       featured: (initialData?.featured as boolean) ?? false,
+      sponsorshipEnabled: (initialData?.sponsorshipEnabled as boolean) ?? false,
+      sponsorshipAmount: (initialData?.sponsorshipAmount as number) ?? 0,
       status: (initialData?.status as FormData["status"]) ?? "draft",
     },
   });
@@ -150,6 +154,23 @@ export function ProgramForm({
           <div className="sm:col-span-2">
             <CheckboxInput registration={register("featured")} label="Featured" />
           </div>
+        </FormSection>
+        <FormSection title="Sponsorship">
+          <div className="sm:col-span-2">
+            <CheckboxInput
+              registration={register("sponsorshipEnabled")}
+              label="Available on Sponsor a Kid page"
+            />
+          </div>
+          <FormField label="Suggested sponsorship ($)" error={errors.sponsorshipAmount}>
+            <TextInput
+              registration={register("sponsorshipAmount")}
+              type="number"
+              min={0}
+              step="0.01"
+              error={errors.sponsorshipAmount}
+            />
+          </FormField>
         </FormSection>
         <FormActions isSubmitting={isSubmitting} cancelHref="/admin/programs" />
       </form>

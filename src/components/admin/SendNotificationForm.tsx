@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Send, Loader } from "lucide-react";
+import { FileUpload } from "@/components/admin/FileUpload";
 import { containsLocalFilesystemPath } from "@/lib/notifications/display";
 
 export function SendNotificationForm() {
@@ -11,7 +12,6 @@ export function SendNotificationForm() {
   const [priority, setPriority] = useState("normal");
   const [attachmentPath, setAttachmentPath] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -48,32 +48,6 @@ export function SendNotificationForm() {
       cancelled = true;
     };
   }, [audience]);
-
-  async function handleAttachment(file: File | null) {
-    if (!file) {
-      setAttachmentPath("");
-      setAttachmentName("");
-      return;
-    }
-    setUploading(true);
-    setError("");
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/admin/email-campaigns/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Upload failed");
-      setAttachmentPath(data.data.url);
-      setAttachmentName(data.data.originalName || file.name);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload attachment");
-    } finally {
-      setUploading(false);
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -198,28 +172,28 @@ export function SendNotificationForm() {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-white/70 mb-2">
-          Attachment (optional — PDF, images, documents)
-        </label>
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
-          disabled={uploading}
-          onChange={(e) => void handleAttachment(e.target.files?.[0] ?? null)}
-          className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-sm text-white file:mr-3 file:rounded file:border-0 file:bg-explore-teal file:px-3 file:py-1 file:text-white"
-        />
-        {uploading && <p className="mt-1 text-xs text-white/50">Uploading…</p>}
-        {attachmentName && (
-          <p className="mt-1 text-xs text-green-300">Attached: {attachmentName}</p>
-        )}
-        {containsLocalFilesystemPath(message) && !attachmentPath && (
-          <p className="mt-2 text-xs text-amber-200">
-            Your message looks like a local file path. Upload the file using the field above so
-            parents can open it.
-          </p>
-        )}
-      </div>
+      <FileUpload
+        label="Attachment (optional — PDF, images, documents)"
+        value={attachmentPath}
+        fileName={attachmentName}
+        onChange={(url, name) => {
+          setAttachmentPath(url);
+          setAttachmentName(name);
+        }}
+        onRemove={() => {
+          setAttachmentPath("");
+          setAttachmentName("");
+        }}
+        mode="file"
+        maxSize={50}
+        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
+      />
+      {containsLocalFilesystemPath(message) && !attachmentPath && (
+        <p className="text-xs text-amber-200">
+          Your message looks like a local file path. Upload the file using the field above so
+          parents can open it.
+        </p>
+      )}
 
       <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
         {loadingRecipients ? (

@@ -278,7 +278,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       const donationId = session.metadata?.donationId;
       if (!donationId) return;
 
-      const donation = await Donation.findById(donationId).populate("campaignId");
+      const donation = await Donation.findById(donationId).populate("campaignId").populate("programId");
       if (!donation || donation.paymentStatus === "paid") return;
 
       donation.paymentStatus = "paid";
@@ -289,9 +289,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           : session.payment_intent?.id;
       await donation.save();
 
-      await DonationCampaign.findByIdAndUpdate(donation.campaignId, {
-        $inc: { raisedAmount: donation.amountCents / 100 },
-      });
+      if (donation.campaignId) {
+        await DonationCampaign.findByIdAndUpdate(donation.campaignId, {
+          $inc: { raisedAmount: donation.amountCents / 100 },
+        });
+      }
 
       try {
         await upsertSponsorFromDonation({
@@ -313,6 +315,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         raisedAmount?: number;
       } | null;
 
+      const program = donation.programId as { title?: string; slug?: string } | null;
+      const receiptTitle = campaign?.title
+        ? campaign.title
+        : program?.title
+          ? `Program: ${program.title}`
+          : "Explore More Academy";
+      const receiptSlug = campaign?.slug ?? program?.slug;
+
       if (!donation.receiptSent) {
         try {
           await sendDonationEmails({
@@ -325,8 +335,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
               message: donation.message,
             },
             campaign: {
-              title: campaign?.title ?? "Explore More Academy",
-              slug: campaign?.slug,
+              title: receiptTitle,
+              slug: receiptSlug,
               goalCents: campaign?.goalAmount != null ? getCampaignGoalCents({ goalAmount: campaign.goalAmount }) : undefined,
               raisedCents: campaign?.raisedAmount != null ? getCampaignRaisedCents({ raisedAmount: campaign.raisedAmount }) : undefined,
             },

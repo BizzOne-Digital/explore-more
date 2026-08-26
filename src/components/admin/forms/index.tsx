@@ -37,8 +37,8 @@ interface TextInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export function TextInput({ registration, error, className, ...props }: TextInputProps) {
   return (
     <input
-      {...registration}
       {...props}
+      {...registration}
       className={cn(inputClass, error && "border-red-500/50", className)}
     />
   );

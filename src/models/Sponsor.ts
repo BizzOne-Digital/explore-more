@@ -4,6 +4,15 @@ export type SponsorStatus = "lead" | "prospect" | "active" | "major" | "lapsed" 
 export type SponsorType = "individual" | "business" | "foundation" | "church" | "other";
 export type SponsorSource = "website" | "referral" | "event" | "manual" | "other";
 
+export interface ISponsorContract {
+  path: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: Date;
+  uploadedByName?: string;
+}
+
 export interface ISponsor extends Document {
   name: string;
   email: string;
@@ -14,6 +23,8 @@ export interface ISponsor extends Document {
   source: SponsorSource;
   tags: string[];
   adminNotes?: string;
+  contractNotes?: string;
+  contract?: ISponsorContract;
   nextFollowUpAt?: Date;
   totalDonatedCents: number;
   donationCount: number;
@@ -55,6 +66,15 @@ const SponsorSchema = new Schema<ISponsor>(
     },
     tags: [String],
     adminNotes: String,
+    contractNotes: String,
+    contract: {
+      path: String,
+      fileName: String,
+      mimeType: String,
+      size: Number,
+      uploadedAt: Date,
+      uploadedByName: String,
+    },
     nextFollowUpAt: Date,
     totalDonatedCents: { type: Number, default: 0 },
     donationCount: { type: Number, default: 0 },
@@ -119,3 +139,58 @@ SponsorNoteSchema.index({ followUpDate: 1, followUpCompleted: 1 });
 export const SponsorNote: Model<ISponsorNote> =
   mongoose.models.SponsorNote ??
   mongoose.model<ISponsorNote>("SponsorNote", SponsorNoteSchema);
+
+export type SponsorContributionMethod =
+  | "check"
+  | "cash"
+  | "card_phone"
+  | "ach"
+  | "online"
+  | "other";
+
+export interface ISponsorContribution extends Document {
+  sponsorId: mongoose.Types.ObjectId;
+  amountCents: number;
+  paymentMethod: SponsorContributionMethod;
+  paymentStatus: "paid" | "pending" | "refunded";
+  programId?: mongoose.Types.ObjectId;
+  programTitle?: string;
+  notes?: string;
+  recordedBy: mongoose.Types.ObjectId;
+  recordedByName: string;
+  contributionDate: Date;
+  donationId?: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const SponsorContributionSchema = new Schema<ISponsorContribution>(
+  {
+    sponsorId: { type: Schema.Types.ObjectId, ref: "Sponsor", required: true, index: true },
+    amountCents: { type: Number, required: true, min: 1 },
+    paymentMethod: {
+      type: String,
+      enum: ["check", "cash", "card_phone", "ach", "online", "other"],
+      default: "other",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["paid", "pending", "refunded"],
+      default: "paid",
+    },
+    programId: { type: Schema.Types.ObjectId, ref: "Program" },
+    programTitle: String,
+    notes: String,
+    recordedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    recordedByName: { type: String, required: true },
+    contributionDate: { type: Date, default: Date.now },
+    donationId: { type: Schema.Types.ObjectId, ref: "Donation" },
+  },
+  { timestamps: true }
+);
+
+SponsorContributionSchema.index({ sponsorId: 1, contributionDate: -1 });
+
+export const SponsorContribution: Model<ISponsorContribution> =
+  mongoose.models.SponsorContribution ??
+  mongoose.model<ISponsorContribution>("SponsorContribution", SponsorContributionSchema);

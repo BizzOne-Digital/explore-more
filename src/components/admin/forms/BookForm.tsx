@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEffect, useState } from "react";
@@ -20,6 +20,15 @@ import { ImageUpload } from "@/components/admin/ImageUpload";
 import { DigitalFileUpload } from "@/components/admin/DigitalFileUpload";
 import { safeSlug } from "@/lib/utils";
 
+const optionalUsdAmount = z.preprocess(
+  (val) => {
+    if (val === "" || val === null || val === undefined) return undefined;
+    const n = Number(val);
+    return Number.isFinite(n) ? n : undefined;
+  },
+  z.number().min(0).optional()
+);
+
 const schema = z.object({
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1),
@@ -29,7 +38,7 @@ const schema = z.object({
   shortDescription: z.string().min(1, "Short description is required"),
   fullDescription: z.string().min(1, "Full description is required"),
   priceAmount: z.coerce.number().min(0, "Price must be 0 or greater"),
-  salePriceAmount: z.coerce.number().optional(),
+  salePriceAmount: optionalUsdAmount,
   isbn: z.string().optional(),
   format: z.string().optional(),
   pageCount: z.coerce.number().optional(),
@@ -53,6 +62,7 @@ export function BookForm({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [pendingDigitalFile, setPendingDigitalFile] = useState<File | null>(null);
   const {
     register,
     handleSubmit,
@@ -60,7 +70,7 @@ export function BookForm({
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: {
       title: (initialData?.title as string) ?? "",
       slug: (initialData?.slug as string) ?? "",
@@ -70,7 +80,10 @@ export function BookForm({
       shortDescription: (initialData?.shortDescription as string) ?? "",
       fullDescription: (initialData?.fullDescription as string) ?? "",
       priceAmount: (initialData?.priceAmount as number) ?? 0,
-      salePriceAmount: initialData?.salePriceAmount as number | undefined,
+      salePriceAmount:
+        initialData?.salePriceAmount != null && Number(initialData.salePriceAmount) > 0
+          ? Number(initialData.salePriceAmount)
+          : undefined,
       isbn: (initialData?.isbn as string) ?? "",
       format: (initialData?.format as string) ?? "",
       pageCount: initialData?.pageCount as number | undefined,
@@ -91,6 +104,22 @@ export function BookForm({
     if (isNew && title) setValue("slug", safeSlug(title));
   }, [isNew, title, setValue]);
 
+  async function uploadDigitalFile(bookId: string, file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("bookId", bookId);
+
+    const response = await fetch("/api/admin/books/upload-digital", {
+      method: "POST",
+      body: formData,
+    });
+
+    const json = await response.json();
+    if (!response.ok || !json.success) {
+      throw new Error(json.error ?? "PDF upload failed");
+    }
+  }
+
   async function onSubmit(data: FormData, action: "save" | "publish" | "unpublish" = "save") {
     setError(null);
     
@@ -104,6 +133,14 @@ export function BookForm({
       finalData.publishedToWebsite = false;
     }
 
+    if (
+      finalData.salePriceAmount == null ||
+      finalData.salePriceAmount <= 0 ||
+      finalData.salePriceAmount >= finalData.priceAmount
+    ) {
+      delete finalData.salePriceAmount;
+    }
+
     const url = isNew ? "/api/admin/books" : `/api/admin/books/${initialData?._id}`;
     const res = await fetch(url, {
       method: isNew ? "POST" : "PUT",
@@ -115,7 +152,27 @@ export function BookForm({
       setError(json.error ?? "Save failed");
       return;
     }
-    router.push("/admin/books");
+
+    const savedBookId = isNew
+      ? String((json.data as { _id?: string })?._id ?? "")
+      : String(initialData?._id ?? "");
+
+    if (isNew && pendingDigitalFile && savedBookId) {
+      try {
+        await uploadDigitalFile(savedBookId, pendingDigitalFile);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? `Book saved but PDF upload failed: ${err.message}`
+            : "Book saved but PDF upload failed"
+        );
+        router.push(`/admin/books/${savedBookId}`);
+        router.refresh();
+        return;
+      }
+    }
+
+    router.push(savedBookId && isNew && pendingDigitalFile ? `/admin/books/${savedBookId}` : "/admin/books");
     router.refresh();
   }
 
@@ -197,10 +254,19 @@ export function BookForm({
         </FormSection>
 
         <FormSection title="Pricing & Inventory">
-          <FormField label="Price (USD)" error={errors.priceAmount} required>
+          <FormField
+            label="Regular Price (USD)"
+            error={errors.priceAmount}
+            required
+            hint="Original list price shown with strikethrough when on sale"
+          >
             <TextInput registration={register("priceAmount")} type="number" step="0.01" error={errors.priceAmount} placeholder="19.99" />
           </FormField>
-          <FormField label="Sale Price (USD)" error={errors.salePriceAmount}>
+          <FormField
+            label="Sale Price (USD)"
+            error={errors.salePriceAmount}
+            hint="Optional. Must be lower than regular price. Leave empty if not on sale."
+          >
             <TextInput registration={register("salePriceAmount")} type="number" step="0.01" error={errors.salePriceAmount} placeholder="14.99" />
           </FormField>
           <FormField label="Inventory" error={errors.inventory} required>
@@ -237,20 +303,25 @@ export function BookForm({
           </div>
         </FormSection>
 
-        {!isNew && initialData?._id && (
-          <FormSection title="Digital Download">
-            <div className="sm:col-span-2">
+        <FormSection title="Digital Download (PDF)">
+          <div className="sm:col-span-2">
+            {isNew ? (
               <DigitalFileUpload
-                bookId={initialData._id as string}
+                pendingFile={pendingDigitalFile}
+                onPendingFileChange={setPendingDigitalFile}
+              />
+            ) : (
+              <DigitalFileUpload
+                bookId={initialData?._id as string}
                 currentFile={
-                  initialData.digitalFile as
+                  initialData?.digitalFile as
                     | { fileName: string; fileSizeBytes: number; enabled: boolean }
                     | undefined
                 }
               />
-            </div>
-          </FormSection>
-        )}
+            )}
+          </div>
+        </FormSection>
 
         <div className="flex items-center gap-3 border-t border-white/10 pt-6">
           <button

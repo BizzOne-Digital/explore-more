@@ -1,4 +1,5 @@
 import { dollarsToCents } from "@/lib/utils";
+import { getEffectiveBookSaleAmount } from "@/lib/pricing";
 import type { PublicBook } from "@/types/public";
 
 /** Matches admin publish state and `isBookPublished()` in pricing.ts */
@@ -10,6 +11,10 @@ export function mapPublicBook(raw: Record<string, unknown>): PublicBook {
   const priceAmount = Number(raw.priceAmount ?? 0);
   const salePriceAmount =
     raw.salePriceAmount != null ? Number(raw.salePriceAmount) : undefined;
+  const effectiveSale = getEffectiveBookSaleAmount({
+    priceAmount,
+    salePriceAmount,
+  });
 
   return {
     _id: String(raw._id),
@@ -22,7 +27,7 @@ export function mapPublicBook(raw: Record<string, unknown>): PublicBook {
     coverImage: raw.coverImage as string | undefined,
     priceCents: dollarsToCents(priceAmount),
     salePriceCents:
-      salePriceAmount != null ? dollarsToCents(salePriceAmount) : undefined,
+      effectiveSale != null ? dollarsToCents(effectiveSale) : undefined,
     category: raw.category as string | undefined,
     format: raw.format as string | undefined,
     pageCount: raw.pageCount as number | undefined,

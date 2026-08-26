@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Upload, FileText, X } from "lucide-react";
 import { FormField, FormSection } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { DragDropZone } from "@/components/admin/DragDropZone";
 import { formatGradeLabel } from "@/lib/grades";
 
 export function AssessmentForm({ grade }: { grade: string }) {
@@ -18,9 +19,15 @@ export function AssessmentForm({ grade }: { grade: string }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function uploadPdf(file: File) {
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setError("Please upload a PDF file.");
+      return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+      setError("PDF must be 30 MB or smaller.");
+      return;
+    }
 
     setError(null);
     setUploading(true);
@@ -139,19 +146,23 @@ export function AssessmentForm({ grade }: { grade: string }) {
                 </button>
               </div>
             ) : (
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/20 bg-white/5 px-6 py-10 transition hover:border-explore-teal/50">
-                <Upload className="mb-2 h-8 w-8 text-white/40" />
-                <span className="text-sm text-white/60">
-                  {uploading ? "Uploading…" : "Click to upload PDF"}
-                </span>
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  className="hidden"
-                  disabled={uploading}
-                  onChange={handleFileChange}
-                />
-              </label>
+              <DragDropZone
+                disabled={uploading}
+                accept="application/pdf,.pdf"
+                onFiles={(files) => uploadPdf(files[0])}
+                className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/20 bg-white/5 px-6 py-10 transition hover:border-explore-teal/50"
+                dragActiveClassName="border-explore-teal bg-explore-teal/10"
+              >
+                {({ dragOver }) => (
+                  <>
+                    <Upload className={`mb-2 h-8 w-8 ${dragOver ? "text-explore-teal" : "text-white/40"}`} />
+                    <span className="text-sm font-medium text-white/80">
+                      {uploading ? "Uploading…" : dragOver ? "Drop PDF here" : "Drag & drop PDF here"}
+                    </span>
+                    <span className="mt-1 text-xs text-white/50">or click to browse (max 30 MB)</span>
+                  </>
+                )}
+              </DragDropZone>
             )}
           </FormField>
         </FormSection>

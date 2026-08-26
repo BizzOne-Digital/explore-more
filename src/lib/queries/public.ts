@@ -94,6 +94,29 @@ export async function getProgramBySlug(slug: string): Promise<PublicProgram | nu
   }, null);
 }
 
+export async function getSponsorablePrograms(): Promise<PublicProgram[]> {
+  return withDb(async () => {
+    const programs = await Program.find({
+      status: "published",
+      sponsorshipEnabled: true,
+    })
+      .sort({ listingOrder: 1, createdAt: -1 })
+      .lean();
+    return serialize(programs) as unknown as PublicProgram[];
+  }, []);
+}
+
+export async function getSponsorableProgramBySlug(slug: string): Promise<PublicProgram | null> {
+  return withDb(async () => {
+    const program = await Program.findOne({
+      slug,
+      status: "published",
+      sponsorshipEnabled: true,
+    }).lean();
+    return program ? (serialize(program) as unknown as PublicProgram) : null;
+  }, null);
+}
+
 export async function getEventBySlug(slug: string): Promise<PublicEvent | null> {
   return withDb(async () => {
     const event = await Event.findOne({ slug, status: "published" }).lean();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +15,7 @@ import {
   FormSection,
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { DragDropZone } from "@/components/admin/DragDropZone";
 import { Upload, X, FileText, Image as ImageIcon, Search, CheckCircle2 } from "lucide-react";
 import { getCertificateFileUrl } from "@/lib/certificates/display";
 
@@ -87,7 +88,6 @@ export function CertificateForm({
   const [filePath, setFilePath] = useState((initialData?.filePath as string) || "");
   const [issueSearch, setIssueSearch] = useState("");
   const [selectedIssueStudents, setSelectedIssueStudents] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -127,10 +127,7 @@ export function CertificateForm({
     });
   }, [students, issueSearch, selectedStudentId]);
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  async function uploadCertificateFile(file: File) {
     const isImage = file.type.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
     const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
@@ -186,7 +183,6 @@ export function CertificateForm({
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
   }
 
@@ -418,33 +414,51 @@ export function CertificateForm({
 
         <FormSection title="Certificate File">
           <div className="sm:col-span-2">
-            {filePath ? (
-              <div className="relative inline-block">
-                {fileType === "image" ? (
-                  <img src={previewUrl} alt="Certificate Preview" className="h-64 w-auto rounded-lg border border-white/10 object-cover" />
-                ) : (
-                  <div className="flex h-64 w-96 flex-col items-center justify-center rounded-lg border border-white/10 bg-white/5">
-                    <FileText className="h-16 w-16 text-white/40" />
-                    <p className="mt-2 text-sm text-white/60">PDF Document</p>
-                    <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="mt-2 text-xs text-explore-teal hover:underline">
-                      View PDF
-                    </a>
+            <DragDropZone
+              disabled={uploading}
+              accept={fileType === "image" ? "image/*" : "application/pdf,.pdf"}
+              onFiles={(files) => uploadCertificateFile(files[0])}
+              clickToOpen={!filePath}
+              className={
+                filePath
+                  ? "rounded-lg"
+                  : "flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/20 bg-white/5 transition hover:border-white/30 hover:bg-white/10"
+              }
+              dragActiveClassName="border-explore-teal bg-explore-teal/10 ring-2 ring-explore-teal/50"
+            >
+              {({ dragOver }) =>
+                filePath ? (
+                  <div className="relative inline-block">
+                    {fileType === "image" ? (
+                      <img
+                        src={previewUrl}
+                        alt="Certificate Preview"
+                        className="h-64 w-auto rounded-lg border border-white/10 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-64 w-96 flex-col items-center justify-center rounded-lg border border-white/10 bg-white/5">
+                        <FileText className="h-16 w-16 text-white/40" />
+                        <p className="mt-2 text-sm text-white/60">PDF Document</p>
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 text-xs text-explore-teal hover:underline"
+                        >
+                          View PDF
+                        </a>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setFilePath("")}
+                      className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white transition hover:bg-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <p className="mt-2 text-xs text-white/40">Drag a new file here to replace.</p>
                   </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setFilePath("")}
-                  className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white transition hover:bg-red-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/20 bg-white/5 transition hover:border-white/30 hover:bg-white/10"
-              >
-                {uploading ? (
+                ) : uploading ? (
                   <div className="text-center">
                     <Upload className="mx-auto h-8 w-8 animate-pulse text-white/40" />
                     <p className="mt-2 text-sm text-white/60">Uploading...</p>
@@ -452,24 +466,20 @@ export function CertificateForm({
                 ) : (
                   <div className="text-center">
                     {fileType === "image" ? (
-                      <ImageIcon className="mx-auto h-8 w-8 text-white/40" />
+                      <ImageIcon className={`mx-auto h-8 w-8 ${dragOver ? "text-explore-teal" : "text-white/40"}`} />
                     ) : (
-                      <FileText className="mx-auto h-8 w-8 text-white/40" />
+                      <FileText className={`mx-auto h-8 w-8 ${dragOver ? "text-explore-teal" : "text-white/40"}`} />
                     )}
-                    <p className="mt-2 text-sm text-white/60">Click to upload {fileType === "image" ? "image" : "PDF"}</p>
-                    <p className="mt-1 text-xs text-white/40">PDF up to 50 MB</p>
+                    <p className="mt-2 text-sm font-medium text-white/80">
+                      {dragOver
+                        ? "Drop file here"
+                        : `Drag & drop ${fileType === "image" ? "image" : "PDF"} here`}
+                    </p>
+                    <p className="mt-1 text-xs text-white/50">or click to browse · PDF up to 50 MB</p>
                   </div>
-                )}
-              </div>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={fileType === "image" ? "image/*" : "application/pdf,.pdf"}
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+                )
+              }
+            </DragDropZone>
           </div>
         </FormSection>
 

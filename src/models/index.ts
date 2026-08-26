@@ -5,7 +5,7 @@ export { Book, Order, OrderModificationRequest } from "./Book";
 export { Course, Enrollment } from "./Course";
 export { Program, ServiceRequest } from "./Program";
 export { DonationCampaign, Donation } from "./Donation";
-export { Sponsor, SponsorNote } from "./Sponsor";
+export { Sponsor, SponsorNote, SponsorContribution } from "./Sponsor";
 export { Assessment, AssessmentSubmission } from "./Assessment";
 export { Result, Attendance, Certificate, Resource } from "./StudentRecords";
 export {

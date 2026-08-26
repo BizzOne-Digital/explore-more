@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Upload, X, Save } from "lucide-react";
 import Link from "next/link";
+import { DragDropZone } from "@/components/admin/DragDropZone";
 
 interface GalleryCategory {
   _id: string;
@@ -47,9 +48,7 @@ export default function NewGalleryPage() {
     fetchCategories();
   }, []);
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-    
+  function addImageFiles(files: File[]) {
     files.forEach((file) => {
       if (!file.type.startsWith("image/")) {
         alert(`${file.name} is not an image file`);
@@ -190,21 +189,27 @@ export default function NewGalleryPage() {
           </label>
           
           <div className="space-y-4">
-            <label className="flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/20 bg-white/5 transition hover:border-white/30 hover:bg-white/10">
-              <Upload className="h-12 w-12 text-white/40" />
-              <p className="mt-4 text-white/60">Click to select photos</p>
-              <p className="mt-2 text-sm text-white/40">
-                PNG, JPG, GIF up to 10MB each (multiple files supported)
-              </p>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
+            <DragDropZone
+              multiple
+              disabled={uploading}
+              accept="image/*"
+              onFiles={addImageFiles}
+              className="flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/20 bg-white/5 transition hover:border-white/30 hover:bg-white/10"
+              dragActiveClassName="border-explore-teal bg-explore-teal/10"
+            >
+              {({ dragOver }) => (
+                <>
+                  <Upload className={`h-12 w-12 ${dragOver ? "text-explore-teal" : "text-white/40"}`} />
+                  <p className="mt-4 font-medium text-white/80">
+                    {dragOver ? "Drop photos here" : "Drag & drop photos here"}
+                  </p>
+                  <p className="mt-2 text-sm text-white/50">or click to browse</p>
+                  <p className="mt-1 text-xs text-white/40">
+                    PNG, JPG, GIF up to 10MB each (multiple files supported)
+                  </p>
+                </>
+              )}
+            </DragDropZone>
 
             {images.length > 0 && (
               <div className="text-sm text-white/60">

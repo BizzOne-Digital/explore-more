@@ -160,7 +160,13 @@ export function FileUpload({
       <label className="block text-sm font-medium text-white/80">{label}</label>
 
       {value ? (
-        <div className="space-y-3">
+        <div
+          className="space-y-3"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <p className="text-xs text-white/40">Drag a new file here to replace.</p>
           {showPreview && (
             <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
               {/* eslint-disable-next-line @next/next/no-img-element */}

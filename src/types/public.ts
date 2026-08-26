@@ -114,6 +114,8 @@ export interface PublicProgram {
   grade?: string;
   schedule?: string;
   featured?: boolean;
+  sponsorshipEnabled?: boolean;
+  sponsorshipAmount?: number;
   faqs: { question: string; answer: string }[];
   detailSections: { _id?: string; title: string; content: string; order: number }[];
   metaTitle?: string;

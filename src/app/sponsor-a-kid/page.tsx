@@ -4,7 +4,7 @@ import { Heart, Users, Gift } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { COMPANY } from "@/lib/constants";
 import { HERO_IMAGES } from "@/lib/content/home";
-import { getPublishedCampaigns } from "@/lib/queries/public";
+import { getPublishedCampaigns, getSponsorablePrograms } from "@/lib/queries/public";
 import { createSectionChecker, getPageSectionVisibility } from "@/lib/queries/pages";
 import { PageHero } from "@/components/ui/PageHero";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 export default async function SponsorAKidPage() {
   const show = createSectionChecker(await getPageSectionVisibility("sponsor-a-kid"));
   const campaigns = await getPublishedCampaigns().catch(() => [] as Awaited<ReturnType<typeof getPublishedCampaigns>>);
+  const programs = await getSponsorablePrograms().catch(() => [] as Awaited<ReturnType<typeof getSponsorablePrograms>>);
   
   // Get recent donations
   const { Donation } = await import("@/models");
@@ -52,7 +53,7 @@ export default async function SponsorAKidPage() {
           size="large"
           align="center"
         >
-          <Button href="#campaigns" variant="primary">View Campaigns</Button>
+          <Button href="#programs" variant="primary">Sponsor a Program</Button>
         </PageHero>
       )}
 
@@ -77,6 +78,41 @@ export default async function SponsorAKidPage() {
                   <h3 className="mt-4 font-display text-xl font-bold">{item.title}</h3>
                   <p className="mt-2 text-sm text-explore-charcoal/70">{item.desc}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {show("campaigns") && programs.length > 0 && (
+        <section id="programs" className="w-full overflow-x-clip py-20 bg-white">
+          <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-4">
+            <SectionHeading
+              eyebrow="Programs"
+              title="Sponsor a Program"
+              description="Choose a program to support. Your gift helps youth access outdoor education, gear, and scholarships."
+              className="mb-10"
+            />
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {programs.map((program) => (
+                <Card key={String(program._id)} href={`/sponsor-a-kid/program/${program.slug}`}>
+                  {program.heroImage && (
+                    <div className="relative aspect-video bg-explore-sand">
+                      <Image src={program.heroImage} alt="" fill className="object-cover" sizes="400px" />
+                    </div>
+                  )}
+                  <CardBody>
+                    <CardTitle>{program.title}</CardTitle>
+                    <p className="mt-2 text-sm text-explore-charcoal/70 line-clamp-2">
+                      {program.shortDescription}
+                    </p>
+                    {program.sponsorshipAmount && program.sponsorshipAmount > 0 && (
+                      <p className="mt-3 text-sm font-semibold text-explore-teal">
+                        Suggested: ${program.sponsorshipAmount.toLocaleString()}
+                      </p>
+                    )}
+                  </CardBody>
+                </Card>
               ))}
             </div>
           </div>

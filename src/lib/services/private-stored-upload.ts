@@ -11,15 +11,25 @@ const PRIVATE_MIME_TO_EXT: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 };
 
-function extensionFromPrivateFile(file: File): string | null {
+const SPONSOR_FILE_EXTENSIONS = ["pdf", "doc", "docx"] as const;
+
+function extensionFromPrivateFile(file: File, folder?: PrivateStoredFolder): string | null {
   const fromMime = PRIVATE_MIME_TO_EXT[file.type];
   if (fromMime) return fromMime;
 
   const ext = file.name.split(".").pop()?.toLowerCase();
   if (!ext) return null;
   if (ext === "jpeg") return "jpg";
+
+  if (folder === "sponsors") {
+    if ((SPONSOR_FILE_EXTENSIONS as readonly string[]).includes(ext)) return ext;
+    return null;
+  }
+
   if (["pdf", "jpg", "png", "webp", "gif"].includes(ext)) return ext;
   return null;
 }
@@ -57,9 +67,13 @@ export async function storePrivateUpload(
     throw new Error(`File too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB`);
   }
 
-  const ext = extensionFromPrivateFile(file);
+  const ext = extensionFromPrivateFile(file, folder);
   if (!ext) {
-    throw new Error("Invalid file type. Allowed: PDF, JPEG, PNG, WebP, GIF");
+    const allowed =
+      folder === "sponsors"
+        ? "PDF, Word (.doc, .docx)"
+        : "PDF, JPEG, PNG, WebP, GIF";
+    throw new Error(`Invalid file type. Allowed: ${allowed}`);
   }
 
   const filename = generatePrivateFilename(ext);
@@ -109,4 +123,21 @@ export async function readPrivateStoredFile(relativePath: string): Promise<{
     mimeType: doc.mimeType,
     size: doc.size,
   };
+}
+
+export async function deletePrivateStoredFile(relativePath: string): Promise<boolean> {
+  const [folder, ...rest] = relativePath.split("/");
+  const filename = rest.join("/");
+
+  if (!folder || !filename || !isPrivateStoredFolder(folder)) {
+    return false;
+  }
+
+  if (filename.includes("..") || filename.includes("\\")) {
+    return false;
+  }
+
+  await connectDB();
+  const result = await StoredUpload.deleteOne({ folder, filename });
+  return result.deletedCount > 0;
 }

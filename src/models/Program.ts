@@ -24,6 +24,8 @@ export interface IProgram extends Document {
   detailSections: IProgramSection[];
   listingOrder: number;
   featured: boolean;
+  sponsorshipEnabled: boolean;
+  sponsorshipAmount: number;
   status: "draft" | "published" | "archived";
   metaTitle?: string;
   metaDescription?: string;
@@ -58,6 +60,8 @@ const ProgramSchema = new Schema<IProgram>(
     detailSections: [ProgramSectionSchema],
     listingOrder: { type: Number, default: 0 },
     featured: { type: Boolean, default: false },
+    sponsorshipEnabled: { type: Boolean, default: false },
+    sponsorshipAmount: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ["draft", "published", "archived"],

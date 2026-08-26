@@ -29,6 +29,7 @@ export function AdminImageField({
 }: AdminImageFieldProps) {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -40,7 +41,11 @@ export function AdminImageField({
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    await uploadImageFile(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
+  async function uploadImageFile(file: File) {
     if (!file.type.startsWith("image/")) {
       setToast({ type: "error", message: "Please select an image file (PNG, JPG, WebP, or GIF)." });
       return;
@@ -72,8 +77,29 @@ export function AdminImageField({
       });
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!uploading) setDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (uploading) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) await uploadImageFile(file);
   }
 
   async function handleRemove() {
@@ -88,7 +114,12 @@ export function AdminImageField({
   const previewSrc = value ? resolveImageUrl(value) : "";
 
   return (
-    <div className={className ?? "space-y-2"}>
+    <div
+      className={className ?? "space-y-2"}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <label className="block text-sm font-medium text-white/80">{label}</label>
 
       {toast && (
@@ -106,6 +137,7 @@ export function AdminImageField({
 
       {value ? (
         <div className="space-y-3">
+          <p className="text-xs text-white/40">Drag a new image here to replace, or use Replace below.</p>
           <div className="relative inline-block">
             <img
               src={previewSrc}
@@ -136,7 +168,11 @@ export function AdminImageField({
       ) : (
         <div
           onClick={() => !uploading && fileInputRef.current?.click()}
-          className="flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/20 bg-white/5 transition hover:border-white/30 hover:bg-white/10"
+          className={`flex h-48 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed bg-white/5 transition hover:bg-white/10 ${
+            dragOver
+              ? "border-explore-teal bg-explore-teal/10"
+              : "border-white/20 hover:border-white/30"
+          }`}
         >
           {uploading ? (
             <div className="text-center">
@@ -146,8 +182,8 @@ export function AdminImageField({
           ) : (
             <div className="text-center">
               <ImageIcon className="mx-auto h-8 w-8 text-white/40" />
-              <p className="mt-2 text-sm text-white/60">Click to upload image</p>
-              <p className="mt-1 text-xs text-white/40">PNG, JPG, WebP, GIF up to 8MB</p>
+              <p className="mt-2 text-sm text-white/60">Drag & drop image here</p>
+              <p className="mt-1 text-xs text-white/40">or click to browse — PNG, JPG, WebP, GIF up to 8MB</p>
             </div>
           )}
         </div>

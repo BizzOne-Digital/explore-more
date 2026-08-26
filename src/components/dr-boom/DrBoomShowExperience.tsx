@@ -53,7 +53,7 @@ export function DrBoomShowExperience() {
             priority
             quality={100}
             unoptimized
-            className="object-cover object-center opacity-60"
+            className="object-cover object-[center_40%] opacity-60"
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-explore-black/60 via-explore-black/35 to-explore-black/90" />

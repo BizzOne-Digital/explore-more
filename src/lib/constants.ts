@@ -36,7 +36,14 @@ export const STORED_UPLOAD_FOLDERS = ["products", "gallery", "pages", "misc"] as
 export type StoredUploadFolder = (typeof STORED_UPLOAD_FOLDERS)[number];
 
 /** MongoDB-backed private file folders (auth required to download). */
-export const PRIVATE_STORED_FOLDERS = ["certificates", "assessments", "books", "sponsors", "notifications"] as const;
+export const PRIVATE_STORED_FOLDERS = [
+  "certificates",
+  "assessments",
+  "books",
+  "sponsors",
+  "notifications",
+  "user-documents",
+] as const;
 export type PrivateStoredFolder = (typeof PRIVATE_STORED_FOLDERS)[number];
 
 /** Map legacy upload categories to MongoDB storage folders. */

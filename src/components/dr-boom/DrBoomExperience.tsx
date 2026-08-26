@@ -10,7 +10,6 @@ import {
   Zap,
 } from "lucide-react";
 import { FAQAccordion } from "@/components/cards/FAQAccordion";
-import { DrBoomSubNav } from "@/components/dr-boom/DrBoomSubNav";
 import { cn } from "@/lib/cn";
 import {
   DR_BOOM_CONTACT,
@@ -124,8 +123,6 @@ export function DrBoomExperience() {
 
   return (
     <>
-      <DrBoomSubNav />
-
       {/* Hero */}
       <section className="relative min-h-[92vh] overflow-hidden bg-explore-black text-white">
         <div className="absolute inset-0">
@@ -158,10 +155,12 @@ export function DrBoomExperience() {
             <Image
               src={DR_BOOM_IMAGES.logo}
               alt="Dr. Boom Science logo"
-              width={480}
-              height={480}
+              width={640}
+              height={640}
               priority
-              className="relative mx-auto w-full max-w-[320px] drop-shadow-[0_0_40px_rgba(184,239,36,0.4)] sm:max-w-[380px]"
+              quality={100}
+              unoptimized
+              className="relative mx-auto h-auto w-full max-w-[min(100%,520px)]"
             />
           </div>
 

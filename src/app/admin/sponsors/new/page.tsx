@@ -49,6 +49,9 @@ export default function NewSponsorPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Add Sponsor</h1>
           <p className="text-sm text-white/60">Create a prospect or sponsor contact in the CRM</p>
+          <p className="mt-1 text-xs text-white/45">
+            You will be assigned as the account manager when this sponsor is created.
+          </p>
         </div>
       </div>
 

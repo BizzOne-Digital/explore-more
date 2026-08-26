@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Phone, Sparkles, Zap } from "lucide-react";
 import { FAQAccordion } from "@/components/cards/FAQAccordion";
 import { DrBoomExcitementMeter } from "@/components/dr-boom/DrBoomExcitementMeter";
-import { DrBoomSubNav } from "@/components/dr-boom/DrBoomSubNav";
 import {
   DR_BOOM_CONTACT,
   DR_BOOM_DEMONSTRATIONS,
@@ -44,8 +43,6 @@ function SectionTitle({
 export function DrBoomShowExperience() {
   return (
     <>
-      <DrBoomSubNav />
-
       {/* Hero */}
       <section className="relative min-h-[90vh] overflow-hidden bg-explore-black text-white">
         <div className="absolute inset-0">
@@ -54,10 +51,10 @@ export function DrBoomShowExperience() {
             alt=""
             fill
             priority
-            className="object-cover object-center opacity-45"
+            className="object-cover object-center opacity-60"
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-explore-black/80 via-explore-black/55 to-explore-black" />
+          <div className="absolute inset-0 bg-gradient-to-b from-explore-black/60 via-explore-black/35 to-explore-black/90" />
         </div>
 
         <div className="relative mx-auto flex min-h-[90vh] w-full max-w-7xl flex-col items-center justify-center px-4 py-24 text-center sm:px-6">
@@ -100,13 +97,16 @@ export function DrBoomShowExperience() {
             </a>
           </div>
 
-          <div className="relative mt-12 w-full max-w-xs">
+          <div className="relative mx-auto mt-10 w-full max-w-lg px-4 sm:max-w-xl">
             <Image
               src={DR_BOOM_IMAGES.logo}
               alt="Dr. Boom Science logo"
-              width={320}
-              height={320}
-              className="mx-auto drop-shadow-[0_0_40px_rgba(184,239,36,0.35)]"
+              width={640}
+              height={640}
+              priority
+              quality={100}
+              unoptimized
+              className="mx-auto h-auto w-full max-w-[min(100%,520px)]"
             />
           </div>
         </div>

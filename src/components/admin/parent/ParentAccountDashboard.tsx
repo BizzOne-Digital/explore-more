@@ -180,7 +180,7 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
     planId: "",
     status: "none",
     discountPercent: 0,
-    creditCents: 0,
+    creditDollars: 0,
     currentPeriodEnd: "",
     cancelAtPeriodEnd: false,
   });
@@ -202,7 +202,7 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
       planId: sub.planId ?? "",
       status: sub.status,
       discountPercent: sub.discountPercent ?? 0,
-      creditCents: sub.creditCents ?? 0,
+      creditDollars: (sub.creditCents ?? 0) / 100,
       currentPeriodEnd: sub.currentPeriodEnd
         ? new Date(sub.currentPeriodEnd).toISOString().slice(0, 10)
         : "",
@@ -426,7 +426,7 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
             planId: subForm.planId || null,
             status: subForm.status,
             discountPercent: subForm.discountPercent,
-            creditCents: subForm.creditCents,
+            creditCents: Math.round(subForm.creditDollars * 100),
             currentPeriodEnd: subForm.currentPeriodEnd || null,
             cancelAtPeriodEnd: subForm.cancelAtPeriodEnd,
           },
@@ -621,7 +621,7 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
 
       {tab === "messages" && <MessagesTab family={family} userId={userId} />}
 
-      {tab === "documents" && <DocumentsTab family={family} />}
+      {tab === "documents" && <DocumentsTab family={family} userId={userId} />}
 
       {tab === "billing" && (
         billing ? (
@@ -743,12 +743,15 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-white/60">Account credit (¢)</label>
+              <label className="mb-1 block text-xs text-white/60">Account credit ($)</label>
               <input
                 type="number"
                 min={0}
-                value={subForm.creditCents}
-                onChange={(e) => setSubForm({ ...subForm, creditCents: Number(e.target.value) })}
+                step="0.01"
+                value={subForm.creditDollars}
+                onChange={(e) =>
+                  setSubForm({ ...subForm, creditDollars: Number(e.target.value) || 0 })
+                }
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
               />
             </div>

@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 interface StatCardProps {
@@ -7,17 +8,23 @@ interface StatCardProps {
   icon: LucideIcon;
   trend?: string;
   accent?: "lime" | "teal" | "orange";
+  href?: string;
 }
 
-export function StatCard({ label, value, icon: Icon, trend, accent = "lime" }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, trend, accent = "lime", href }: StatCardProps) {
   const accentClasses = {
     lime: "bg-explore-lime/15 text-explore-lime",
     teal: "bg-explore-teal/15 text-explore-teal",
     orange: "bg-explore-orange/15 text-explore-orange",
   };
 
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+  const card = (
+    <div
+      className={cn(
+        "rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm",
+        href && "transition hover:border-white/20 hover:bg-white/[0.07]"
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-white/60">{label}</p>
@@ -30,4 +37,14 @@ export function StatCard({ label, value, icon: Icon, trend, accent = "lime" }: S
       </div>
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-explore-lime/60 rounded-xl">
+        {card}
+      </Link>
+    );
+  }
+
+  return card;
 }

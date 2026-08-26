@@ -27,6 +27,8 @@ interface SponsorRow {
   donationCount: number;
   lastDonationAt?: string;
   nextFollowUpAt?: string;
+  accountManagerName?: string;
+  accountManagerStaffId?: string;
 }
 
 interface SponsorStats {
@@ -92,12 +94,14 @@ export function SponsorCrmClient() {
 
   function exportCsv() {
     const rows = [
-      ["Name", "Email", "Organization", "Status", "Total Given", "Donations", "Last Gift"].join(","),
+      ["Name", "Email", "Organization", "Account Manager", "Staff ID", "Status", "Total Given", "Donations", "Last Gift"].join(","),
       ...filtered.map((s) =>
         [
           `"${s.name.replace(/"/g, '""')}"`,
           s.email,
           `"${(s.organization ?? "").replace(/"/g, '""')}"`,
+          `"${(s.accountManagerName ?? "").replace(/"/g, '""')}"`,
+          s.accountManagerStaffId ?? "",
           s.status,
           (s.totalDonatedCents / 100).toFixed(2),
           s.donationCount,
@@ -205,7 +209,7 @@ export function SponsorCrmClient() {
         <table className="w-full">
           <thead className="border-b border-white/10 bg-white/5">
             <tr>
-              {["Sponsor", "Organization", "Status", "Total Given", "Gifts", "Last Gift", "Follow-up"].map(
+              {["Sponsor", "Organization", "Account Manager", "Status", "Total Given", "Gifts", "Last Gift", "Follow-up"].map(
                 (header) => (
                   <th
                     key={header}
@@ -220,7 +224,7 @@ export function SponsorCrmClient() {
           <tbody className="divide-y divide-white/10">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-white/40">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-white/40">
                   No sponsors found. Click &quot;Sync Donations&quot; to import from existing gifts.
                 </td>
               </tr>
@@ -237,6 +241,18 @@ export function SponsorCrmClient() {
                     <p className="text-xs text-white/50">{sponsor.email}</p>
                   </td>
                   <td className="px-4 py-3 text-sm text-white/70">{sponsor.organization || "—"}</td>
+                  <td className="px-4 py-3 text-sm text-white/70">
+                    {sponsor.accountManagerName ? (
+                      <div>
+                        <p className="text-white">{sponsor.accountManagerName}</p>
+                        {sponsor.accountManagerStaffId && (
+                          <p className="text-xs text-white/45">{sponsor.accountManagerStaffId}</p>
+                        )}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${STATUS_STYLES[sponsor.status] ?? STATUS_STYLES.lead}`}

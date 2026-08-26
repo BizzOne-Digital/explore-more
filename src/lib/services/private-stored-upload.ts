@@ -57,6 +57,11 @@ function extensionFromPrivateFile(file: File, folder?: PrivateStoredFolder): str
     return null;
   }
 
+  if (folder === "user-documents") {
+    if ((NOTIFICATION_FILE_EXTENSIONS as readonly string[]).includes(ext)) return ext;
+    return null;
+  }
+
   if (["pdf", "jpg", "png", "webp", "gif"].includes(ext)) return ext;
   return null;
 }
@@ -101,7 +106,9 @@ export async function storePrivateUpload(
         ? "PDF, Word (.doc, .docx)"
         : folder === "notifications"
           ? "PDF, images, Office documents, zip, audio, and video"
-          : "PDF, JPEG, PNG, WebP, GIF";
+          : folder === "user-documents"
+            ? "PDF, images, Office documents, zip, audio, and video"
+            : "PDF, JPEG, PNG, WebP, GIF";
     throw new Error(`Invalid file type. Allowed: ${allowed}`);
   }
 

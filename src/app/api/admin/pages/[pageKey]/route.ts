@@ -1,5 +1,6 @@
 import connectDB from "@/lib/db";
 import { Page } from "@/models";
+import { PAGE_KEYS, type PageKey } from "@/lib/constants";
 import { apiSuccess, apiError, notFound } from "@/lib/admin/api";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ pageKey: string }> }) {
@@ -39,6 +40,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ page
 export async function PATCH(request: Request, { params }: { params: Promise<{ pageKey: string }> }) {
   try {
     const { pageKey } = await params;
+    if (!PAGE_KEYS.includes(pageKey as PageKey)) {
+      return apiError(new Error("Invalid page key"), 400);
+    }
     await connectDB();
     const body = await request.json();
 

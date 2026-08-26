@@ -26,6 +26,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { ParentAccountDashboard } from "@/components/admin/parent/ParentAccountDashboard";
+import { UserAccountDocuments } from "@/components/admin/UserAccountDocuments";
 import { formatDistanceToNow } from "date-fns";
 
 interface UserData {
@@ -501,6 +502,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
       )}
+
+      <div className="rounded-lg border border-white/10 bg-white/5 p-6">
+        <UserAccountDocuments userId={resolvedParams.id} />
+      </div>
 
       {/* Activity Log */}
       {activities.length > 0 && (

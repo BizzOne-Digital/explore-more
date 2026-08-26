@@ -133,10 +133,17 @@ export default async function AdminDashboardPage() {
           accent="lime"
         />
         <StatCard
-          label="Pending Requests"
+          label="Program Inquiries"
           value={stats.newServiceRequests}
           icon={Inbox}
-          trend={`${stats.unreadMessages} unread messages`}
+          href="/admin/service-requests"
+          trend={
+            stats.newServiceRequests > 0
+              ? `${stats.newServiceRequests} new — review under Programs → Service Requests`
+              : stats.unreadMessages > 0
+                ? `${stats.unreadMessages} new contact form message${stats.unreadMessages === 1 ? "" : "s"}`
+                : "no pending inquiries"
+          }
           accent="orange"
         />
       </div>

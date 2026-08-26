@@ -1,4 +1,5 @@
 export { User, StudentProfile, GuardianStudentLink, InstructorProfile, ParentProfile } from "./User";
+export { UserDocument } from "./UserDocument";
 export { Page, SiteSettings } from "./Page";
 export { Event, EventRegistration } from "./Event";
 export { Book, Order, OrderModificationRequest } from "./Book";

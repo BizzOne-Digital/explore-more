@@ -31,6 +31,9 @@ export interface ISponsor extends Document {
   firstDonationAt?: Date;
   lastDonationAt?: Date;
   userId?: mongoose.Types.ObjectId;
+  accountManagerId?: mongoose.Types.ObjectId;
+  accountManagerName?: string;
+  accountManagerStaffId?: string;
   address?: {
     line1?: string;
     line2?: string;
@@ -81,6 +84,9 @@ const SponsorSchema = new Schema<ISponsor>(
     firstDonationAt: Date,
     lastDonationAt: Date,
     userId: { type: Schema.Types.ObjectId, ref: "User" },
+    accountManagerId: { type: Schema.Types.ObjectId, ref: "User" },
+    accountManagerName: String,
+    accountManagerStaffId: String,
     address: {
       line1: String,
       line2: String,
@@ -94,6 +100,7 @@ const SponsorSchema = new Schema<ISponsor>(
 );
 
 SponsorSchema.index({ status: 1, lastDonationAt: -1 });
+SponsorSchema.index({ accountManagerId: 1 });
 SponsorSchema.index({ name: "text", email: "text", organization: "text" });
 SponsorSchema.index({ nextFollowUpAt: 1 });
 

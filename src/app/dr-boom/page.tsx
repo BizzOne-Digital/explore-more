@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { DrBoomShowExperience } from "@/components/dr-boom/DrBoomShowExperience";
+import { isPageNavVisible } from "@/lib/queries/navigation";
 
 export const metadata: Metadata = {
   title: "Dr. Boom Science | Explore More Academy",
@@ -13,6 +15,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function DrBoomPage() {
+export default async function DrBoomPage() {
+  if (!(await isPageNavVisible("dr-boom"))) notFound();
   return <DrBoomShowExperience />;
 }

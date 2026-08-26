@@ -1,4 +1,4 @@
-import type { PageKey } from "@/lib/constants";
+import { PAGE_KEYS, type PageKey } from "@/lib/constants";
 
 export interface NavLink {
   href: string;
@@ -8,6 +8,17 @@ export interface NavLink {
 
 export function pageKeyToHref(key: PageKey | string): string {
   return key === "home" ? "/" : `/${key}`;
+}
+
+/** Map a public site path to its CMS page key (e.g. `/dr-boom/book` → `dr-boom`). */
+export function hrefToPageKey(href: string): PageKey | null {
+  const normalized = href === "" ? "/" : href.startsWith("/") ? href : `/${href}`;
+  if (normalized === "/") return "home";
+  const segment = normalized.slice(1).split("/")[0];
+  if ((PAGE_KEYS as readonly string[]).includes(segment)) {
+    return segment as PageKey;
+  }
+  return null;
 }
 
 /** Main header navigation (left-to-right). */

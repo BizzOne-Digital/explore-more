@@ -1,6 +1,8 @@
 import connectDB from "@/lib/db";
 import { Sponsor } from "@/models";
 import { syncAllSponsorsFromDonations } from "@/lib/sponsors/sync";
+import { resolveAccountManagerFromSession } from "@/lib/sponsors/account-manager";
+import { auth } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 
 export async function GET(request: Request) {
@@ -52,6 +54,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return apiError(new Error("Unauthorized"), 401);
+
     await connectDB();
     const body = await request.json();
 
@@ -66,6 +71,11 @@ export async function POST(request: Request) {
       return apiError(new Error("A sponsor with this email already exists"), 409);
     }
 
+    const accountManager = await resolveAccountManagerFromSession({
+      id: session.user.id,
+      role: session.user.role,
+    });
+
     const sponsor = await Sponsor.create({
       name,
       email,
@@ -77,6 +87,9 @@ export async function POST(request: Request) {
       tags: Array.isArray(body.tags) ? body.tags : [],
       adminNotes: body.adminNotes,
       nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : undefined,
+      accountManagerId: accountManager?.accountManagerId,
+      accountManagerName: accountManager?.accountManagerName,
+      accountManagerStaffId: accountManager?.accountManagerStaffId,
     });
 
     return apiSuccess(sponsor, 201);

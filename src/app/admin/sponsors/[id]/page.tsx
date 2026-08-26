@@ -3,7 +3,8 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Mail, Phone, Building2, Save, Trash2, Plus, FileText, Upload, Download } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Building2, Save, Trash2, Plus, FileText, Upload, Download, UserCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { DragDropZone } from "@/components/admin/DragDropZone";
 import { formatCents } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -20,6 +21,9 @@ interface SponsorData {
   tags: string[];
   adminNotes?: string;
   nextFollowUpAt?: string;
+  accountManagerId?: string;
+  accountManagerName?: string;
+  accountManagerStaffId?: string;
   totalDonatedCents: number;
   donationCount: number;
   firstDonationAt?: string;
@@ -62,6 +66,13 @@ interface ProgramOption {
   title: string;
 }
 
+interface StaffOption {
+  _id: string;
+  name: string;
+  staffId?: string;
+  role: string;
+}
+
 interface NoteRow {
   _id: string;
   type: string;
@@ -76,6 +87,8 @@ interface NoteRow {
 export default function SponsorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "administrator";
   const [sponsor, setSponsor] = useState<SponsorData | null>(null);
   const [donations, setDonations] = useState<DonationRow[]>([]);
   const [contributions, setContributions] = useState<ContributionRow[]>([]);
@@ -98,6 +111,9 @@ export default function SponsorDetailPage({ params }: { params: Promise<{ id: st
     content: "",
     followUpDate: "",
   });
+  const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
+  const [transferManagerId, setTransferManagerId] = useState("");
+  const [transferring, setTransferring] = useState(false);
 
   async function load() {
     try {
@@ -128,10 +144,19 @@ export default function SponsorDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
+  async function loadStaffOptions() {
+    const res = await fetch("/api/admin/staff");
+    const json = await res.json();
+    if (res.ok && Array.isArray(json.data)) {
+      setStaffOptions(json.data);
+    }
+  }
+
   useEffect(() => {
     load();
     loadPrograms();
-  }, [id]);
+    if (isAdmin) loadStaffOptions();
+  }, [id, isAdmin]);
 
   async function saveSponsor() {
     if (!sponsor) return;
@@ -168,6 +193,30 @@ export default function SponsorDetailPage({ params }: { params: Promise<{ id: st
       load();
     } else {
       alert("Failed to add note");
+    }
+  }
+
+  async function transferAccountManager() {
+    if (!isAdmin) return;
+    setTransferring(true);
+    try {
+      const res = await fetch(`/api/admin/sponsors/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountManagerId: transferManagerId || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "Failed to transfer account manager");
+        return;
+      }
+      setSponsor(json.data);
+      setTransferManagerId("");
+      await load();
+    } finally {
+      setTransferring(false);
     }
   }
 
@@ -591,6 +640,56 @@ export default function SponsorDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="space-y-6">
+          <section className="rounded-xl border border-explore-teal/30 bg-explore-teal/10 p-5">
+            <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-white">
+              <UserCircle className="h-5 w-5 text-explore-teal" />
+              Account Manager
+            </h2>
+            {sponsor.accountManagerName ? (
+              <div>
+                <p className="text-base font-semibold text-white">{sponsor.accountManagerName}</p>
+                {sponsor.accountManagerStaffId && (
+                  <p className="mt-1 text-sm text-explore-lime">
+                    Staff ID: {sponsor.accountManagerStaffId}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-white/60">No account manager assigned yet.</p>
+            )}
+            <p className="mt-3 text-xs text-white/50">
+              All staff with Sponsor CRM access can edit this account. The account manager is the
+              primary relationship owner.
+            </p>
+            {isAdmin && (
+              <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
+                <p className="text-xs font-medium uppercase text-white/50">Transfer to another staff member</p>
+                <select
+                  value={transferManagerId}
+                  onChange={(e) => setTransferManagerId(e.target.value)}
+                  className="input-admin w-full"
+                >
+                  <option value="">Remove account manager</option>
+                  {staffOptions.map((staff) => (
+                    <option key={staff._id} value={staff._id}>
+                      {staff.name}
+                      {staff.staffId ? ` · ${staff.staffId}` : ""}
+                      {staff.role !== "staff" ? ` (${staff.role})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={transferAccountManager}
+                  disabled={transferring}
+                  className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50"
+                >
+                  {transferring ? "Updating..." : "Update Account Manager"}
+                </button>
+              </div>
+            )}
+          </section>
+
           <section className="rounded-xl border border-white/10 bg-white/5 p-5">
             <h2 className="mb-3 text-lg font-semibold text-white">Giving Summary</h2>
             <p className="text-3xl font-bold text-white">{formatCents(sponsor.totalDonatedCents)}</p>

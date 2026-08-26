@@ -21,7 +21,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!isValidObjectId(id)) return notFound();
     await connectDB();
     const body = await request.json();
-    const item = await ServiceRequest.findByIdAndUpdate(id, body, { new: true, runValidators: true }).lean();
+    const item = await ServiceRequest.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true, runValidators: true }
+    ).lean();
     if (!item) return notFound();
     return apiSuccess(item);
   } catch (error) {

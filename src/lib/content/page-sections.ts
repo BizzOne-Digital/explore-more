@@ -115,5 +115,6 @@ export function mergeSectionStates(
 
 export function formatPageTitle(pageKey: PageKey): string {
   if (pageKey === "home") return "Home";
+  if (pageKey === "dr-boom") return "Dr. Boom";
   return pageKey.charAt(0).toUpperCase() + pageKey.slice(1).replace(/-/g, " ");
 }

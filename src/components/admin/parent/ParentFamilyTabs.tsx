@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Key, Loader, Save } from "lucide-react";
+import { UserAccountDocuments } from "@/components/admin/UserAccountDocuments";
 import { formatCents } from "@/lib/utils";
 import { formatPaymentMethod, formatSubscriptionStatus } from "@/lib/billing/format";
 
@@ -395,10 +396,17 @@ export function MessagesTab({ family, userId }: { family: FamilyData | null; use
   );
 }
 
-export function DocumentsTab({ family }: { family: FamilyData | null }) {
-  if (!family) return <p className="text-sm text-white/50">Loading documents…</p>;
+export function DocumentsTab({ family, userId }: { family: FamilyData | null; userId: string }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+    <div className="space-y-8">
+      <UserAccountDocuments userId={userId} />
+
+      <div>
+        <h3 className="mb-3 text-lg font-semibold text-white">Portfolio Work Samples</h3>
+        {!family ? (
+          <p className="text-sm text-white/50">Loading portfolio documents…</p>
+        ) : (
+        <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
       <table className="min-w-full text-sm">
         <thead className="bg-white/5 text-left text-white/60">
           <tr>
@@ -429,6 +437,9 @@ export function DocumentsTab({ family }: { family: FamilyData | null }) {
           )}
         </tbody>
       </table>
+        </div>
+        )}
+      </div>
     </div>
   );
 }

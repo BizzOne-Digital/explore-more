@@ -14,6 +14,7 @@ interface PageRecord {
 
 function formatPageLabel(key: string, title?: string) {
   if (title && title.trim()) return title;
+  if (key === "dr-boom") return "Dr. Boom";
   return key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, " ");
 }
 
@@ -82,7 +83,8 @@ export function PageNavManager() {
       <div className="mb-4">
         <h2 className="font-display text-lg font-semibold text-white">Navigation visibility</h2>
         <p className="mt-1 text-sm text-white/50">
-          Turn off a page to remove it from the site header and footer menus. The page URL still works if someone has the link.
+          Turn off a page to remove it from the site header and footer menus and block the public
+          URL (visitors see a 404). Dr. Boom includes both the show page and booking page.
         </p>
       </div>
 

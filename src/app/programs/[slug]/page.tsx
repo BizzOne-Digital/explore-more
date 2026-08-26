@@ -6,6 +6,7 @@ import { getProgramBySlug } from "@/lib/queries/public";
 import { CORE_PROGRAMS, BRAND_IMAGES } from "@/lib/content/home";
 import { formatGradeLabel } from "@/lib/grades";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { ServiceRequestForm } from "@/components/forms/ServiceRequestForm";
 import { FAQAccordion } from "@/components/cards/FAQAccordion";
 
@@ -61,6 +62,13 @@ export default async function ProgramDetailPage({ params }: Props) {
           {program?.ageRange && <p className="mt-3 text-sm text-white/60">Ages: {program.ageRange}</p>}
           {program?.grade && (
             <p className="mt-2 text-sm text-explore-lime">Grade: {formatGradeLabel(program.grade)}</p>
+          )}
+          {program?.sponsorshipEnabled && (
+            <div className="mt-6">
+              <Button href={`/sponsor-a-kid/program/${program.slug}`} variant="primary" size="lg">
+                Sponsor This Program
+              </Button>
+            </div>
           )}
         </div>
       </section>
@@ -124,7 +132,23 @@ export default async function ProgramDetailPage({ params }: Props) {
           </div>
 
           <div className="lg:col-span-2">
-            <div className="rounded-2xl bg-white border border-explore-charcoal/10 p-6 shadow-sm sticky top-28">
+            <div className="space-y-6 sticky top-28">
+            {program?.sponsorshipEnabled && (
+              <div className="rounded-2xl bg-explore-teal/10 border border-explore-teal/20 p-6 shadow-sm">
+                <h2 className="font-display text-xl font-bold mb-2">Support This Program</h2>
+                <p className="text-sm text-explore-charcoal/70 mb-4">
+                  Help youth access this program through sponsorship.
+                </p>
+                <Button
+                  href={`/sponsor-a-kid/program/${program.slug}`}
+                  variant="primary"
+                  className="w-full"
+                >
+                  Sponsor This Program
+                </Button>
+              </div>
+            )}
+            <div className="rounded-2xl bg-white border border-explore-charcoal/10 p-6 shadow-sm">
               <h2 className="font-display text-xl font-bold mb-2">Request This Program</h2>
               <p className="text-sm text-explore-charcoal/60 mb-6">
                 Tell us about your student and we&apos;ll customize the experience.
@@ -141,6 +165,7 @@ export default async function ProgramDetailPage({ params }: Props) {
                   <a href="/contact" className="text-explore-teal hover:underline">Contact us</a> to get started.
                 </p>
               )}
+            </div>
             </div>
           </div>
         </div>

@@ -10,6 +10,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/books",
     "/courses",
     "/programs",
+    "/dr-boom",
+    "/dr-boom/book",
     "/sponsor-a-kid",
     "/gallery",
     "/testimonials",

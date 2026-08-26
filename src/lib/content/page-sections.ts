@@ -51,6 +51,12 @@ export const PAGE_SECTION_CATALOG: Record<PageKey, PageSectionDefinition[]> = {
     { internalName: "hero", label: "Hero", order: 0 },
     { internalName: "listings", label: "Program Listings", order: 1 },
   ],
+  "dr-boom": [
+    { internalName: "hero", label: "Hero", order: 0 },
+    { internalName: "packages", label: "Booking Packages", order: 1 },
+    { internalName: "booking-form", label: "Booking Form", order: 2 },
+    { internalName: "faq", label: "FAQ", order: 3 },
+  ],
   "sponsor-a-kid": [
     { internalName: "hero", label: "Hero", order: 0 },
     { internalName: "why-sponsor", label: "Why Sponsor", order: 1 },

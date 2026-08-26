@@ -39,6 +39,7 @@ export function resolveNotificationFileUrl(url?: string | null): string | null {
   if (isLocalFilesystemPath(trimmed)) return null;
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
   if (trimmed.startsWith("/")) return trimmed;
+  if (trimmed.startsWith("notifications/")) return trimmed;
   return `/${trimmed}`;
 }
 
@@ -49,13 +50,17 @@ function normalizeAttachmentPath(url: string): string | null {
   if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
     try {
       const parsed = new URL(resolved);
-      return parsed.pathname.startsWith("/uploads/") ? parsed.pathname : null;
+      if (parsed.pathname.startsWith("/uploads/")) return parsed.pathname;
+      return null;
     } catch {
       return null;
     }
   }
 
-  return resolved.startsWith("/uploads/") ? resolved : null;
+  if (resolved.startsWith("/uploads/")) return resolved;
+  if (resolved.startsWith("notifications/")) return resolved;
+
+  return null;
 }
 
 export function isLikelyAttachmentUrl(url: string): boolean {
@@ -63,6 +68,7 @@ export function isLikelyAttachmentUrl(url: string): boolean {
 
   const lower = url.toLowerCase();
   if (lower.includes("/uploads/")) return true;
+  if (lower.startsWith("notifications/")) return true;
   if (lower.startsWith("/api/parent/notifications/file")) return true;
 
   if (lower.startsWith("http://") || lower.startsWith("https://")) {
@@ -206,7 +212,7 @@ export function getNotificationAttachments(
     }
 
     const bareUrlRegex =
-      /(https?:\/\/[^\s<>"']+|\/uploads\/[^\s<>"']+)(?=[\s<>"']|$)/gi;
+      /(https?:\/\/[^\s<>"']+|\/uploads\/[^\s<>"']+|notifications\/[^\s<>"']+)(?=[\s<>"']|$)/gi;
     let urlMatch = bareUrlRegex.exec(message);
     while (urlMatch) {
       add(urlMatch[1]);

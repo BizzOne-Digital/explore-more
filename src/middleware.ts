@@ -10,6 +10,8 @@ const publicPaths = [
   "/courses",
   "/membership",
   "/programs",
+    "/dr-boom",
+    "/dr-boom/book",
   "/sponsor-a-kid",
   "/donate",
   "/gallery",

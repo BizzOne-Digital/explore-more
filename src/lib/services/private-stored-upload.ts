@@ -17,6 +17,28 @@ const PRIVATE_MIME_TO_EXT: Record<string, string> = {
 
 const SPONSOR_FILE_EXTENSIONS = ["pdf", "doc", "docx"] as const;
 
+const NOTIFICATION_FILE_EXTENSIONS = [
+  "pdf",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "ppt",
+  "pptx",
+  "txt",
+  "csv",
+  "zip",
+  "mp4",
+  "mov",
+  "mp3",
+  "wav",
+  "jpg",
+  "png",
+  "webp",
+  "gif",
+  "svg",
+] as const;
+
 function extensionFromPrivateFile(file: File, folder?: PrivateStoredFolder): string | null {
   const fromMime = PRIVATE_MIME_TO_EXT[file.type];
   if (fromMime) return fromMime;
@@ -27,6 +49,11 @@ function extensionFromPrivateFile(file: File, folder?: PrivateStoredFolder): str
 
   if (folder === "sponsors") {
     if ((SPONSOR_FILE_EXTENSIONS as readonly string[]).includes(ext)) return ext;
+    return null;
+  }
+
+  if (folder === "notifications") {
+    if ((NOTIFICATION_FILE_EXTENSIONS as readonly string[]).includes(ext)) return ext;
     return null;
   }
 
@@ -72,7 +99,9 @@ export async function storePrivateUpload(
     const allowed =
       folder === "sponsors"
         ? "PDF, Word (.doc, .docx)"
-        : "PDF, JPEG, PNG, WebP, GIF";
+        : folder === "notifications"
+          ? "PDF, images, Office documents, zip, audio, and video"
+          : "PDF, JPEG, PNG, WebP, GIF";
     throw new Error(`Invalid file type. Allowed: ${allowed}`);
   }
 

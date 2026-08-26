@@ -72,7 +72,7 @@ async function authorizeFileAccess(
     return user.role === "student" || user.role === "parent";
   }
 
-  if (folder === "portfolio" || folder === "messages") {
+  if (folder === "portfolio" || folder === "messages" || folder === "notifications") {
     return ["administrator", "instructor", "parent", "student"].includes(user.role);
   }
 

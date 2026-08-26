@@ -12,6 +12,7 @@ import {
   UPLOAD_DIRS,
 } from "@/lib/constants";
 import { deleteStoredUploadByUrl, storeUploadedImage } from "@/lib/services/stored-upload";
+import { storePrivateUpload } from "@/lib/services/private-stored-upload";
 
 const PUBLIC_UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
 const PRIVATE_STORAGE_ROOT = path.join(process.cwd(), "storage", "private");
@@ -63,28 +64,21 @@ export async function uploadPublicImage(
 export async function uploadCampaignFile(
   file: File
 ): Promise<{ url: string; filename: string; originalName: string }> {
-  if (file.size > MAX_CAMPAIGN_UPLOAD_SIZE) {
-    throw new Error(
-      `File too large. Maximum size is ${Math.round(MAX_CAMPAIGN_UPLOAD_SIZE / 1024 / 1024)}MB`
-    );
+  const maxSize = Math.min(MAX_CAMPAIGN_UPLOAD_SIZE, 50 * 1024 * 1024);
+  if (file.size > maxSize) {
+    throw new Error(`File too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB`);
   }
 
-  const filename = safeFilename(file.name, ALLOWED_CAMPAIGN_EXTENSIONS);
-  const dir = path.join(PUBLIC_UPLOAD_ROOT, UPLOAD_DIRS.campaigns);
-  await fs.mkdir(dir, { recursive: true });
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const filepath = path.join(dir, filename);
-
-  if (!filepath.startsWith(dir)) {
-    throw new Error("Invalid upload path");
+  const ext = path.extname(file.name).toLowerCase();
+  if (!ALLOWED_CAMPAIGN_EXTENSIONS.includes(ext)) {
+    throw new Error("Invalid file type for attachment upload");
   }
 
-  await fs.writeFile(filepath, buffer);
+  const uploaded = await storePrivateUpload(file, "notifications", maxSize);
   return {
-    url: `/uploads/${UPLOAD_DIRS.campaigns}/${filename}`,
-    filename,
-    originalName: file.name,
+    url: uploaded.path,
+    filename: uploaded.filename,
+    originalName: uploaded.originalName,
   };
 }
 

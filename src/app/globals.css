@@ -114,6 +114,26 @@ canvas {
   border-radius: 0.5rem;
 }
 
+.dr-boom-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.dr-boom-marquee-track {
+  display: inline-flex;
+  gap: 2rem;
+  animation: dr-boom-marquee 40s linear infinite;
+}
+
+@keyframes dr-boom-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

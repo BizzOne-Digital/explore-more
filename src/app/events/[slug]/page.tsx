@@ -97,7 +97,21 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
         </div>
       )}
       <section className="relative w-full overflow-hidden bg-explore-charcoal text-white pt-28 pb-16">
-        <div className="absolute inset-0 bg-gradient-to-br from-explore-charcoal via-explore-teal/20 to-explore-charcoal" />
+        {event.coverImage ? (
+          <div className="absolute inset-0">
+            <AppImage
+              src={resolveImageUrl(event.coverImage)}
+              alt=""
+              fill
+              className="object-cover opacity-30"
+              sizes="100vw"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-explore-charcoal via-explore-charcoal/80 to-explore-charcoal/60" />
+          </div>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-explore-charcoal via-explore-teal/20 to-explore-charcoal" />
+        )}
 
         <div className="relative mx-auto flex min-h-[320px] w-full max-w-6xl flex-col justify-end px-4 pb-12 sm:px-6 lg:min-h-[380px] lg:pb-16">
           <div className="flex flex-wrap gap-2">

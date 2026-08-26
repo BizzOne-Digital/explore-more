@@ -11,6 +11,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { gradeSelectOptions, ALL_GRADES_VALUE } from "@/lib/grades";
 import { EventPackagesEditor } from "@/components/admin/EventPackagesEditor";
+import { ImageUpload } from "@/components/admin/ImageUpload";
+import { deleteStoredUploadByUrl } from "@/lib/services/stored-upload-client";
+import { resolveImageUrl } from "@/lib/images/resolve";
 import { normalizeEventPackages, type EventPackage } from "@/lib/events/packages";
 
 const schema = z.object({
@@ -19,6 +22,7 @@ const schema = z.object({
   grade: z.string().min(1, "Grade is required"),
   shortDescription: z.string().min(1, "Short description is required"),
   fullDescription: z.string().min(1, "Full description is required"),
+  coverImage: z.string().optional(),
   location: z.string().min(1, "Location is required"),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
@@ -58,6 +62,10 @@ export function EventForm({
   const [packages, setPackages] = useState<EventPackage[]>(
     () => normalizeEventPackages(initialData?.packages)
   );
+  const [gallery, setGallery] = useState<string[]>(
+    () => (Array.isArray(initialData?.gallery) ? (initialData.gallery as string[]) : [])
+  );
+  const [galleryUploadKey, setGalleryUploadKey] = useState(0);
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -65,6 +73,7 @@ export function EventForm({
       slug: (initialData?.slug as string) ?? "",
       shortDescription: (initialData?.shortDescription as string) ?? "",
       fullDescription: (initialData?.fullDescription as string) ?? "",
+      coverImage: (initialData?.coverImage as string) ?? "",
       location: (initialData?.location as string) ?? "",
       startDate: initialData?.startDate ? new Date(initialData.startDate as string).toISOString().slice(0, 10) : "",
       endDate: initialData?.endDate ? new Date(initialData.endDate as string).toISOString().slice(0, 10) : "",
@@ -102,6 +111,7 @@ export function EventForm({
     
     const finalData = { 
       ...data, 
+      coverImage: data.coverImage?.trim() || undefined,
       startDate: new Date(data.startDate), 
       endDate: new Date(data.endDate),
       registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : undefined,
@@ -124,7 +134,7 @@ export function EventForm({
     const res = await fetch(url, { 
       method: isNew ? "POST" : "PUT", 
       headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify({ ...finalData, packages }) 
+      body: JSON.stringify({ ...finalData, packages, gallery }) 
     });
     const json = await res.json();
     if (!json.success) { 
@@ -214,6 +224,62 @@ export function EventForm({
               disabled={Boolean(defaultGrade && isNew)}
             />
           </FormField>
+        </FormSection>
+
+        <FormSection title="Event Images">
+          <div className="sm:col-span-2">
+            <ImageUpload
+              label="Cover image"
+              value={watch("coverImage") || ""}
+              onChange={(url) => setValue("coverImage", url)}
+              folder="events"
+            />
+            <p className="mt-2 text-xs text-white/50">
+              Shown on the Events list and at the top of the event detail page.
+            </p>
+          </div>
+
+          <div className="sm:col-span-2 space-y-3">
+            <p className="text-sm font-medium text-white/80">Gallery photos (optional)</p>
+            {gallery.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {gallery.map((url, index) => (
+                  <div key={`${url}-${index}`} className="relative overflow-hidden rounded-lg border border-white/10">
+                    <img
+                      src={resolveImageUrl(url)}
+                      alt={`Gallery photo ${index + 1}`}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await deleteStoredUploadByUrl(url);
+                        setGallery((prev) => prev.filter((_, i) => i !== index));
+                      }}
+                      className="absolute right-2 top-2 rounded-md bg-black/60 px-2 py-1 text-xs text-white hover:bg-black/80"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <ImageUpload
+              key={galleryUploadKey}
+              label="Add gallery photo"
+              value=""
+              onChange={(url) => {
+                if (url) {
+                  setGallery((prev) => [...prev, url]);
+                  setGalleryUploadKey((k) => k + 1);
+                }
+              }}
+              folder="events"
+            />
+            <p className="text-xs text-white/50">
+              Extra photos appear in a gallery section on the event page.
+            </p>
+          </div>
         </FormSection>
 
         <FormSection title="Date & Time">

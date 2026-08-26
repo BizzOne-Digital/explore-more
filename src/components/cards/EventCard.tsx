@@ -1,8 +1,9 @@
 import { format } from "date-fns";
 import { MapPin, Calendar } from "lucide-react";
-import { Card, CardBody, CardTitle, CardDescription } from "@/components/ui/Card";
+import { Card, CardBody, CardTitle, CardDescription, CardImage } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCents } from "@/lib/utils";
+import { resolveImageUrl } from "@/lib/images/resolve";
 
 import type { PublicEvent } from "@/types/public";
 
@@ -13,6 +14,9 @@ interface EventCardProps {
 export function EventCard({ event }: EventCardProps) {
   return (
     <Card href={`/events/${event.slug}`}>
+      {event.coverImage && (
+        <CardImage src={resolveImageUrl(event.coverImage)} alt={event.title} />
+      )}
       <CardBody>
         <div className="mb-3 flex flex-wrap gap-2">
           {event.category && <Badge variant="teal">{event.category}</Badge>}

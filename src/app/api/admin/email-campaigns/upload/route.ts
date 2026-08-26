@@ -1,5 +1,5 @@
 import connectDB from "@/lib/db";
-import { ensureUploadDirs, uploadCampaignFile } from "@/lib/services/upload";
+import { uploadCampaignFile } from "@/lib/services/upload";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { requireRole } from "@/lib/api/auth-helpers";
 
@@ -21,7 +21,6 @@ export async function POST(request: Request) {
     }
 
     await connectDB();
-    await ensureUploadDirs();
     const result = await uploadCampaignFile(file);
 
     return apiSuccess(

@@ -26,6 +26,10 @@ import {
   mapPublicBooks,
   PUBLISHED_BOOK_FILTER,
 } from "@/lib/content/public-book";
+import {
+  mapPublicCampaign,
+  mapPublicCampaigns,
+} from "@/lib/content/public-campaign";
 
 async function withDb<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -231,13 +235,17 @@ export async function getPublishedCampaigns(): Promise<PublicCampaign[]> {
     const campaigns = await DonationCampaign.find({ status: "published" })
       .sort({ featured: -1, createdAt: -1 })
       .lean();
-    return serialize(campaigns) as unknown as PublicCampaign[];
+    return mapPublicCampaigns(
+      serialize(campaigns) as unknown as Record<string, unknown>[]
+    );
   }, []);
 }
 
 export async function getCampaignBySlug(slug: string): Promise<PublicCampaign | null> {
   return withDb(async () => {
     const campaign = await DonationCampaign.findOne({ slug, status: "published" }).lean();
-    return campaign ? (serialize(campaign) as unknown as PublicCampaign) : null;
+    return campaign
+      ? mapPublicCampaign(serialize(campaign) as unknown as Record<string, unknown>)
+      : null;
   }, null);
 }

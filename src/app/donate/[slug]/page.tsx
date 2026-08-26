@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getCampaignBySlug } from "@/lib/queries/public";
 import { formatCents } from "@/lib/utils";
+import { getCampaignProgressPercent } from "@/lib/content/public-campaign";
 import { DonationForm } from "@/components/forms/DonationForm";
 
 interface Props {
@@ -24,7 +25,7 @@ export default async function DonatePage({ params }: Props) {
   const campaign = await getCampaignBySlug(slug);
   if (!campaign) notFound();
 
-  const progress = Math.min(100, Math.round((campaign.raisedCents / campaign.goalCents) * 100));
+  const progress = getCampaignProgressPercent(campaign.goalCents, campaign.raisedCents);
   const cover =
     campaign.coverImage ||
     "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1200&q=80";

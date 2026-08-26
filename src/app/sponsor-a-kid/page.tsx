@@ -10,6 +10,7 @@ import { PageHero } from "@/components/ui/PageHero";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Button } from "@/components/ui/Button";
 import { formatCents } from "@/lib/utils";
+import { getCampaignProgressPercent } from "@/lib/content/public-campaign";
 import { Card, CardBody, CardTitle } from "@/components/ui/Card";
 
 export const metadata: Metadata = {
@@ -126,7 +127,10 @@ export default async function SponsorAKidPage() {
             {campaigns.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {campaigns.map((campaign) => {
-                  const progress = Math.min(100, Math.round((campaign.raisedCents / campaign.goalCents) * 100));
+                  const progress = getCampaignProgressPercent(
+                    campaign.goalCents,
+                    campaign.raisedCents
+                  );
                   return (
                     <Card key={String(campaign._id)} href={`/donate/${campaign.slug}`}>
                       {campaign.coverImage && (

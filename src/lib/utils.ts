@@ -9,10 +9,11 @@ export function safeSlug(input: string): string {
 
 // Currency formatting - displays cents as USD
 export function formatCents(cents: number): string {
+  const value = Number.isFinite(cents) ? cents : 0;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(cents / 100);
+  }).format(value / 100);
 }
 
 export function formatCurrency(cents: number): string {

@@ -1,7 +1,7 @@
 import connectDB from "@/lib/db";
 import { readPrivateFile } from "@/lib/services/upload";
 import { readPrivateStoredFile } from "@/lib/services/private-stored-upload";
-import { Result, Certificate, Assessment, AssessmentSubmission } from "@/models";
+import { Result, Certificate, Assessment, AssessmentSubmission, UserDocument } from "@/models";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { canAccessStudentData } from "@/lib/auth/access";
 import { jsonError } from "@/lib/api/response";
@@ -74,6 +74,13 @@ async function authorizeFileAccess(
 
   if (folder === "portfolio" || folder === "messages" || folder === "notifications") {
     return ["administrator", "instructor", "parent", "student"].includes(user.role);
+  }
+
+  if (folder === "user-documents") {
+    const doc = await UserDocument.findOne({ path: relativePath }).lean();
+    if (!doc) return false;
+    if (["administrator", "instructor", "staff"].includes(user.role)) return true;
+    return doc.userId.toString() === user.id;
   }
 
   return false;

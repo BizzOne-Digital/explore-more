@@ -44,7 +44,7 @@ export function DrBoomShowExperience() {
   return (
     <>
       {/* Hero */}
-      <section className="relative min-h-[90vh] overflow-hidden bg-explore-black text-white">
+      <section className="relative min-h-[90vh] overflow-hidden bg-explore-black pt-28 text-white md:pt-32">
         <div className="absolute inset-0">
           <Image
             src={DR_BOOM_IMAGES.spectacular}
@@ -57,7 +57,7 @@ export function DrBoomShowExperience() {
           <div className="absolute inset-0 bg-gradient-to-b from-explore-black/60 via-explore-black/35 to-explore-black/90" />
         </div>
 
-        <div className="relative mx-auto flex min-h-[90vh] w-full max-w-7xl flex-col items-center justify-center px-4 py-24 text-center sm:px-6">
+        <div className="relative mx-auto flex min-h-[calc(90vh-7rem)] w-full max-w-7xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 md:min-h-[calc(90vh-8rem)]">
           <p className="rounded-full border border-explore-orange/40 bg-explore-orange/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-explore-orange">
             ⚠️ CAUTION: EXTREME CURIOSITY AHEAD!
           </p>

@@ -15,6 +15,7 @@ import {
   FormSection,
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { safeSlug } from "@/lib/utils";
 import { gradeSelectOptions, ALL_GRADES_VALUE } from "@/lib/grades";
 
@@ -24,6 +25,7 @@ const schema = z.object({
   tagline: z.string().min(1),
   shortDescription: z.string().min(1),
   overview: z.string().min(1),
+  heroImage: z.string().optional(),
   grade: z.string().min(1, "Grade is required"),
   ageRange: z.string().optional(),
   schedule: z.string().optional(),
@@ -61,6 +63,7 @@ export function ProgramForm({
       tagline: (initialData?.tagline as string) ?? "",
       shortDescription: (initialData?.shortDescription as string) ?? "",
       overview: (initialData?.overview as string) ?? "",
+      heroImage: (initialData?.heroImage as string) ?? "",
       ageRange: (initialData?.ageRange as string) ?? "",
       grade: (initialData?.grade as string) ?? defaultGrade ?? "",
       schedule: (initialData?.schedule as string) ?? "",
@@ -83,7 +86,16 @@ export function ProgramForm({
     const res = await fetch(url, {
       method: isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, benefits: [], activities: [], faqs: [], detailSections: [], gallery: [] }),
+      body: JSON.stringify({
+        ...data,
+        heroImage: data.heroImage?.trim() || undefined,
+        benefits: (initialData?.benefits as string[]) ?? [],
+        activities: (initialData?.activities as string[]) ?? [],
+        faqs: (initialData?.faqs as { question: string; answer: string }[]) ?? [],
+        detailSections:
+          (initialData?.detailSections as { title: string; content: string; order: number }[]) ?? [],
+        gallery: (initialData?.gallery as string[]) ?? [],
+      }),
     });
     const json = await res.json();
     if (!json.success) {
@@ -182,6 +194,20 @@ export function ProgramForm({
           </FormField>
           <div className="sm:col-span-2">
             <CheckboxInput registration={register("featured")} label="Featured" />
+          </div>
+        </FormSection>
+        <FormSection title="Program Image">
+          <div className="sm:col-span-2">
+            <ImageUpload
+              label="Cover image"
+              value={watch("heroImage") || ""}
+              onChange={(url) => setValue("heroImage", url)}
+              folder="programs"
+            />
+            <p className="mt-2 text-xs text-white/50">
+              Shown on the Programs page, program detail page, and Sponsor a Kid when this program is listed for
+              sponsorship.
+            </p>
           </div>
         </FormSection>
         <FormSection title="Sponsorship">

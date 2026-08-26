@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getSponsorableProgramBySlug } from "@/lib/queries/public";
-import { SponsorProgramForm, buildSuggestedAmounts } from "@/components/forms/SponsorProgramForm";
+import { SponsorProgramForm } from "@/components/forms/SponsorProgramForm";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -50,7 +50,7 @@ export default async function SponsorProgramPage({ params }: Props) {
             <SponsorProgramForm
               programSlug={program.slug}
               programTitle={program.title}
-              suggestedAmounts={buildSuggestedAmounts(program.sponsorshipAmount)}
+              sponsorshipAmount={program.sponsorshipAmount}
             />
           </div>
         </div>

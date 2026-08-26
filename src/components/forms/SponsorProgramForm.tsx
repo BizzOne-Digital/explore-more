@@ -5,18 +5,20 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { formatCents } from "@/lib/utils";
+import { buildSuggestedAmounts } from "@/lib/sponsors/program-amounts";
 
 interface SponsorProgramFormProps {
   programSlug: string;
   programTitle: string;
-  suggestedAmounts: number[];
+  sponsorshipAmount?: number;
 }
 
 export function SponsorProgramForm({
   programSlug,
   programTitle,
-  suggestedAmounts,
+  sponsorshipAmount,
 }: SponsorProgramFormProps) {
+  const suggestedAmounts = buildSuggestedAmounts(sponsorshipAmount);
   const [amount, setAmount] = useState(suggestedAmounts[0] || 2500);
   const [customAmount, setCustomAmount] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -114,11 +116,3 @@ export function SponsorProgramForm({
     </form>
   );
 }
-
-function buildSuggestedAmounts(sponsorshipAmount?: number): number[] {
-  const base = sponsorshipAmount && sponsorshipAmount > 0 ? Math.round(sponsorshipAmount * 100) : 2500;
-  const amounts = [base, base * 2, base * 4, base * 10].filter((v, i, arr) => v >= 100 && arr.indexOf(v) === i);
-  return amounts.length ? amounts : [2500, 5000, 10000, 25000];
-}
-
-export { buildSuggestedAmounts };

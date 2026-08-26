@@ -131,12 +131,12 @@ export function DrBoomExperience() {
             alt=""
             fill
             priority
-            className="object-cover object-center opacity-50"
+            className="object-cover object-center opacity-75"
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-explore-black/70 via-explore-black/50 to-explore-black" />
+          <div className="absolute inset-0 bg-gradient-to-b from-explore-black/40 via-explore-black/25 to-explore-black/80" />
           <div
-            className="absolute inset-0 opacity-30"
+            className="absolute inset-0 opacity-15"
             style={{
               backgroundImage:
                 "radial-gradient(circle at 20% 30%, rgba(184,239,36,0.25) 0%, transparent 45%), radial-gradient(circle at 80% 20%, rgba(255,90,16,0.2) 0%, transparent 40%)",

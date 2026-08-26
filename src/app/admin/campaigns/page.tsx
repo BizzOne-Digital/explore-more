@@ -10,8 +10,29 @@ async function getData() {
   return serialize(items);
 }
 
+function mapCampaignRows(
+  raw: Array<Record<string, unknown>>
+): CampaignRow[] {
+  return raw.map((item) => ({
+    _id: String(item._id),
+    title: item.title as string | undefined,
+    goalAmount: item.goalAmount as number | undefined,
+    raisedAmount: item.raisedAmount as number | undefined,
+    status: item.status as string | undefined,
+    publishedToWebsite: item.publishedToWebsite as boolean | undefined,
+  }));
+}
+
 export default async function Page() {
-  const data = await getData();
+  let data: CampaignRow[] = [];
+  let loadError: string | null = null;
+
+  try {
+    data = mapCampaignRows((await getData()) as unknown as Array<Record<string, unknown>>);
+  } catch (error) {
+    console.error("[admin/campaigns]", error);
+    loadError = "Could not load campaigns. Check database connection and try again.";
+  }
 
   return (
     <div>
@@ -20,7 +41,13 @@ export default async function Page() {
         description="Manage fundraising campaigns"
         action={{ label: "New Campaign", href: "/admin/campaigns/new" }}
       />
-      <CampaignsTable data={data as unknown as CampaignRow[]} />
+      {loadError ? (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {loadError}
+        </div>
+      ) : (
+        <CampaignsTable data={data} />
+      )}
     </div>
   );
 }

@@ -15,6 +15,16 @@ async function getData(grade: GradeLevel) {
   return serialize(items);
 }
 
+function mapProgramRows(raw: Array<Record<string, unknown>>): ProgramRow[] {
+  return raw.map((item) => ({
+    _id: String(item._id),
+    title: item.title as string | undefined,
+    tagline: item.tagline as string | undefined,
+    grade: item.grade as string | undefined,
+    status: item.status as string | undefined,
+  }));
+}
+
 export default async function Page({
   searchParams,
 }: {
@@ -33,7 +43,15 @@ export default async function Page({
     );
   }
 
-  const data = await getData(grade);
+  let data: ProgramRow[] = [];
+  let loadError: string | null = null;
+
+  try {
+    data = mapProgramRows((await getData(grade)) as unknown as Array<Record<string, unknown>>);
+  } catch (error) {
+    console.error("[admin/programs]", error);
+    loadError = "Could not load programs. Check database connection and try again.";
+  }
 
   return (
     <div>
@@ -46,7 +64,13 @@ export default async function Page({
           href: `/admin/programs/new?grade=${encodeURIComponent(grade)}`,
         }}
       />
-      <ProgramsTable data={data as unknown as ProgramRow[]} />
+      {loadError ? (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {loadError}
+        </div>
+      ) : (
+        <ProgramsTable data={data} />
+      )}
     </div>
   );
 }

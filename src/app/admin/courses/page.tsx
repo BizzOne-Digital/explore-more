@@ -15,6 +15,19 @@ async function getData(grade: GradeLevel) {
   return serialize(items);
 }
 
+function mapCourseRows(raw: Array<Record<string, unknown>>): CourseRow[] {
+  return raw.map((item) => ({
+    _id: String(item._id),
+    title: item.title as string | undefined,
+    instructor: item.instructor as string | undefined,
+    courseType: item.courseType as string | undefined,
+    priceAmount: item.priceAmount as number | undefined,
+    status: item.status as string | undefined,
+    publishedToWebsite: item.publishedToWebsite as boolean | undefined,
+    enrollmentStatus: item.enrollmentStatus as string | undefined,
+  }));
+}
+
 export default async function Page({
   searchParams,
 }: {
@@ -33,7 +46,15 @@ export default async function Page({
     );
   }
 
-  const data = await getData(grade);
+  let data: CourseRow[] = [];
+  let loadError: string | null = null;
+
+  try {
+    data = mapCourseRows((await getData(grade)) as unknown as Array<Record<string, unknown>>);
+  } catch (error) {
+    console.error("[admin/courses]", error);
+    loadError = "Could not load courses. Check database connection and try again.";
+  }
 
   return (
     <div>
@@ -46,7 +67,13 @@ export default async function Page({
           href: `/admin/courses/new?grade=${encodeURIComponent(grade)}`,
         }}
       />
-      <CoursesTable data={data as unknown as CourseRow[]} />
+      {loadError ? (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {loadError}
+        </div>
+      ) : (
+        <CoursesTable data={data} />
+      )}
     </div>
   );
 }

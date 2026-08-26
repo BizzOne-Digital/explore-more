@@ -1,8 +1,7 @@
 import connectDB from "@/lib/db";
 import { DonationCampaign } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { DeletableDataTable } from "@/components/admin/DeletableDataTable";
-import { StatusBadge } from "@/components/admin/StatusBadge";
+import { CampaignsTable, type CampaignRow } from "@/components/admin/CampaignsTable";
 import { serialize } from "@/lib/admin/serialize";
 
 async function getData() {
@@ -21,39 +20,7 @@ export default async function Page() {
         description="Manage fundraising campaigns"
         action={{ label: "New Campaign", href: "/admin/campaigns/new" }}
       />
-      <DeletableDataTable
-        columns={[
-          { key: "title", header: "Title" },
-          { key: "goalAmount", header: "Goal", render: (row) => `$${Number(row.goalAmount).toFixed(2)}` },
-          { key: "raisedAmount", header: "Raised", render: (row) => `$${Number(row.raisedAmount || 0).toFixed(2)}` },
-          {
-            key: "progress",
-            header: "Progress",
-            render: (row) => {
-              const goal = Number(row.goalAmount) || 1;
-              const raised = Number(row.raisedAmount) || 0;
-              const percent = Math.min(100, Math.round((raised / goal) * 100));
-              return `${percent}%`;
-            },
-          },
-          { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
-          {
-            key: "publishedToWebsite",
-            header: "Website",
-            render: (row) =>
-              row.publishedToWebsite ? (
-                <span className="text-xs text-green-400">✓ Published</span>
-              ) : (
-                <span className="text-xs text-white/40">Not published</span>
-              ),
-          },
-        ]}
-        data={data as unknown as { _id: string; title?: string; goalAmount?: number; raisedAmount?: number; status?: string; publishedToWebsite?: boolean }[]}
-        rowHref={(row) => "/admin/campaigns/" + String(row._id)}
-        deleteUrl={(row) => `/api/admin/campaigns/${row._id}`}
-        itemLabel={(row) => String(row.title ?? "this campaign")}
-        emptyMessage="No records found."
-      />
+      <CampaignsTable data={data as unknown as CampaignRow[]} />
     </div>
   );
 }

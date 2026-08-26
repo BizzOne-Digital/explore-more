@@ -1,8 +1,7 @@
 import connectDB from "@/lib/db";
 import { Program } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { DeletableDataTable } from "@/components/admin/DeletableDataTable";
-import { StatusBadge } from "@/components/admin/StatusBadge";
+import { ProgramsTable, type ProgramRow } from "@/components/admin/ProgramsTable";
 import { GradeHub } from "@/components/admin/GradeHub";
 import { GradeBreadcrumb } from "@/components/admin/GradeBreadcrumb";
 import { serialize } from "@/lib/admin/serialize";
@@ -47,19 +46,7 @@ export default async function Page({
           href: `/admin/programs/new?grade=${encodeURIComponent(grade)}`,
         }}
       />
-      <DeletableDataTable
-        columns={[
-          { key: "title", header: "Title" },
-          { key: "tagline", header: "Tagline" },
-          { key: "grade", header: "Grade", render: (row) => formatGradeLabel(String(row.grade ?? "")) },
-          { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
-        ]}
-        data={data as unknown as { _id: string; title?: string; tagline?: string; grade?: string; status?: string }[]}
-        rowHref={(row) => "/admin/programs/" + String(row._id)}
-        deleteUrl={(row) => `/api/admin/programs/${row._id}`}
-        itemLabel={(row) => String(row.title ?? "this program")}
-        emptyMessage="No programs found for this grade."
-      />
+      <ProgramsTable data={data as unknown as ProgramRow[]} />
     </div>
   );
 }

@@ -1,8 +1,7 @@
 import connectDB from "@/lib/db";
 import { Course } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { DeletableDataTable } from "@/components/admin/DeletableDataTable";
-import { StatusBadge } from "@/components/admin/StatusBadge";
+import { CoursesTable, type CourseRow } from "@/components/admin/CoursesTable";
 import { GradeHub } from "@/components/admin/GradeHub";
 import { GradeBreadcrumb } from "@/components/admin/GradeBreadcrumb";
 import { serialize } from "@/lib/admin/serialize";
@@ -47,43 +46,7 @@ export default async function Page({
           href: `/admin/courses/new?grade=${encodeURIComponent(grade)}`,
         }}
       />
-      <DeletableDataTable
-        columns={[
-          { key: "title", header: "Title" },
-          { key: "instructor", header: "Instructor" },
-          {
-            key: "priceAmount",
-            header: "Price",
-            render: (row) =>
-              row.courseType === "free" ? "Free" : `$${Number(row.priceAmount).toFixed(2)}`,
-          },
-          {
-            key: "status",
-            header: "Status",
-            render: (row) => <StatusBadge status={String(row.status)} />,
-          },
-          {
-            key: "publishedToWebsite",
-            header: "Website",
-            render: (row) =>
-              row.publishedToWebsite ? (
-                <span className="text-xs text-green-400">✓ Published</span>
-              ) : (
-                <span className="text-xs text-white/40">Not published</span>
-              ),
-          },
-          {
-            key: "enrollmentStatus",
-            header: "Enrollment",
-            render: (row) => <StatusBadge status={String(row.enrollmentStatus)} />,
-          },
-        ]}
-        data={data as unknown as { _id: string; title?: string; courseType?: string; priceAmount?: number; status?: string; publishedToWebsite?: boolean; enrollmentStatus?: string }[]}
-        rowHref={(row) => "/admin/courses/" + String(row._id)}
-        deleteUrl={(row) => `/api/admin/courses/${row._id}`}
-        itemLabel={(row) => String(row.title ?? "this course")}
-        emptyMessage="No courses found for this grade."
-      />
+      <CoursesTable data={data as unknown as CourseRow[]} />
     </div>
   );
 }

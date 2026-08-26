@@ -1,39 +1,33 @@
 "use client";
 
-import { useState, type MouseEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { DataTable, type Column } from "./DataTable";
+import { DataTable, type Column } from "@/components/admin/DataTable";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { formatGradeLabel } from "@/lib/grades";
 
-interface DeletableDataTableProps<T extends { _id: string }> {
-  data: T[];
-  columns: Column<T>[];
-  rowHref: (row: T) => string;
-  deleteUrl: (row: T) => string;
-  itemLabel?: (row: T) => string;
-  emptyMessage?: string;
-}
+export type ProgramRow = {
+  _id: string;
+  title?: string;
+  tagline?: string;
+  grade?: string;
+  status?: string;
+};
 
-export function DeletableDataTable<T extends { _id: string }>({
-  data,
-  columns,
-  rowHref,
-  deleteUrl,
-  itemLabel,
-  emptyMessage,
-}: DeletableDataTableProps<T>) {
+export function ProgramsTable({ data }: { data: ProgramRow[] }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleDelete(e: MouseEvent, row: T) {
+  async function handleDelete(e: React.MouseEvent, row: ProgramRow) {
     e.preventDefault();
     e.stopPropagation();
 
-    const label = itemLabel?.(row) ?? "this item";
+    const title = String(row.title ?? "this program");
     if (
       !confirm(
-        `Delete "${label}"?\n\nThis permanently removes it from admin and the public website. This cannot be undone.`
+        `Delete "${title}"?\n\nThis permanently removes it from admin and the public website. This cannot be undone.`
       )
     ) {
       return;
@@ -43,7 +37,7 @@ export function DeletableDataTable<T extends { _id: string }>({
     setError(null);
 
     try {
-      const res = await fetch(deleteUrl(row), { method: "DELETE" });
+      const res = await fetch(`/api/admin/programs/${row._id}`, { method: "DELETE" });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || "Delete failed");
       router.refresh();
@@ -54,8 +48,19 @@ export function DeletableDataTable<T extends { _id: string }>({
     }
   }
 
-  const columnsWithDelete: Column<T>[] = [
-    ...columns,
+  const columns: Column<ProgramRow>[] = [
+    { key: "title", header: "Title" },
+    { key: "tagline", header: "Tagline" },
+    {
+      key: "grade",
+      header: "Grade",
+      render: (row) => formatGradeLabel(String(row.grade ?? "")),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => <StatusBadge status={String(row.status)} />,
+    },
     {
       key: "actions",
       header: "",
@@ -66,7 +71,7 @@ export function DeletableDataTable<T extends { _id: string }>({
           onClick={(e) => handleDelete(e, row)}
           disabled={deletingId === row._id}
           className="rounded-lg p-2 text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
-          title="Delete permanently"
+          title="Delete program"
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -82,10 +87,10 @@ export function DeletableDataTable<T extends { _id: string }>({
         </div>
       )}
       <DataTable
-        columns={columnsWithDelete}
+        columns={columns}
         data={data}
-        rowHref={rowHref}
-        emptyMessage={emptyMessage}
+        rowHref={(row) => `/admin/programs/${row._id}`}
+        emptyMessage="No programs found for this grade."
       />
     </div>
   );

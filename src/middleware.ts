@@ -64,6 +64,11 @@ export async function middleware(request: NextRequest) {
     return withPathname(request, pathname);
   }
 
+  // Public portal entry pages (must not match /parent/* or /student/* auth gates below)
+  if (pathname === "/student-portal" || pathname === "/parent-portal") {
+    return withPathname(request, pathname);
+  }
+
   // Student portal
   if (pathname.startsWith("/student")) {
     if (pathname === "/student/signup" || pathname === "/student/login") {

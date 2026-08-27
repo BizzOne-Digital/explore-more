@@ -42,8 +42,8 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isAdmin = session?.user?.role === "administrator";
-  const parentPortalHref = isAdmin ? "/parent" : "/membership";
-  const studentPortalHref = isAdmin ? "/student" : "/membership";
+  const parentPortalHref = "/parent-portal";
+  const studentPortalHref = "/student-portal";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -100,10 +100,10 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
               </>
             ) : (
               <>
-                <Link href="/membership" className="hover:text-explore-lime transition-colors">
+                <Link href="/student-portal" className="hover:text-explore-lime transition-colors">
                   Student Portal
                 </Link>
-                <Link href="/membership" className="hover:text-explore-lime transition-colors">
+                <Link href="/parent-portal" className="hover:text-explore-lime transition-colors">
                   Parent Portal
                 </Link>
               </>

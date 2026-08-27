@@ -20,10 +20,12 @@ const publicPaths = [
   "/contact",
   "/login",
   "/register",
-  "/student/signup",
-  "/student/login",
-  "/parent/signup",
-  "/parent/login",
+    "/student/signup",
+    "/student/login",
+    "/student-portal",
+    "/parent/signup",
+    "/parent/login",
+    "/parent-portal",
   "/staff/login",
   "/verify-email",
   "/forgot-password",
@@ -66,12 +68,12 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/student")) {
     if (pathname === "/student/signup" || pathname === "/student/login") {
       if (session?.user?.role === "student") {
-        return NextResponse.redirect(new URL("/membership", request.url));
+        return NextResponse.redirect(new URL("/student-portal", request.url));
       }
       return withPathname(request, pathname);
     }
     if (!session || !["student", "administrator"].includes(session.user.role)) {
-      return NextResponse.redirect(new URL("/membership?reason=student-portal", request.url));
+      return NextResponse.redirect(new URL("/student-portal", request.url));
     }
     return withPathname(request, pathname);
   }
@@ -102,12 +104,12 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/parent")) {
     if (pathname === "/parent/signup" || pathname === "/parent/login") {
       if (session?.user?.role === "parent") {
-        return NextResponse.redirect(new URL("/membership", request.url));
+        return NextResponse.redirect(new URL("/parent-portal", request.url));
       }
       return withPathname(request, pathname);
     }
     if (!session || !["parent", "administrator"].includes(session.user.role)) {
-      return NextResponse.redirect(new URL("/membership?reason=subscription-required", request.url));
+      return NextResponse.redirect(new URL("/parent-portal", request.url));
     }
     return withPathname(request, pathname);
   }

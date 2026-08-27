@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { AuthFormShell } from "@/components/forms/AuthFormShell";
-import { StudentLoginForm } from "@/components/forms/StudentLoginForm";
+import { PortalEntryPage } from "@/components/forms/PortalEntryPage";
 import { getPortalAccessForUser } from "@/lib/membership/portal-access";
 
 export const metadata: Metadata = {
-  title: "Student Login",
-  description: "Sign in to your student portal.",
+  title: "Student Portal",
+  description: "Create your student account or sign in to the Explore More Academy student portal.",
 };
 
-export default async function StudentLoginPage() {
+export default async function StudentPortalEntryPage() {
   const session = await auth();
   if (session?.user) {
     const access = await getPortalAccessForUser(session.user.id, session.user.role, "student");
@@ -19,12 +18,5 @@ export default async function StudentLoginPage() {
     }
   }
 
-  return (
-    <AuthFormShell
-      title="Student Sign In"
-      subtitle="Access your courses, events, and track your progress."
-    >
-      <StudentLoginForm />
-    </AuthFormShell>
-  );
+  return <PortalEntryPage portal="student" />;
 }

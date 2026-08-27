@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { AuthFormShell } from "@/components/forms/AuthFormShell";
-import { ParentLoginForm } from "@/components/forms/ParentLoginForm";
+import { PortalEntryPage } from "@/components/forms/PortalEntryPage";
 import { getPortalAccessForUser } from "@/lib/membership/portal-access";
 
 export const metadata: Metadata = {
-  title: "Parent Login",
-  description: "Sign in to your parent portal.",
+  title: "Parent Portal",
+  description: "Create your parent account or sign in to the Explore More Academy parent portal.",
 };
 
-export default async function ParentLoginPage() {
+export default async function ParentPortalEntryPage() {
   const session = await auth();
   if (session?.user) {
     const access = await getPortalAccessForUser(session.user.id, session.user.role, "parent");
@@ -19,12 +18,5 @@ export default async function ParentLoginPage() {
     }
   }
 
-  return (
-    <AuthFormShell
-      title="Parent Sign In"
-      subtitle="Manage your child's learning journey and stay connected."
-    >
-      <ParentLoginForm />
-    </AuthFormShell>
-  );
+  return <PortalEntryPage portal="parent" />;
 }

@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (!session?.user) redirect("/membership?reason=student-portal");
+  if (!session?.user) redirect("/student-portal");
 
   const isAdmin = session.user.role === "administrator";
 

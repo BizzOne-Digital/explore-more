@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ParentSidebar } from "@/components/parent/ParentSidebar";
 import { ParentHeader } from "@/components/parent/ParentHeader";
+import type { MembershipFeature } from "@/lib/membership/entitlements";
 
 interface ParentShellProps {
   children: React.ReactNode;
@@ -8,7 +9,8 @@ interface ParentShellProps {
   guardianId?: string;
   unreadMessages?: number;
   unreadNotifications?: number;
-  navGroups: import("@/lib/parent/nav").ParentNavGroup[];
+  showAllNav?: boolean;
+  membershipFeatures?: MembershipFeature[];
   signOutAction: () => Promise<void>;
 }
 
@@ -18,7 +20,8 @@ export function ParentShell({
   guardianId,
   unreadMessages,
   unreadNotifications,
-  navGroups,
+  showAllNav,
+  membershipFeatures,
   signOutAction,
 }: ParentShellProps) {
   return (
@@ -28,7 +31,8 @@ export function ParentShell({
           guardianId={guardianId}
           unreadMessages={unreadMessages}
           unreadNotifications={unreadNotifications}
-          navGroups={navGroups}
+          showAllNav={showAllNav}
+          membershipFeatures={membershipFeatures}
         />
       </Suspense>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

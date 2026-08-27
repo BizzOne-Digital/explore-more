@@ -5,22 +5,29 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import type { ParentNavGroup } from "@/lib/parent/nav";
+import { parentNavGroups } from "@/lib/parent/nav";
+import { filterParentNavForMembership } from "@/lib/membership/nav-filter";
+import type { MembershipFeature } from "@/lib/membership/entitlements";
 import { CopyIdButton } from "@/components/parent/CopyIdButton";
 
 interface ParentSidebarProps {
   guardianId?: string;
   unreadMessages?: number;
   unreadNotifications?: number;
-  navGroups: ParentNavGroup[];
+  showAllNav?: boolean;
+  membershipFeatures?: MembershipFeature[];
 }
 
 export function ParentSidebar({
   guardianId,
   unreadMessages = 0,
   unreadNotifications = 0,
-  navGroups,
+  showAllNav = false,
+  membershipFeatures = [],
 }: ParentSidebarProps) {
+  const navGroups = showAllNav
+    ? parentNavGroups
+    : filterParentNavForMembership(membershipFeatures);
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 

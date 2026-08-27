@@ -7,7 +7,6 @@ import { Conversation } from "@/models";
 import { ParentShell } from "@/components/parent/ParentShell";
 import { ensureGuardianId } from "@/lib/parent/guardian-id";
 import { getParentMembershipAccess } from "@/lib/membership/access";
-import { filterParentNavForMembership } from "@/lib/membership/nav-filter";
 import { getRequiredFeatureForParentPath } from "@/lib/membership/route-features";
 import { parentSignOut } from "@/app/parent/(portal)/actions";
 
@@ -88,10 +87,6 @@ export default async function ParentPortalLayout({ children }: { children: React
     }
   }
 
-  const navGroups = isAdmin
-    ? (await import("@/lib/parent/nav")).parentNavGroups
-    : filterParentNavForMembership(access.features);
-
   let guardianId: string | undefined;
   let counts = { messages: 0, notifications: 0 };
   try {
@@ -108,7 +103,8 @@ export default async function ParentPortalLayout({ children }: { children: React
       guardianId={guardianId}
       unreadMessages={counts.messages}
       unreadNotifications={counts.notifications}
-      navGroups={navGroups}
+      showAllNav={isAdmin}
+      membershipFeatures={isAdmin ? undefined : access.features}
       signOutAction={parentSignOut}
     >
       {children}

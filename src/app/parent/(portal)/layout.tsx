@@ -28,12 +28,16 @@ async function getParentCounts(userId: string) {
         sentAt: { $ne: null },
       }).select("_id");
       if (sent.length === 0) return 0;
-      const read = await ParentNotificationRead.countDocuments({
+      const reads = await ParentNotificationRead.find({
         userId,
         notificationId: { $in: sent.map((n) => n._id) },
-        readAt: { $ne: null },
       });
-      return Math.max(0, sent.length - read);
+      const readMap = new Map(reads.map((r) => [r.notificationId.toString(), r]));
+      return sent.filter((n) => {
+        const record = readMap.get(n._id.toString());
+        if (record?.deletedAt) return false;
+        return !record?.readAt;
+      }).length;
     })(),
   ]);
   return { messages, notifications };

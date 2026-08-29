@@ -2,16 +2,15 @@ import Link from "next/link";
 import connectDB from "@/lib/db";
 import { ServiceRequest, Program } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { DataTable, type Column } from "@/components/admin/DataTable";
-import { StatusBadge } from "@/components/admin/StatusBadge";
 import { GradeHub } from "@/components/admin/GradeHub";
 import { GradeBreadcrumb } from "@/components/admin/GradeBreadcrumb";
-import { ServiceRequestStatusSelect } from "@/components/admin/ServiceRequestStatusSelect";
-import { serialize, formatDate } from "@/lib/admin/serialize";
+import { ServiceRequestInquiryList, type ServiceRequestInquiry } from "@/components/admin/ServiceRequestInquiryList";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { serialize } from "@/lib/admin/serialize";
 import { formatGradeLabel, gradeFilterForLevel, isGradeLevel } from "@/lib/grades";
 import type { GradeLevel } from "@/lib/grades";
 
-async function getDataByGrade(grade: GradeLevel) {
+async function getDataByGrade(grade: GradeLevel): Promise<ServiceRequestInquiry[]> {
   await connectDB();
   const programIds = await Program.find(gradeFilterForLevel(grade)).select("_id").lean();
   const ids = programIds.map((p) => p._id);
@@ -19,62 +18,26 @@ async function getDataByGrade(grade: GradeLevel) {
     .populate("programId", "title grade")
     .sort({ createdAt: -1 })
     .lean();
-  return serialize(items);
+  return serialize(items) as unknown as ServiceRequestInquiry[];
 }
 
-async function getAllData() {
+async function getAllData(): Promise<ServiceRequestInquiry[]> {
   await connectDB();
   const items = await ServiceRequest.find()
     .populate("programId", "title grade")
     .sort({ createdAt: -1 })
     .lean();
-  return serialize(items);
+  return serialize(items) as unknown as ServiceRequestInquiry[];
 }
 
-async function getPendingData() {
+async function getPendingData(): Promise<ServiceRequestInquiry[]> {
   await connectDB();
   const items = await ServiceRequest.find({ status: "new" })
     .populate("programId", "title grade")
     .sort({ createdAt: -1 })
     .lean();
-  return serialize(items);
+  return serialize(items) as unknown as ServiceRequestInquiry[];
 }
-
-type ServiceRequestRow = Record<string, unknown>;
-
-const requestColumns: Column<ServiceRequestRow>[] = [
-  { key: "studentName", header: "Student" },
-  { key: "parentName", header: "Parent" },
-  { key: "email", header: "Email" },
-  {
-    key: "programId",
-    header: "Program",
-    render: (row) => {
-      const program = row.programId as { title?: string } | null;
-      return program?.title ?? "—";
-    },
-  },
-  {
-    key: "programGrade",
-    header: "Grade",
-    render: (row) => {
-      const program = row.programId as { grade?: string } | null;
-      return program?.grade ? formatGradeLabel(program.grade) : "—";
-    },
-  },
-  {
-    key: "status",
-    header: "Status",
-    render: (row) => (
-      <ServiceRequestStatusSelect id={String(row._id)} status={String(row.status)} />
-    ),
-  },
-  {
-    key: "createdAt",
-    header: "Submitted",
-    render: (row) => formatDate(row.createdAt as string),
-  },
-];
 
 export default async function Page({
   searchParams,
@@ -99,11 +62,7 @@ export default async function Page({
             Back to grade hub
           </Link>
         </PageHeader>
-        <DataTable
-          columns={requestColumns}
-          data={data as unknown as ServiceRequestRow[]}
-          emptyMessage="No service requests found."
-        />
+        <ServiceRequestInquiryList data={data} emptyMessage="No service requests found." />
       </div>
     );
   }
@@ -137,9 +96,8 @@ export default async function Page({
               These are new program booking inquiries — not parent portal messages. Mark as
               contacted or completed to clear them from the dashboard count.
             </p>
-            <DataTable
-              columns={requestColumns}
-              data={pending as unknown as ServiceRequestRow[]}
+            <ServiceRequestInquiryList
+              data={pending}
               emptyMessage="No pending inquiries."
             />
           </section>
@@ -163,9 +121,8 @@ export default async function Page({
         title={`${formatGradeLabel(grade)} Service Requests`}
         description="Program inquiry requests for this grade"
       />
-      <DataTable
-        columns={requestColumns}
-        data={data as unknown as ServiceRequestRow[]}
+      <ServiceRequestInquiryList
+        data={data}
         emptyMessage="No service requests found for this grade."
       />
     </div>

@@ -47,8 +47,14 @@ export default async function ParentStudentsPage() {
                   <Link href={`/parent/students/${student.id}`} className="rounded-lg bg-explore-teal px-3 py-1.5 text-xs font-semibold text-white">
                     View Student Dashboard
                   </Link>
-                  <Link href={`/parent/portfolio?student=${student.id}`} className="rounded-lg bg-explore-sand px-3 py-1.5 text-xs font-semibold">
-                    Resources &amp; Portfolio
+                  <Link href="/parent/courses" className="rounded-lg bg-explore-sand px-3 py-1.5 text-xs font-semibold">
+                    My Courses
+                  </Link>
+                  <Link href="/parent/resources" className="rounded-lg bg-explore-sand px-3 py-1.5 text-xs font-semibold">
+                    My Resources
+                  </Link>
+                  <Link href={`/parent/portfolio?student=${student.id}`} className="rounded-lg bg-explore-teal px-3 py-1.5 text-xs font-semibold text-white">
+                    Portfolio
                   </Link>
                   <Link href={`/parent/attendance?student=${student.id}`} className="rounded-lg border border-explore-charcoal/15 px-3 py-1.5 text-xs font-semibold">
                     Attendance

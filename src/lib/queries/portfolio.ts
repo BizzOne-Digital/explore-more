@@ -73,6 +73,14 @@ export async function getPortfolioStats(portfolioId: string): Promise<PortfolioS
   for (const sample of workSamples) {
     subjectCounts[sample.subject] = (subjectCounts[sample.subject] ?? 0) + 1;
   }
+  for (const activity of activities) {
+    if (activity.category === "Field Trips") {
+      subjectCounts["Field Trips"] = (subjectCounts["Field Trips"] ?? 0) + 1;
+    }
+    if (activity.category === "Other Activities") {
+      subjectCounts["Miscellaneous"] = (subjectCounts["Miscellaneous"] ?? 0) + 1;
+    }
+  }
 
   const instructionDays = attendance.filter((a) =>
     ["present", "instruction", "field_trip", "educational_activity"].includes(a.type)

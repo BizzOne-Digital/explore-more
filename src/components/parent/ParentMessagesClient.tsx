@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, Paperclip, X } from "lucide-react";
 
 interface StaffMember {
   _id: string;
@@ -32,6 +33,126 @@ interface ThreadMessage {
   attachments?: MessageAttachment[];
 }
 
+function StaffRecipientPicker({
+  staff,
+  value,
+  onChange,
+}: {
+  staff: StaffMember[];
+  value: string;
+  onChange: (staffId: string) => void;
+}) {
+  const listId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const options = useMemo(
+    () =>
+      staff.map((member) => ({
+        value: member._id,
+        label: member.name,
+        sublabel: `${member.title} · ${member.categories.map((c) => c.label).join(", ")}`,
+        searchText: [
+          member.name,
+          member.title,
+          ...member.categories.map((c) => c.label),
+        ]
+          .join(" ")
+          .toLowerCase(),
+      })),
+    [staff]
+  );
+
+  const selected = options.find((option) => option.value === value);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((option) => option.searchText.includes(q));
+  }, [options, query]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+        if (selected) setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [selected]);
+
+  function handleSelect(staffId: string) {
+    onChange(staffId);
+    setQuery("");
+    setOpen(false);
+  }
+
+  const displayValue = open ? query : selected?.label ?? "";
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label className="mb-1 block text-sm font-medium text-explore-charcoal">
+        Who would you like to reach?
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          value={displayValue}
+          placeholder="Type a name, role, or department…"
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            if (value) onChange("");
+          }}
+          onFocus={() => setOpen(true)}
+          className="w-full rounded-lg border border-explore-charcoal/20 px-3 py-2 pr-10 text-sm focus:border-explore-teal focus:outline-none focus:ring-1 focus:ring-explore-teal"
+          autoComplete="off"
+        />
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-explore-charcoal/40" />
+      </div>
+      <p className="mt-1 text-xs text-explore-charcoal/50">
+        Start typing to search staff by name or role.
+      </p>
+      {open && (
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-explore-charcoal/10 bg-white shadow-lg"
+        >
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2.5 text-sm text-explore-charcoal/50">No matches found</li>
+          ) : (
+            filtered.map((option) => (
+              <li key={option.value} role="option" aria-selected={option.value === value}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect(option.value)}
+                  className={`w-full px-3 py-2.5 text-left text-sm transition hover:bg-explore-sand ${
+                    option.value === value ? "bg-explore-teal/10" : ""
+                  }`}
+                >
+                  <span className="block font-medium text-explore-charcoal">{option.label}</span>
+                  {option.sublabel && (
+                    <span className="mt-0.5 block text-xs text-explore-charcoal/50">
+                      {option.sublabel}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function ParentMessagesClient({
   conversations: initial,
   staff,
@@ -47,6 +168,7 @@ export function ParentMessagesClient({
   const [body, setBody] = useState("");
   const [staffId, setStaffId] = useState(staff[0]?._id ?? "");
   const [subject, setSubject] = useState("");
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -57,10 +179,27 @@ export function ParentMessagesClient({
     if (json.success) setMessages(json.data.messages);
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? []);
+    if (picked.length === 0) return;
+    setAttachedFiles((prev) => [...prev, ...picked]);
+    e.target.value = "";
+  }
+
+  function removeFile(index: number) {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (!selectedId && !staffId) {
+      setError("Please select who you would like to message.");
+      setLoading(false);
+      return;
+    }
 
     const formData = new FormData();
     formData.set("body", body);
@@ -70,11 +209,8 @@ export function ParentMessagesClient({
       formData.set("subject", subject);
     }
 
-    const files = fileInputRef.current?.files;
-    if (files) {
-      for (const file of Array.from(files)) {
-        formData.append("files", file);
-      }
+    for (const file of attachedFiles) {
+      formData.append("files", file);
     }
 
     try {
@@ -86,9 +222,13 @@ export function ParentMessagesClient({
       }
 
       setBody("");
+      setAttachedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
       router.refresh();
       if (selectedId) await loadThread(selectedId);
+      else if (json.data?.conversation?._id) {
+        await loadThread(json.data.conversation._id);
+      }
     } catch {
       setError("Failed to send message");
     } finally {
@@ -151,35 +291,74 @@ export function ParentMessagesClient({
         <form onSubmit={sendMessage} className="space-y-3 rounded-xl bg-white p-4 shadow-sm">
           {!selectedId && (
             <>
-              <select
-                value={staffId}
-                onChange={(e) => setStaffId(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-              >
-                {staff.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.name} — {s.title}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Subject"
-                required
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-              />
+              <StaffRecipientPicker staff={staff} value={staffId} onChange={setStaffId} />
+              <div>
+                <label className="mb-1 block text-sm font-medium text-explore-charcoal">
+                  Subject
+                </label>
+                <input
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="What is this about?"
+                  required
+                  className="w-full rounded-lg border border-explore-charcoal/20 px-3 py-2 text-sm focus:border-explore-teal focus:outline-none focus:ring-1 focus:ring-explore-teal"
+                />
+              </div>
             </>
           )}
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={4}
-            placeholder="Write your message…"
-            required
-            className="w-full rounded-lg border px-3 py-2 text-sm"
-          />
-          <input ref={fileInputRef} type="file" multiple className="text-sm" />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-explore-charcoal">
+              Message
+            </label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={4}
+              placeholder="Write your message…"
+              required
+              className="w-full rounded-lg border border-explore-charcoal/20 px-3 py-2 text-sm focus:border-explore-teal focus:outline-none focus:ring-1 focus:ring-explore-teal"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-lg border border-explore-charcoal/20 bg-explore-sand px-3 py-2 text-sm font-medium text-explore-charcoal hover:bg-explore-sand/80"
+            >
+              <Paperclip className="h-4 w-4" />
+              Attach files
+              <span className="text-xs font-normal text-explore-charcoal/50">(optional)</span>
+            </button>
+            {attachedFiles.length > 0 && (
+              <ul className="space-y-1">
+                {attachedFiles.map((file, index) => (
+                  <li
+                    key={`${file.name}-${index}`}
+                    className="flex items-center justify-between gap-2 rounded-lg bg-explore-cream px-3 py-1.5 text-sm"
+                  >
+                    <span className="truncate text-explore-charcoal/80">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="shrink-0 rounded p-0.5 text-explore-charcoal/40 hover:text-red-600"
+                      aria-label={`Remove ${file.name}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"

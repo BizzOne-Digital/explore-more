@@ -26,7 +26,11 @@ export default async function ParentNotificationsPage() {
 
   const readMap = new Map(reads.map((r) => [r.notificationId.toString(), r]));
 
-  const items = notifications.map((n) => {
+  const visibleNotifications = notifications.filter(
+    (n) => !readMap.get(n._id.toString())?.deletedAt
+  );
+
+  const items = visibleNotifications.map((n) => {
     const readRecord = readMap.get(n._id.toString());
     return {
       _id: n._id.toString(),

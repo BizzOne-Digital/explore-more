@@ -3,6 +3,8 @@ import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { Attendance } from "@/models";
 import { getAccessibleStudentId } from "@/lib/auth/access";
+import { ATTENDANCE_STATUSES, dayBounds } from "@/lib/attendance/status";
+import mongoose from "mongoose";
 
 export async function GET(request: Request) {
   try {
@@ -44,9 +46,11 @@ export async function POST(request: Request) {
     const sessionResult = await requireRole(["parent"]);
     if ("error" in sessionResult) return sessionResult.error;
 
-    const { studentId, sessionDate, note } = await request.json();
-    if (!studentId || !sessionDate || !note?.trim()) {
-      return apiError(new Error("studentId, sessionDate, and note are required"), 400);
+    const body = await request.json();
+    const { studentId, sessionDate, status, customLabel, notes, note } = body;
+
+    if (!studentId || !sessionDate) {
+      return apiError(new Error("studentId and sessionDate are required"), 400);
     }
 
     const accessibleId = await getAccessibleStudentId(sessionResult.user, studentId);
@@ -54,11 +58,50 @@ export async function POST(request: Request) {
 
     await connectDB();
 
-    const date = new Date(sessionDate);
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    if (status) {
+      if (!ATTENDANCE_STATUSES.includes(status)) {
+        return apiError(new Error("Invalid attendance status"), 400);
+      }
+      if (status === "other" && !customLabel?.trim()) {
+        return apiError(new Error("Please enter a custom attendance status"), 400);
+      }
+
+      const { startOfDay, endOfDay } = dayBounds(sessionDate);
+      const recordNotes =
+        status === "other"
+          ? [customLabel.trim(), notes?.trim()].filter(Boolean).join(" — ") || customLabel.trim()
+          : notes?.trim() || undefined;
+
+      const record = await Attendance.findOneAndUpdate(
+        {
+          studentId: accessibleId,
+          isDailyLog: true,
+          sessionDate: { $gte: startOfDay, $lte: endOfDay },
+        },
+        {
+          $set: {
+            studentId: new mongoose.Types.ObjectId(accessibleId),
+            sessionDate: startOfDay,
+            status,
+            notes: recordNotes,
+            recordedBy: new mongoose.Types.ObjectId(sessionResult.user.id),
+            isDailyLog: true,
+          },
+        },
+        { upsert: true, new: true, runValidators: true }
+      );
+
+      return apiSuccess({
+        record,
+        message: "Daily attendance saved.",
+      });
+    }
+
+    if (!note?.trim()) {
+      return apiError(new Error("studentId, sessionDate, and note are required"), 400);
+    }
+
+    const { startOfDay, endOfDay } = dayBounds(sessionDate);
 
     const record = await Attendance.findOneAndUpdate(
       {

@@ -6,18 +6,15 @@ import { getLinkedStudents } from "@/lib/parent/students";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { AttendanceFilters } from "@/components/parent/AttendanceFilters";
 import { AttendanceExcuseForm } from "@/components/parent/AttendanceExcuseForm";
+import { RecordDailyAttendanceForm } from "@/components/parent/RecordDailyAttendanceForm";
 import Link from "next/link";
 import { LinkChildForm } from "@/components/parent/LinkChildForm";
+import {
+  ATTENDANCE_STATUS_COLORS,
+  formatAttendanceStatus,
+} from "@/lib/attendance/status";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_COLORS = {
-  present: "bg-green-100 text-green-800 border-green-200",
-  absent: "bg-red-100 text-red-800 border-red-200",
-  late: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  excused: "bg-blue-100 text-blue-800 border-blue-200",
-  early_dismissal: "bg-purple-100 text-purple-800 border-purple-200",
-} as const;
 
 async function getStudentAttendance(studentId: string, startDate: Date, endDate: Date) {
   await connectDB();
@@ -71,7 +68,7 @@ export default async function ParentAttendancePage({
       <div>
         <h1 className="font-display text-3xl font-bold text-explore-charcoal">Attendance</h1>
         <p className="mt-2 text-explore-charcoal/60">
-          View attendance for courses, events, and tutoring sessions
+          Record daily homeschool attendance and view course, event, and tutoring sessions
         </p>
       </div>
 
@@ -120,6 +117,8 @@ export default async function ParentAttendancePage({
             <StatCard label="Early Dismissal" value={stats.earlyDismissal} className="text-purple-900" />
           </div>
 
+          <RecordDailyAttendanceForm studentId={selectedStudent.id} />
+
           <AttendanceExcuseForm studentId={selectedStudent.id} />
 
           <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -137,24 +136,37 @@ export default async function ParentAttendancePage({
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-3">
                         <p className="font-medium text-explore-charcoal">
-                          {format(new Date(record.sessionDate), "MMM dd, yyyy 'at' h:mm a")}
+                          {format(new Date(record.sessionDate), "EEEE, MMM d, yyyy")}
+                          {!record.isDailyLog &&
+                            ` · ${format(new Date(record.sessionDate), "h:mm a")}`}
                         </p>
                         <span
                           className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                            STATUS_COLORS[record.status as keyof typeof STATUS_COLORS] ??
-                            "bg-gray-100 text-gray-800"
+                            ATTENDANCE_STATUS_COLORS[
+                              record.status as keyof typeof ATTENDANCE_STATUS_COLORS
+                            ] ?? "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {record.status.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                          {formatAttendanceStatus(record.status, record.notes)}
                         </span>
+                        {record.isDailyLog && (
+                          <span className="rounded-full bg-explore-teal/10 px-2 py-0.5 text-xs font-medium text-explore-teal">
+                            Daily log
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-explore-charcoal/60">
-                        {(record.courseId as { title?: string } | null)?.title ||
-                          (record.eventId as { title?: string } | null)?.title ||
-                          "General Session"}
+                        {record.isDailyLog
+                          ? "Homeschool day"
+                          : (record.courseId as { title?: string } | null)?.title ||
+                            (record.eventId as { title?: string } | null)?.title ||
+                            "General Session"}
                       </p>
-                      {record.notes && (
-                        <p className="mt-1 text-sm italic text-explore-charcoal/50">Staff note: {record.notes}</p>
+                      {record.notes && !(record.isDailyLog && record.status === "other") && (
+                        <p className="mt-1 text-sm text-explore-charcoal/50">
+                          {record.isDailyLog ? "Note: " : "Staff note: "}
+                          {record.notes}
+                        </p>
                       )}
                       {record.parentExcuseNote && (
                         <p className="mt-1 text-sm text-blue-700">

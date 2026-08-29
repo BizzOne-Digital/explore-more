@@ -8,6 +8,8 @@ import { getDefaultPaymentMethod } from "./stripe-customer";
 import { getPaymentHistoryForParent } from "./payment-history";
 import { getStripe } from "@/lib/services/stripe";
 import { resolveMongoId } from "./utils";
+import { getParentMembershipAccess } from "@/lib/membership/access";
+import { previewPortalAccess } from "@/lib/membership/portal-preview";
 
 export async function getParentBillingSummary(userId: string) {
   const [user, profile, subscription] = await Promise.all([
@@ -48,6 +50,9 @@ export async function getParentBillingSummary(userId: string) {
   });
 
   const stripeConfigured = !!getStripe();
+
+  const portalAccess = await getParentMembershipAccess(userId);
+  const portalPreview = previewPortalAccess(plan?.slug, subscription?.status ?? "none");
 
   return {
     user: {
@@ -91,6 +96,14 @@ export async function getParentBillingSummary(userId: string) {
         },
     paymentHistory,
     stripeConfigured,
+    portalAccess: {
+      hasActiveMembership: portalAccess.hasActiveMembership,
+      tierId: portalAccess.tierId,
+      planName: portalAccess.planName,
+      features: portalAccess.features,
+      parentNavLabels: portalPreview.parentNavLabels,
+      studentNavLabels: portalPreview.studentNavLabels,
+    },
   };
 }
 

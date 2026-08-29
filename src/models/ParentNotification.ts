@@ -47,6 +47,7 @@ export interface IParentNotificationRead extends Document {
   userId: mongoose.Types.ObjectId;
   readAt?: Date;
   acknowledgedAt?: Date;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +58,7 @@ const ParentNotificationReadSchema = new Schema<IParentNotificationRead>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     readAt: Date,
     acknowledgedAt: Date,
+    deletedAt: Date,
   },
   { timestamps: true }
 );

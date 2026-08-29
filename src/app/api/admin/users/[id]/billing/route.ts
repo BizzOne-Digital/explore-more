@@ -308,6 +308,34 @@ export async function PATCH(
 
 
 
+      const statusWasProvided = typeof subBody.status === "string";
+
+      const planWasAssigned =
+
+        subBody.planId !== undefined && subBody.planId !== null && subBody.planId !== "";
+
+
+
+      if (
+
+        subscription.planId &&
+
+        subscription.status === "none" &&
+
+        !(statusWasProvided && subBody.status === "none")
+
+      ) {
+
+        subscription.status = "active";
+
+      } else if (planWasAssigned && subscription.planId && subscription.status === "none") {
+
+        subscription.status = "active";
+
+      }
+
+
+
       await subscription.save();
 
     }

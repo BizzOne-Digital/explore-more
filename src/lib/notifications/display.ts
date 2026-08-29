@@ -43,6 +43,10 @@ export function resolveNotificationFileUrl(url?: string | null): string | null {
   return `/${trimmed}`;
 }
 
+function stripLeadingSlash(path: string): string {
+  return path.startsWith("/") ? path.slice(1) : path;
+}
+
 function normalizeAttachmentPath(url: string): string | null {
   const resolved = resolveNotificationFileUrl(url);
   if (!resolved) return null;
@@ -50,15 +54,18 @@ function normalizeAttachmentPath(url: string): string | null {
   if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
     try {
       const parsed = new URL(resolved);
-      if (parsed.pathname.startsWith("/uploads/")) return parsed.pathname;
+      const pathname = stripLeadingSlash(parsed.pathname);
+      if (pathname.startsWith("uploads/")) return `/${pathname}`;
+      if (pathname.startsWith("notifications/")) return pathname;
       return null;
     } catch {
       return null;
     }
   }
 
-  if (resolved.startsWith("/uploads/")) return resolved;
-  if (resolved.startsWith("notifications/")) return resolved;
+  const withoutLeading = stripLeadingSlash(resolved);
+  if (withoutLeading.startsWith("uploads/")) return `/${withoutLeading}`;
+  if (withoutLeading.startsWith("notifications/")) return withoutLeading;
 
   return null;
 }
@@ -66,10 +73,10 @@ function normalizeAttachmentPath(url: string): string | null {
 export function isLikelyAttachmentUrl(url: string): boolean {
   if (isLocalFilesystemPath(url)) return false;
 
-  const lower = url.toLowerCase();
-  if (lower.includes("/uploads/")) return true;
+  const lower = stripLeadingSlash(url).toLowerCase();
+  if (lower.includes("uploads/")) return true;
   if (lower.startsWith("notifications/")) return true;
-  if (lower.startsWith("/api/parent/notifications/file")) return true;
+  if (url.toLowerCase().startsWith("/api/parent/notifications/file")) return true;
 
   if (lower.startsWith("http://") || lower.startsWith("https://")) {
     return (
@@ -135,12 +142,16 @@ export function sanitizeNotificationHtml(html: string): string {
 }
 
 /** Replace pasted local file paths with a parent-friendly note. */
-export function formatNotificationPlainText(message: string): string {
+export function formatNotificationPlainText(
+  message: string,
+  attachmentPath?: string | null
+): string {
   LOCAL_PATH_PATTERN.lastIndex = 0;
   const cleaned = message.replace(LOCAL_PATH_PATTERN, "").trim();
   const hadLocalPath = containsLocalFilesystemPath(message);
 
   if (!hadLocalPath) return message;
+  if (attachmentPath?.trim()) return cleaned || message.replace(LOCAL_PATH_PATTERN, "").trim();
 
   const notice =
     "The attached document was not uploaded to the portal. Please contact Explore More Academy if you need the file.";

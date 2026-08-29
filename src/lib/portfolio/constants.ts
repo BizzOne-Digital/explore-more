@@ -9,6 +9,8 @@ export const PORTFOLIO_SUBJECTS = [
   "Music",
   "Technology / Computer Studies",
   "Electives",
+  "Field Trips",
+  "Miscellaneous",
 ] as const;
 
 export type PortfolioSubject = (typeof PORTFOLIO_SUBJECTS)[number];

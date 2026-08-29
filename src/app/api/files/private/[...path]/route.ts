@@ -80,7 +80,11 @@ async function authorizeFileAccess(
     const doc = await UserDocument.findOne({ path: relativePath }).lean();
     if (!doc) return false;
     if (["administrator", "instructor", "staff"].includes(user.role)) return true;
-    return doc.userId.toString() === user.id;
+    if (doc.userId.toString() === user.id) return true;
+    if (user.role === "parent") {
+      return canAccessStudentData(user, doc.userId.toString());
+    }
+    return false;
   }
 
   return false;

@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  AdminSearchableSelect,
+  type SearchableOption,
+} from "@/components/admin/AdminSearchableSelect";
 
 interface UserOption {
   _id: string;
   name: string;
   email: string;
+  phone?: string;
+  guardianId?: string;
   studentId?: string;
 }
 
@@ -86,6 +92,12 @@ export function AdminGuardianLinksManager() {
   async function createLink(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!form.guardianId || !form.studentId) {
+      setError("Please select both a parent and a student.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -109,49 +121,69 @@ export function AdminGuardianLinksManager() {
     }
   }
 
+  const parentOptions: SearchableOption[] = useMemo(
+    () =>
+      parents.map((parent) => ({
+        value: parent._id,
+        label: parent.name,
+        sublabel: [parent.email, parent.phone, parent.guardianId ? `ID ${parent.guardianId}` : null]
+          .filter(Boolean)
+          .join(" · "),
+        searchText: [
+          parent.name,
+          parent.email,
+          parent.phone,
+          parent.phone?.replace(/\D/g, ""),
+          parent.guardianId,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase(),
+      })),
+    [parents]
+  );
+
+  const studentOptions: SearchableOption[] = useMemo(
+    () =>
+      students.map((student) => ({
+        value: student.studentId || student._id,
+        label: student.studentId ? `${student.name} — ${student.studentId}` : student.name,
+        sublabel: student.email,
+        searchText: [student.name, student.studentId, student.email]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase(),
+      })),
+    [students]
+  );
+
   if (loading) return <p className="text-sm text-white/50">Loading guardian links…</p>;
 
   return (
     <div className="space-y-6">
       <form onSubmit={createLink} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
         <p className="text-sm text-white/60">
-          Link a parent account to a student using the student&apos;s <strong className="text-explore-teal">Student ID</strong> from Admin → Students.
+          Search for a parent and student to link their accounts. Parents can be found by name, email,
+          phone, or Parent ID. Students can be found by name or Student ID.
         </p>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-xs text-white/60">Parent Account</label>
-            <select
-              value={form.guardianId}
-              onChange={(e) => setForm({ ...form, guardianId: e.target.value })}
-              className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"
-              required
-            >
-              <option value="">Select parent…</option>
-              {parents.map((parent) => (
-                <option key={parent._id} value={parent._id}>
-                  {parent.name} ({parent.email})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-white/60">Student</label>
-            <select
-              value={form.studentId}
-              onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-              className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white"
-              required
-            >
-              <option value="">Select student…</option>
-              {students.map((student) => (
-                <option key={student._id} value={student.studentId || student._id}>
-                  {student.name}
-                  {student.studentId ? ` — ${student.studentId}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
+          <AdminSearchableSelect
+            label="Parent Account"
+            placeholder="Search parent…"
+            searchHint="Name, email, phone, or Parent ID"
+            value={form.guardianId}
+            onChange={(guardianId) => setForm({ ...form, guardianId })}
+            options={parentOptions}
+          />
+          <AdminSearchableSelect
+            label="Student"
+            placeholder="Search student…"
+            searchHint="Name or Student ID"
+            value={form.studentId}
+            onChange={(studentId) => setForm({ ...form, studentId })}
+            options={studentOptions}
+          />
           <div>
             <label className="mb-1 block text-xs text-white/60">Relationship</label>
             <input

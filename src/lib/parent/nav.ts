@@ -13,6 +13,8 @@ import {
   CreditCard,
   Bell,
   UserCircle,
+  NotebookPen,
+  Library,
 } from "lucide-react";
 
 export interface ParentNavItem {
@@ -45,8 +47,10 @@ export const parentNavGroups: ParentNavGroup[] = [
   {
     title: "Learning",
     items: [
-      { label: "Courses & Resources", href: "/parent/portfolio", icon: FolderOpen, requiredFeature: "digitalResourceLibrary" },
+      { label: "My Courses", href: "/parent/courses", icon: Library, requiredFeature: "parentDashboard" },
+      { label: "My Resources", href: "/parent/resources", icon: FolderOpen, requiredFeature: "digitalResourceLibrary" },
       { label: "My Books", href: "/parent/books", icon: BookOpen, requiredFeature: "monthlyBook" },
+      { label: "Portfolio", href: "/parent/portfolio", icon: NotebookPen, requiredFeature: "parentDashboard" },
     ],
   },
   {

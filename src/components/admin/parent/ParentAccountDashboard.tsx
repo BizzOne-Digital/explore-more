@@ -20,6 +20,7 @@ import {
   formatPaymentMethod,
   formatSubscriptionStatus,
 } from "@/lib/billing/format";
+import { previewPortalAccess } from "@/lib/membership/portal-preview";
 
 import {
   OverviewProfileTab,
@@ -127,6 +128,14 @@ type BillingSummary = {
   }[];
   plans: Plan[];
   stripeConfigured: boolean;
+  portalAccess?: {
+    hasActiveMembership: boolean;
+    tierId: string | null;
+    planName: string | null;
+    features: string[];
+    parentNavLabels: string[];
+    studentNavLabels: string[];
+  };
 };
 
 export function ParentAccountDashboard({ userId }: { userId: string }) {
@@ -184,6 +193,9 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
     currentPeriodEnd: "",
     cancelAtPeriodEnd: false,
   });
+
+  const selectedPlan = billing?.plans.find((plan) => plan._id === subForm.planId);
+  const portalPreview = previewPortalAccess(selectedPlan?.slug, subForm.status);
 
   function applyBillingData(data: BillingSummary & { subscription: { planId?: string } }) {
     setBilling(data);
@@ -438,7 +450,9 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
         return;
       }
       applyBillingData(json.data);
-      setSuccess("Subscription updated.");
+      setSuccess(
+        "Subscription updated. The parent portal will show features for this plan on their next visit."
+      );
       const activityRes = await fetch(`/api/admin/users/${userId}/activity`);
       const activityJson = await activityRes.json();
       if (activityJson.success) setActivities(activityJson.data);
@@ -704,7 +718,17 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
               <label className="mb-1 block text-xs text-white/60">Plan</label>
               <select
                 value={subForm.planId}
-                onChange={(e) => setSubForm({ ...subForm, planId: e.target.value })}
+                onChange={(e) => {
+                  const planId = e.target.value;
+                  setSubForm((current) => ({
+                    ...current,
+                    planId,
+                    status:
+                      planId && ["none", "canceled", "paused"].includes(current.status)
+                        ? "active"
+                        : current.status,
+                  }));
+                }}
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
               >
                 <option value="">No plan</option>
@@ -778,6 +802,46 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
               </label>
             </div>
           </div>
+
+          <div className="mt-6 rounded-lg border border-white/10 bg-black/20 p-4">
+            <h4 className="text-sm font-semibold text-white">Portal access preview</h4>
+            <p className="mt-1 text-xs text-white/50">
+              What the parent (and linked students) will see after saving with status Active or
+              Trialing.
+            </p>
+            {portalPreview.hasPortalAccess ? (
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-explore-lime">
+                    Parent portal
+                  </p>
+                  <p className="mt-1 text-sm text-white/80">{portalPreview.tierName}</p>
+                  <ul className="mt-2 space-y-1 text-sm text-white/70">
+                    {portalPreview.parentNavLabels.map((label) => (
+                      <li key={label}>• {label}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-explore-lime">
+                    Student portal
+                  </p>
+                  <p className="mt-1 text-sm text-white/60">Via linked guardian accounts</p>
+                  <ul className="mt-2 space-y-1 text-sm text-white/70">
+                    {portalPreview.studentNavLabels.map((label) => (
+                      <li key={label}>• {label}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-amber-300/90">
+                Select a plan and set status to <strong>Active</strong> or <strong>Trialing</strong>{" "}
+                to unlock portal features for this family.
+              </p>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={saveSubscription}

@@ -24,23 +24,25 @@ export async function GET() {
     });
     const readMap = new Map(reads.map((r) => [r.notificationId.toString(), r]));
 
-    const items = notifications.map((n) => {
-      const readRecord = readMap.get(n._id.toString());
-      return {
-        _id: n._id.toString(),
-        title: n.title,
-        message: n.message,
-        priority: n.priority,
-        sentAt: n.sentAt,
-        requiresAcknowledgment: Boolean(n.requiresAcknowledgment),
-        attachmentPath: n.attachmentPath || undefined,
-        attachmentName: n.attachmentName || undefined,
-        sentBy: n.sentBy,
-        read: readRecord?.readAt != null,
-        readAt: readRecord?.readAt,
-        acknowledged: readRecord?.acknowledgedAt != null,
-      };
-    });
+    const items = notifications
+      .filter((n) => !readMap.get(n._id.toString())?.deletedAt)
+      .map((n) => {
+        const readRecord = readMap.get(n._id.toString());
+        return {
+          _id: n._id.toString(),
+          title: n.title,
+          message: n.message,
+          priority: n.priority,
+          sentAt: n.sentAt,
+          requiresAcknowledgment: Boolean(n.requiresAcknowledgment),
+          attachmentPath: n.attachmentPath || undefined,
+          attachmentName: n.attachmentName || undefined,
+          sentBy: n.sentBy,
+          read: readRecord?.readAt != null,
+          readAt: readRecord?.readAt,
+          acknowledged: readRecord?.acknowledgedAt != null,
+        };
+      });
 
     const unreadCount = items.filter((i) => !i.read).length;
 
@@ -70,6 +72,51 @@ export async function PATCH(request: Request) {
     );
 
     return apiSuccess(record);
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const sessionResult = await requireRole(["parent"]);
+    if ("error" in sessionResult) return sessionResult.error;
+
+    const body = await request.json();
+    const rawIds: unknown = body.notificationIds ?? body.notificationId;
+    const notificationIds = (Array.isArray(rawIds) ? rawIds : [rawIds]).filter(
+      (id): id is string => typeof id === "string" && id.length > 0
+    );
+
+    if (notificationIds.length === 0) {
+      return apiError(new Error("notificationId or notificationIds is required"), 400);
+    }
+
+    await connectDB();
+
+    const notifications = await ParentNotification.find({
+      _id: { $in: notificationIds },
+      $or: [{ recipientIds: sessionResult.user.id }, { audience: "all_parents" }],
+      sentAt: { $ne: null },
+    }).select("_id");
+
+    const allowedIds = notifications.map((n) => n._id.toString());
+    if (allowedIds.length === 0) {
+      return apiError(new Error("No matching notifications found"), 404);
+    }
+
+    const now = new Date();
+    await Promise.all(
+      allowedIds.map((notificationId) =>
+        ParentNotificationRead.findOneAndUpdate(
+          { notificationId, userId: sessionResult.user.id },
+          { deletedAt: now },
+          { upsert: true, new: true }
+        )
+      )
+    );
+
+    return apiSuccess({ deletedCount: allowedIds.length });
   } catch (error) {
     return apiError(error);
   }

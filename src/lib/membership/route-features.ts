@@ -7,7 +7,9 @@ export const PARENT_ROUTE_FEATURES: Array<{
   exact?: boolean;
 }> = [
   { prefix: "/parent/assessments", feature: "midTermAssessment" },
-  { prefix: "/parent/portfolio", feature: "digitalResourceLibrary" },
+  { prefix: "/parent/portfolio", feature: "parentDashboard" },
+  { prefix: "/parent/courses", feature: "parentDashboard" },
+  { prefix: "/parent/resources", feature: "digitalResourceLibrary" },
   { prefix: "/parent/books", feature: "monthlyBook" },
   { prefix: "/parent/tutors", feature: "tutoringSession30" },
   { prefix: "/parent/notifications", feature: "communityAnnouncements" },

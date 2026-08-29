@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Menu,
   X,
@@ -41,6 +41,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const isAdmin = session?.user?.role === "administrator";
   const parentPortalHref = "/parent-portal";
   const studentPortalHref = "/student-portal";
@@ -58,11 +59,24 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
     });
   }, [pathname]);
 
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [userMenuOpen]);
+
   const isHome = pathname === "/";
   const transparent = isHome && !scrolled;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full overflow-x-clip">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full overflow-visible">
       {/* Utility bar */}
       <div
         className={cn(
@@ -175,9 +189,11 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
             </Link>
 
             {session ? (
-              <div className="relative">
+              <div ref={userMenuRef} className="relative overflow-visible">
                 <button
+                  type="button"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-expanded={userMenuOpen}
                   className={cn(
                     "flex items-center gap-1 p-2 rounded-lg transition-colors",
                     transparent ? "text-white/80 hover:bg-white/10" : "text-explore-charcoal/70 hover:bg-explore-charcoal/5"
@@ -188,7 +204,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                   <ChevronDown className="h-3 w-3" />
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-48 rounded-xl bg-white shadow-lg border border-explore-charcoal/10 py-1 z-50">
+                  <div className="absolute right-0 top-full z-[100] mt-2 w-52 overflow-visible rounded-xl border border-explore-charcoal/10 bg-white py-1 shadow-xl">
                     <p className="px-4 py-2 text-xs text-explore-charcoal/60 truncate">{session.user.email}</p>
                     {isAdmin && (
                       <Link href="/admin" className="block px-4 py-2 text-sm hover:bg-explore-cream">

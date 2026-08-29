@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/admin/PageHeader";
 import { SendNotificationForm } from "@/components/admin/SendNotificationForm";
+import { NotificationAttachmentRepair } from "@/components/admin/NotificationAttachmentRepair";
 import connectDB from "@/lib/db";
 import { ParentNotification } from "@/models";
 import { format } from "date-fns";
@@ -46,7 +47,14 @@ export default async function AdminNotificationsPage() {
                   </span>
                 </div>
                 <p className="text-sm text-white/70 mb-2 line-clamp-2">{notif.message}</p>
-                <div className="flex items-center gap-4 text-xs text-white/50">
+                <NotificationAttachmentRepair
+                  notificationId={notif._id.toString()}
+                  title={notif.title}
+                  attachmentPath={notif.attachmentPath || undefined}
+                  attachmentName={notif.attachmentName || undefined}
+                  message={notif.message}
+                />
+                <div className="mt-2 flex items-center gap-4 text-xs text-white/50">
                   <span>Audience: {notif.audience}</span>
                   <span>•</span>
                   <span>

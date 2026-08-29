@@ -8,7 +8,7 @@ import {
   noRecipientsMessage,
   resolveNotificationRecipients,
 } from "@/lib/notifications/recipients";
-import { containsLocalFilesystemPath } from "@/lib/notifications/display";
+import { containsLocalFilesystemPath, stripLocalPathsFromMessage } from "@/lib/notifications/display";
 import { z } from "zod";
 
 const notificationSchema = z.object({
@@ -42,6 +42,11 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
+    const message =
+      data.attachmentPath?.trim() && containsLocalFilesystemPath(data.message)
+        ? stripLocalPathsFromMessage(data.message) || data.message.trim()
+        : data.message;
+
     const recipients = await resolveNotificationRecipients(data.audience);
 
     if (recipients.length === 0 && !allowsEmptyRecipients(data.audience)) {
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
     // Create notification record
     const notification = await ParentNotification.create({
       title: data.title,
-      message: data.message,
+      message,
       audience: data.audience,
       priority: data.priority,
       recipientIds: recipients,
@@ -97,7 +102,7 @@ export async function POST(request: NextRequest) {
                 <p>Hello ${parent.name},</p>
                 
                 <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <p style="margin: 0; white-space: pre-wrap;">${data.message}</p>
+                  <p style="margin: 0; white-space: pre-wrap;">${message}</p>
                 </div>
 
                 ${

@@ -141,6 +141,12 @@ export function sanitizeNotificationHtml(html: string): string {
   return withSecureLinks.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
 }
 
+/** Remove pasted local file paths from notification message text. */
+export function stripLocalPathsFromMessage(message: string): string {
+  LOCAL_PATH_PATTERN.lastIndex = 0;
+  return message.replace(LOCAL_PATH_PATTERN, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 /** Replace pasted local file paths with a parent-friendly note. */
 export function formatNotificationPlainText(
   message: string,

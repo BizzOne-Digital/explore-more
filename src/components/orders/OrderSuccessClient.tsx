@@ -38,14 +38,11 @@ export function OrderSuccessClient() {
   const { clearCart } = useCart();
 
   const [order, setOrder] = useState<OrderConfirmation | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(orderNumber || sessionId));
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!orderNumber && !sessionId) {
-      setLoading(false);
-      return;
-    }
+    if (!orderNumber && !sessionId) return;
 
     let cancelled = false;
     let pollCount = 0;

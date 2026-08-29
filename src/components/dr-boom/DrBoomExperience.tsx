@@ -118,7 +118,11 @@ export function DrBoomExperience() {
 
     const subject = encodeURIComponent(`Dr. Boom Booking — ${pkg.name} — ${data.get("eventDate")}`);
     const body = encodeURIComponent(lines.join("\n"));
-    window.location.href = `mailto:${DR_BOOM_CONTACT.email}?subject=${subject}&body=${body}`;
+    const mailto = `mailto:${DR_BOOM_CONTACT.email}?subject=${subject}&body=${body}`;
+    const anchor = document.createElement("a");
+    anchor.href = mailto;
+    anchor.rel = "noopener noreferrer";
+    anchor.click();
   }
 
   return (

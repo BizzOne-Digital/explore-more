@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, FileText, Download } from "lucide-react";
@@ -212,9 +213,9 @@ function AssessmentCard({
           ) : (
             <>
               Link your child from{" "}
-              <a href="/parent/students" className="text-explore-teal hover:underline">
+              <Link href="/parent/students" className="text-explore-teal hover:underline">
                 My Children
-              </a>{" "}
+              </Link>{" "}
               to resubmit this assessment.
             </>
           )}

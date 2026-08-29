@@ -153,9 +153,11 @@ export default function SponsorDetailPage({ params }: { params: Promise<{ id: st
   }
 
   useEffect(() => {
-    load();
-    loadPrograms();
-    if (isAdmin) loadStaffOptions();
+    queueMicrotask(() => {
+      void load();
+      void loadPrograms();
+      if (isAdmin) void loadStaffOptions();
+    });
   }, [id, isAdmin]);
 
   async function saveSponsor() {
@@ -496,21 +498,17 @@ export default function SponsorDetailPage({ params }: { params: Promise<{ id: st
               onFiles={(files) => {
                 if (files[0]) uploadContract(files[0]);
               }}
-              className="rounded-lg border border-dashed border-white/20 bg-black/20 p-6 text-center"
+              className="rounded-lg border border-dashed border-white/20 bg-black/20 p-6 text-center text-white/60"
+              dragActiveClassName="border-explore-teal text-explore-teal"
             >
-              {({ dragOver, openFilePicker }) => (
-                <div
-                  className={dragOver ? "text-explore-teal" : "text-white/60"}
-                  onClick={openFilePicker}
-                >
-                  <Upload className="mx-auto h-8 w-8 mb-2 opacity-60" />
-                  <p className="text-sm">
-                    {uploadingContract
-                      ? "Uploading..."
-                      : "Drag & drop contract (PDF or Word) or click to browse"}
-                  </p>
-                </div>
-              )}
+              <div>
+                <Upload className="mx-auto mb-2 h-8 w-8 opacity-60" />
+                <p className="text-sm">
+                  {uploadingContract
+                    ? "Uploading..."
+                    : "Drag & drop contract (PDF or Word) or click to browse"}
+                </p>
+              </div>
             </DragDropZone>
             <Field label="Contract notes" className="mt-4">
               <textarea

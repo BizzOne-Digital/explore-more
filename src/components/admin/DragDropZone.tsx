@@ -16,7 +16,7 @@ interface DragDropZoneProps {
   className?: string;
   dragActiveClassName?: string;
   clickToOpen?: boolean;
-  children: ReactNode | ((state: DragDropZoneState) => ReactNode);
+  children: ReactNode;
 }
 
 export function DragDropZone({
@@ -61,11 +61,6 @@ export function DragDropZone({
     ingest(e.dataTransfer.files);
   }
 
-  const rendered =
-    typeof children === "function"
-      ? children({ dragOver, openFilePicker })
-      : children;
-
   return (
     <>
       <div
@@ -79,7 +74,7 @@ export function DragDropZone({
           disabled && "pointer-events-none opacity-60"
         )}
       >
-        {rendered}
+        {children}
       </div>
       <input
         ref={inputRef}

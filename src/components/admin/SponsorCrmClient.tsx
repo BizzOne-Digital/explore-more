@@ -82,11 +82,15 @@ export function SponsorCrmClient() {
   }
 
   useEffect(() => {
-    load(true);
+    queueMicrotask(() => {
+      void load(true);
+    });
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => load(false), 300);
+    const timer = setTimeout(() => {
+      void load(false);
+    }, 300);
     return () => clearTimeout(timer);
   }, [search, statusFilter]);
 

@@ -147,7 +147,7 @@ export function UserSearchTable({ users }: Props) {
                   <td className="px-4 py-3 text-sm text-white/80">{user.email}</td>
                   <td className="px-4 py-3 text-sm text-white/60">{user.phone || "—"}</td>
                   <td className="px-4 py-3 text-sm">
-                    <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs capitalize">
+                    <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-1 text-xs capitalize text-white">
                       {user.role}
                     </span>
                   </td>

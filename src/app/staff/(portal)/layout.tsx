@@ -28,7 +28,7 @@ export default async function StaffPortalLayout({ children }: { children: React.
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">
-              Staff Portal
+              Staff Messages
             </p>
             <p className="font-display text-lg font-bold text-explore-charcoal">
               {session.user.name}

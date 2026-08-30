@@ -29,7 +29,7 @@ export default async function TutorStudentsPage() {
         <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
           <p className="text-gray-500">No students assigned yet.</p>
           <p className="mt-2 text-sm text-gray-400">
-            Contact administration to assign students using your Tutor ID.
+            Contact administration to assign students using your Staff ID.
           </p>
         </div>
       ) : (

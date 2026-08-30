@@ -95,7 +95,7 @@ export function StudentSignupForm() {
       
       <p className="text-center text-sm text-explore-charcoal/60">
         Already have an account?{" "}
-        <Link href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="text-explore-teal font-medium hover:underline">
+        <Link href={`/student/login?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="text-explore-teal font-medium hover:underline">
           Sign in
         </Link>
       </p>

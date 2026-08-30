@@ -65,6 +65,7 @@ export function StudentForm({
   const [relationship, setRelationship] = useState("Parent");
   const [sendingReset, setSendingReset] = useState(false);
   const [createdStudentId, setCreatedStudentId] = useState<string | null>(null);
+  const [createdTempPassword, setCreatedTempPassword] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -109,6 +110,9 @@ export function StudentForm({
 
     if (isNew && json.data?.user?.studentId) {
       setCreatedStudentId(json.data.user.studentId as string);
+      if (typeof json.data.tempPassword === "string") {
+        setCreatedTempPassword(json.data.tempPassword);
+      }
       return;
     }
 
@@ -235,6 +239,26 @@ export function StudentForm({
           <p className="text-sm text-green-300 mb-2">Student created successfully.</p>
           <p className="text-xs text-white/60">Student ID (use this to link parent accounts):</p>
           <p className="font-mono text-lg font-semibold text-explore-teal">{createdStudentId}</p>
+          {createdTempPassword && (
+            <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-xs text-amber-200/90">
+                Temporary password — share this with the family for student login at{" "}
+                <span className="font-mono">/student/login</span>:
+              </p>
+              <p className="mt-1 font-mono text-lg font-semibold text-amber-100">{createdTempPassword}</p>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(createdTempPassword)}
+                className="mt-2 rounded-lg border border-amber-400/40 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-500/10"
+              >
+                Copy password
+              </button>
+            </div>
+          )}
+          <p className="mt-3 text-xs text-white/50">
+            Before the student can sign in: link an approved parent in Admin → Students → Edit, and
+            ensure the parent subscription is Active or Trialing.
+          </p>
           <button
             type="button"
             onClick={() => router.push("/admin/students")}

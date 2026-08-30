@@ -18,7 +18,7 @@ export const ROLES = ["student", "parent", "staff", "instructor", "administrator
 /** Roles that can access the staff portal (messages, parent calls). */
 export const STAFF_PORTAL_ROLES = ["staff", "instructor", "administrator"] as const;
 
-/** Roles that can access the tutor portal dashboard. */
+/** Roles that can access the staff portal dashboard (instructors & administrators). */
 export const TUTOR_PORTAL_ROLES = ["instructor", "administrator"] as const;
 export type Role = (typeof ROLES)[number];
 

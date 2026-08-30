@@ -77,7 +77,7 @@ export function TutorSidebar({
             Explore More
           </span>
           <span className="mt-0.5 block text-xs font-medium uppercase tracking-widest text-violet-600">
-            Tutor Portal
+            Staff Portal
           </span>
         </Link>
       </div>
@@ -119,7 +119,7 @@ export function TutorSidebar({
         {tutorId ? (
           <div className="rounded-lg bg-violet-50 px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-600/70">
-              Tutor ID
+              Staff ID
             </p>
             <div className="mt-1 flex items-center justify-between gap-2">
               <span className="font-mono text-sm font-semibold text-explore-charcoal">

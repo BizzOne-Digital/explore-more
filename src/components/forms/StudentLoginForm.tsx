@@ -68,10 +68,19 @@ export function StudentLoginForm() {
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <p>{error}</p>
-          {error.includes("subscribe") && (
+          {(error.includes("membership") || error.includes("trial") || error.includes("subscribe")) && (
             <Link href="/membership?portal=student" className="mt-2 inline-block font-medium text-explore-teal hover:underline">
               View membership plans
             </Link>
+          )}
+          {error.includes("linked") && (
+            <p className="mt-2 text-explore-charcoal/70">
+              Parents: sign in at{" "}
+              <Link href="/parent/login" className="font-medium text-explore-teal hover:underline">
+                Parent Portal
+              </Link>{" "}
+              and link your child using their 6-digit Student ID.
+            </p>
           )}
         </div>
       )}

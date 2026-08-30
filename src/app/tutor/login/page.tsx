@@ -47,7 +47,7 @@ export default function TutorLoginPage() {
     const session = await sessionRes.json();
 
     if (!TUTOR_PORTAL_ROLES.includes(session?.user?.role)) {
-      setError("Access denied. Approved tutor account required.");
+      setError("Access denied. Approved staff account required.");
       await fetch("/api/auth/signout", { method: "POST" });
       return;
     }
@@ -63,7 +63,7 @@ export default function TutorLoginPage() {
           <p className="text-4xl" aria-hidden>
             🧑‍🏫
           </p>
-          <h1 className="mt-3 font-display text-3xl font-semibold text-white">Tutor Portal</h1>
+          <h1 className="mt-3 font-display text-3xl font-semibold text-white">Staff Portal</h1>
           <p className="mt-2 text-sm text-white/50">{COMPANY.name}</p>
         </div>
 

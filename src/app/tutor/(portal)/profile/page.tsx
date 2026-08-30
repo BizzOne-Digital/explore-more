@@ -23,7 +23,7 @@ export default async function TutorProfilePage() {
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-bold">My Profile</h2>
-        <p className="mt-1 text-sm text-gray-500">Your Explore More Academy tutor account.</p>
+        <p className="mt-1 text-sm text-gray-500">Your Explore More Academy staff account.</p>
       </div>
 
       <div className="rounded-2xl bg-white p-6 shadow-sm space-y-4">
@@ -36,7 +36,7 @@ export default async function TutorProfilePage() {
           <p>{profile?.email}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase text-gray-400">Tutor ID</p>
+          <p className="text-xs font-semibold uppercase text-gray-400">Staff ID</p>
           <p className="font-mono text-lg font-bold text-violet-700">{profile?.tutorId}</p>
         </div>
         <div>

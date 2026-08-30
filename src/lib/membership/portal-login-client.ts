@@ -5,8 +5,29 @@ export type PortalLoginKind = "parent" | "student";
 interface PortalAccessResponse {
   hasAccess: boolean;
   redirectUrl: string | null;
-  reason?: "wrong_role" | "subscription_required" | "inactive_account";
+  reason?:
+    | "wrong_role"
+    | "subscription_required"
+    | "inactive_account"
+    | "no_guardian_link"
+    | "link_pending"
+    | "parent_no_membership"
+    | "parent_plan_ineligible";
+  detail?: string;
 }
+
+const STUDENT_ACCESS_MESSAGES: Record<string, string> = {
+  no_guardian_link:
+    "Your student account is not linked to a parent yet. Ask your parent to link you from their portal, or contact Explore More Academy.",
+  link_pending:
+    "Your parent connection is still waiting for approval. Your parent or academy staff must approve the link before you can sign in.",
+  parent_no_membership:
+    "Your family does not have an active membership or free trial yet. Your parent needs an Active or Trialing subscription before you can access the student portal.",
+  parent_plan_ineligible:
+    "Your family's membership plan does not include student portal access. Please contact the academy.",
+  subscription_required:
+    "Student portal access requires an active family membership. Your parent must subscribe or have a trial, and your accounts must be linked.",
+};
 
 /** Credentials sign-in can return before the session cookie is readable — wait briefly. */
 async function waitForSessionReady(maxAttempts = 12): Promise<boolean> {
@@ -26,6 +47,7 @@ export async function completePortalSignIn(portal: PortalLoginKind): Promise<{
   ok: boolean;
   redirectUrl?: string;
   error?: string;
+  reason?: string;
 }> {
   const sessionReady = await waitForSessionReady();
   if (!sessionReady) {
@@ -59,11 +81,12 @@ export async function completePortalSignIn(portal: PortalLoginKind): Promise<{
 
   if (!data.hasAccess) {
     await signOut({ redirect: false });
-    return {
-      ok: false,
-      error:
-        "Please subscribe to a membership to access the portal. Your parent must have an active membership and link your student account, or an admin can activate your family from the dashboard.",
-    };
+    const reason = data.reason ?? "subscription_required";
+    const error =
+      portal === "student"
+        ? data.detail ?? STUDENT_ACCESS_MESSAGES[reason] ?? STUDENT_ACCESS_MESSAGES.subscription_required
+        : "Please subscribe to a membership to access the parent portal, or contact the academy for a trial.";
+    return { ok: false, error, reason };
   }
 
   return { ok: true, redirectUrl: data.redirectUrl ?? (portal === "parent" ? "/parent" : "/student") };

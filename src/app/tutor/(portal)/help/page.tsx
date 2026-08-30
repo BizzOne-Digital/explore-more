@@ -6,7 +6,7 @@ export default function TutorHelpPage() {
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-bold">Help & Support</h2>
-        <p className="mt-1 text-sm text-gray-500">Get assistance using the Tutor Portal.</p>
+        <p className="mt-1 text-sm text-gray-500">Get assistance using the Staff Portal.</p>
       </div>
 
       <div className="rounded-2xl bg-white p-6 shadow-sm space-y-4 text-sm text-gray-600">
@@ -25,7 +25,7 @@ export default function TutorHelpPage() {
           .
         </p>
         <p>
-          Student assignments are managed by administrators using your 6-digit Tutor ID. Parents
+          Student assignments are managed by administrators using your 6-digit Staff ID. Parents
           are only visible when assigned to your students.
         </p>
       </div>

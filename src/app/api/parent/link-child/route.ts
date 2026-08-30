@@ -49,7 +49,34 @@ export async function POST(request: Request) {
       return apiError(new Error("This student is already linked to your account."), 400);
     }
 
+    const { getParentMembershipAccess } = await import("@/lib/membership/access");
+    const parentAccess = await getParentMembershipAccess(sessionResult.user.id);
+    const dobMatches =
+      profile?.dateOfBirth &&
+      dateOfBirth &&
+      (() => {
+        const submitted = new Date(dateOfBirth);
+        const stored = new Date(profile.dateOfBirth);
+        return (
+          submitted.getUTCFullYear() === stored.getUTCFullYear() &&
+          submitted.getUTCMonth() === stored.getUTCMonth() &&
+          submitted.getUTCDate() === stored.getUTCDate()
+        );
+      })();
+
+    const autoApprove = parentAccess.hasActiveMembership && (dobMatches || !profile?.dateOfBirth);
+
     if (existing?.status === "pending") {
+      if (autoApprove) {
+        existing.status = "approved";
+        existing.relationship = relationship.trim();
+        await existing.save();
+        return apiSuccess({
+          link: existing,
+          message: `${student.name} has been linked to your account.`,
+          status: "approved",
+        });
+      }
       return apiSuccess({ message: "Link request already pending staff approval.", status: "pending" });
     }
 
@@ -57,7 +84,7 @@ export async function POST(request: Request) {
       guardianId: sessionResult.user.id,
       studentId: studentUserId,
       relationship: relationship.trim(),
-      status: profile?.dateOfBirth && dateOfBirth ? "approved" : "pending",
+      status: autoApprove || dobMatches ? "approved" : "pending",
       consentGiven: true,
       consentDate: new Date(),
     });

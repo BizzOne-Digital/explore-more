@@ -45,13 +45,13 @@ export default async function TutorDashboardPage() {
     <div className="space-y-8">
       <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-violet-800 p-6 text-white shadow-lg sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-widest text-violet-200">
-          Explore More Academy Tutor Portal
+          Explore More Academy Staff Portal
         </p>
         <h2 className="mt-2 font-display text-3xl font-bold">Welcome, {profile?.name}</h2>
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-violet-100">
           {profile?.tutorId && (
             <span>
-              Tutor ID: <strong className="font-mono text-white">{profile.tutorId}</strong>
+              Staff ID: <strong className="font-mono text-white">{profile.tutorId}</strong>
             </span>
           )}
           <span>

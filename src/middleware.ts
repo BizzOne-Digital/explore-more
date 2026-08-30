@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
     return withPathname(request, pathname);
   }
 
-  // Tutor portal
+  // Staff portal (instructor / administrator dashboard at /tutor)
   if (pathname.startsWith("/tutor")) {
     if (pathname === "/tutor/login") {
       if (session?.user?.role && ["instructor", "administrator"].includes(session.user.role)) {

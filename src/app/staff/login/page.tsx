@@ -59,7 +59,7 @@ export default function StaffLoginPage() {
     <div className="flex min-h-screen w-full items-center justify-center overflow-x-clip bg-explore-charcoal px-3 sm:px-4">
       <div className="w-full min-w-0 max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-semibold text-white">Staff Portal</h1>
+          <h1 className="font-display text-3xl font-semibold text-white">Staff Messages</h1>
           <p className="mt-2 text-sm text-white/50">{COMPANY.name}</p>
         </div>
 

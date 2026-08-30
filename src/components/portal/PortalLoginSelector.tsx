@@ -22,10 +22,10 @@ const PORTALS = [
     accent: "from-explore-orange/15 to-explore-orange/5 border-explore-orange/30",
   },
   {
-    key: "tutor",
+    key: "staff",
     emoji: "🧑‍🏫",
-    title: "Tutor",
-    subtitle: "Take to Tutor Portal",
+    title: "Staff",
+    subtitle: "Take to Staff Portal",
     href: "/tutor-portal",
     icon: Briefcase,
     accent: "from-violet-500/15 to-violet-500/5 border-violet-400/30",
@@ -67,11 +67,11 @@ export function PortalLoginSelector() {
         })}
       </div>
       <p className="text-center text-xs text-explore-charcoal/50">
-        Staff and administrators can also use the Tutor Portal or{" "}
+        Front desk staff can use the{" "}
         <Link href="/staff/login" className="text-explore-teal hover:underline">
-          Staff Portal
-        </Link>
-        .
+          Staff Messages
+        </Link>{" "}
+        portal for parent calls and inbox only.
       </p>
     </AuthFormShell>
   );

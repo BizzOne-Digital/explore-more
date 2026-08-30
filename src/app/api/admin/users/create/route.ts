@@ -46,7 +46,9 @@ export async function POST(request: Request) {
       {
         user,
         loginHint:
-          parsed.data.role === "staff" || parsed.data.role === "instructor"
+          parsed.data.role === "instructor"
+            ? "Tutor can sign in at /tutor/login"
+            : parsed.data.role === "staff"
             ? "Staff can sign in at /staff/login"
             : parsed.data.role === "parent"
               ? "Parent can sign in at /parent/login"

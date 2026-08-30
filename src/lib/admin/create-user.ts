@@ -2,6 +2,7 @@ import { User, StudentProfile, ParentProfile, StaffProfile } from "@/models";
 import { hashPassword } from "@/lib/password";
 import type { Role } from "@/lib/constants";
 import type { StaffCategory } from "@/lib/portfolio/constants";
+import { ensureTutorId } from "@/lib/tutor/tutor-id";
 
 export interface CreateUserInput {
   name: string;
@@ -82,7 +83,12 @@ export async function createUserAccount(input: CreateUserInput) {
     );
   }
 
-  const obj = user.toObject();
-  const { passwordHash: _, ...safeUser } = obj;
+  if (input.role === "instructor" || input.role === "administrator") {
+    await ensureTutorId(user._id.toString());
+  }
+
+  const fresh = await User.findById(user._id).select("-passwordHash").lean();
+  const obj = fresh ?? user.toObject();
+  const { passwordHash: _, ...safeUser } = obj as typeof user & { passwordHash?: string };
   return safeUser;
 }

@@ -114,6 +114,9 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
               </>
             ) : (
               <>
+                <Link href="/portal-login" className="hover:text-explore-lime transition-colors font-semibold">
+                  Portal Login
+                </Link>
                 <Link href="/student-portal" className="hover:text-explore-lime transition-colors">
                   Student Portal
                 </Link>
@@ -227,7 +230,19 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                   </div>
                 )}
               </div>
-            ) : null}
+            ) : (
+              <Link
+                href="/portal-login"
+                className={cn(
+                  "hidden sm:inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
+                  transparent
+                    ? "border-white/30 text-white hover:bg-white/10"
+                    : "border-explore-teal/30 text-explore-teal hover:bg-explore-teal/10"
+                )}
+              >
+                Portal Login
+              </Link>
+            )}
 
             {navigation.showProgramsCta && (
               <Link

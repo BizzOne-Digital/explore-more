@@ -77,10 +77,21 @@ export function SendNotificationForm() {
         }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") ?? "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : null;
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to send notification");
+        const apiError =
+          data && typeof data === "object" && "error" in data && typeof data.error === "string"
+            ? data.error
+            : null;
+        throw new Error(apiError || `Failed to send notification (${response.status})`);
+      }
+
+      if (!data) {
+        throw new Error("Server returned an unexpected response. Please try again.");
       }
 
       setSuccess(data.message || "Notification sent successfully!");

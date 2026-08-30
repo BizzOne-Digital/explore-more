@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { Upload, X, File, FileText, FileImage } from "lucide-react";
 import { LEGACY_UPLOAD_FOLDER_MAP, UPLOAD_DIRS } from "@/lib/constants";
 import type { StoredUploadFolder } from "@/lib/constants";
+import { parentNotificationFileUrl } from "@/lib/notifications/display";
 
 interface FileUploadProps {
   label: string;
@@ -38,6 +39,17 @@ function resolveStoredFolder(category: string): StoredUploadFolder {
 function isImageFile(name: string, url: string) {
   const source = (name || url).toLowerCase();
   return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(source);
+}
+
+function resolvePreviewSrc(value: string): string {
+  if (!value) return value;
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  if (value.startsWith("/api/")) return value;
+  if (value.startsWith("/uploads/")) return value;
+  if (value.startsWith("notifications/") || value.startsWith("/notifications/")) {
+    return parentNotificationFileUrl(value);
+  }
+  return value.startsWith("/") ? value : `/${value}`;
 }
 
 export function FileUpload({
@@ -170,7 +182,7 @@ export function FileUpload({
           {showPreview && (
             <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={value} alt={fileName || "Uploaded image"} className="max-h-48 w-full object-contain bg-black/20" />
+              <img src={resolvePreviewSrc(value)} alt={fileName || "Uploaded image"} className="max-h-48 w-full object-contain bg-black/20" />
             </div>
           )}
           <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-4">

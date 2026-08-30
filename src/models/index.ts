@@ -29,6 +29,13 @@ export {
   PortfolioReviewRequest,
 } from "./Portfolio";
 export { StaffProfile, Conversation, ConversationMessage } from "./Messaging";
+export {
+  TutorStudentAssignment,
+  TutorSession,
+  StaffInternalConversation,
+  StaffInternalMessage,
+  TutorNotification,
+} from "./Tutor";
 export { ParentNotification, ParentNotificationRead } from "./ParentNotification";
 export { AccountNote } from "./Note";
 export { SubscriptionPlan, ParentSubscription, PendingMembership } from "./Billing";

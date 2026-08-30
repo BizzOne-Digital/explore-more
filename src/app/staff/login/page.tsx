@@ -51,7 +51,7 @@ export default function StaffLoginPage() {
       return;
     }
 
-    router.push("/staff");
+    router.push(session?.user?.role === "instructor" ? "/tutor" : "/staff");
     router.refresh();
   }
 

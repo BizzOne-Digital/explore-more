@@ -8,7 +8,11 @@ import {
   noRecipientsMessage,
   resolveNotificationRecipients,
 } from "@/lib/notifications/recipients";
-import { containsLocalFilesystemPath, stripLocalPathsFromMessage } from "@/lib/notifications/display";
+import {
+  containsLocalFilesystemPath,
+  parentNotificationFileUrl,
+  stripLocalPathsFromMessage,
+} from "@/lib/notifications/display";
 import { z } from "zod";
 
 const notificationSchema = z.object({
@@ -110,7 +114,7 @@ export async function POST(request: NextRequest) {
                     ? `<div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
                   <p style="margin: 0; font-size: 14px;">
                     📎 <strong>Attachment:</strong>
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004"}${data.attachmentPath.startsWith("/") ? "" : "/"}${data.attachmentPath}" style="color: ${priorityColors[data.priority]};">
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004"}${parentNotificationFileUrl(data.attachmentPath)}" style="color: ${priorityColors[data.priority]};">
                       ${data.attachmentName || "View attachment"}
                     </a>
                   </p>
@@ -141,14 +145,14 @@ export async function POST(request: NextRequest) {
       console.error("Batch email error:", err);
     });
 
-    const message =
+    const successMessage =
       recipients.length > 0
         ? `Notification sent to ${recipients.length} parent(s)`
         : "Notification published. It will appear in the parent portal when parent accounts sign up.";
 
     return NextResponse.json({
       success: true,
-      message,
+      message: successMessage,
       notificationId: notification._id,
       recipientCount: recipients.length,
     });

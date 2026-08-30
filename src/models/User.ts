@@ -8,6 +8,7 @@ export interface IUser extends Document {
   role: Role;
   studentId?: string;
   staffId?: string;
+  tutorId?: string;
   guardianId?: string;
   stripeCustomerId?: string;
   emailVerified: boolean;
@@ -42,6 +43,7 @@ const UserSchema = new Schema<IUser>(
     },
     studentId: { type: String, unique: true, sparse: true },
     staffId: { type: String, unique: true, sparse: true },
+    tutorId: { type: String, unique: true, sparse: true },
     guardianId: { type: String, unique: true, sparse: true },
     stripeCustomerId: { type: String, unique: true, sparse: true },
     emailVerified: { type: Boolean, default: false },

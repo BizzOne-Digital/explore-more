@@ -52,8 +52,9 @@ export function CreateUserForm() {
     email: string;
     password: string;
     loginHint: string;
-    staffId?: string;
-    studentId?: string;
+        staffId?: string;
+        tutorId?: string;
+        studentId?: string;
     role: Role;
   } | null>(null);
 
@@ -124,6 +125,7 @@ export function CreateUserForm() {
         password,
         loginHint: json.data.loginHint,
         staffId: json.data.user?.staffId,
+        tutorId: json.data.user?.tutorId,
         studentId: json.data.user?.studentId,
         role,
       });
@@ -149,6 +151,12 @@ export function CreateUserForm() {
               <p className="text-white/50">Password</p>
               <p className="font-mono text-white">{created.password}</p>
             </div>
+            {created.tutorId && (
+              <div>
+                <p className="text-white/50">Tutor ID (6 digits)</p>
+                <p className="font-mono text-explore-teal">{created.tutorId}</p>
+              </div>
+            )}
             {created.staffId && (
               <div>
                 <p className="text-white/50">Staff ID</p>

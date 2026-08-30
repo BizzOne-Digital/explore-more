@@ -26,6 +26,9 @@ const publicPaths = [
     "/parent/signup",
     "/parent/login",
     "/parent-portal",
+  "/portal-login",
+  "/tutor-portal",
+  "/tutor/login",
   "/staff/login",
   "/verify-email",
   "/forgot-password",
@@ -65,20 +68,43 @@ export async function middleware(request: NextRequest) {
   }
 
   // Public portal entry pages (must not match /parent/* or /student/* auth gates below)
-  if (pathname === "/student-portal" || pathname === "/parent-portal") {
+  if (
+    pathname === "/student-portal" ||
+    pathname === "/parent-portal" ||
+    pathname === "/tutor-portal" ||
+    pathname === "/portal-login"
+  ) {
     return withPathname(request, pathname);
   }
 
-  // Student portal
+  // Tutor portal
+  if (pathname.startsWith("/tutor")) {
+    if (pathname === "/tutor/login") {
+      if (session?.user?.role && ["instructor", "administrator"].includes(session.user.role)) {
+        return NextResponse.redirect(new URL("/tutor", request.url));
+      }
+      return withPathname(request, pathname);
+    }
+    if (!session || !["instructor", "administrator"].includes(session.user.role)) {
+      return NextResponse.redirect(
+        new URL("/tutor/login?callbackUrl=" + encodeURIComponent(pathname), request.url)
+      );
+    }
+    return withPathname(request, pathname);
+  }
+
+  // Staff portal
   if (pathname.startsWith("/student")) {
     if (pathname === "/student/signup" || pathname === "/student/login") {
       if (session?.user?.role === "student") {
-        return NextResponse.redirect(new URL("/student-portal", request.url));
+        return NextResponse.redirect(new URL("/student", request.url));
       }
       return withPathname(request, pathname);
     }
     if (!session || !["student", "administrator"].includes(session.user.role)) {
-      return NextResponse.redirect(new URL("/student-portal", request.url));
+      const loginUrl = new URL("/student/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
     }
     return withPathname(request, pathname);
   }
@@ -90,6 +116,9 @@ export async function middleware(request: NextRequest) {
         session?.user?.role &&
         ["staff", "instructor", "administrator"].includes(session.user.role)
       ) {
+        if (session.user.role === "instructor") {
+          return NextResponse.redirect(new URL("/tutor", request.url));
+        }
         return NextResponse.redirect(new URL("/staff", request.url));
       }
       return withPathname(request, pathname);

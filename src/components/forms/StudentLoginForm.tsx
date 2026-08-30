@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { completePortalSignIn } from "@/lib/membership/portal-login-client";
 
 export function StudentLoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
   const [error, setError] = useState("");
@@ -44,8 +43,8 @@ export function StudentLoginForm() {
       return;
     }
 
-    router.push(callbackUrl || portalResult.redirectUrl || "/student");
-    router.refresh();
+    const destination = callbackUrl || portalResult.redirectUrl || "/student";
+    globalThis.location.assign(destination);
   }
 
   return (

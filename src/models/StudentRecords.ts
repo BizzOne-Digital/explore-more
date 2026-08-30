@@ -145,7 +145,7 @@ export const Certificate: Model<ICertificate> =
 export interface IResource extends Document {
   title: string;
   description?: string;
-  type: "pdf" | "link" | "worksheet" | "reading";
+  type: "pdf" | "link" | "worksheet" | "reading" | "homework" | "study_guide" | "lesson_notes" | "practice_test" | "image" | "video" | "assessment" | "other";
   filePath?: string;
   url?: string;
   courseId?: mongoose.Types.ObjectId;
@@ -161,7 +161,7 @@ const ResourceSchema = new Schema<IResource>(
   {
     title: { type: String, required: true },
     description: String,
-    type: { type: String, enum: ["pdf", "link", "worksheet", "reading"], required: true },
+    type: { type: String, enum: ["pdf", "link", "worksheet", "reading", "homework", "study_guide", "lesson_notes", "practice_test", "image", "video", "assessment", "other"], required: true },
     filePath: String,
     url: String,
     courseId: { type: Schema.Types.ObjectId, ref: "Course" },

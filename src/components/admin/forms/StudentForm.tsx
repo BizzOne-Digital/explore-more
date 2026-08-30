@@ -17,6 +17,7 @@ import {
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Send, Trash2 } from "lucide-react";
 import { gradeSelectOptions } from "@/lib/grades";
+import { AssignTutorForm } from "@/components/admin/AssignTutorForm";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -263,6 +264,13 @@ export function StudentForm({
             </button>
           </div>
         </div>
+      ) : null}
+
+      {!isNew && initialData?._id ? (
+        <AssignTutorForm
+          studentId={String(initialData._id)}
+          studentName={String(initialData.name ?? "Student")}
+        />
       ) : null}
 
       {!createdStudentId && (

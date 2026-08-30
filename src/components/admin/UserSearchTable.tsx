@@ -134,7 +134,11 @@ export function UserSearchTable({ users }: Props) {
                 <tr key={user._id} className="transition hover:bg-white/5">
                   <td className="px-4 py-3 text-sm">
                     <Link
-                      href={`/admin/users/${user._id}`}
+                      href={
+                        user.role === "student"
+                          ? `/admin/students/${user._id}`
+                          : `/admin/users/${user._id}`
+                      }
                       className="font-medium text-white hover:text-explore-teal"
                     >
                       {user.name}
@@ -149,7 +153,12 @@ export function UserSearchTable({ users }: Props) {
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {user.studentId ? (
-                      <span className="font-mono text-xs text-explore-teal">{user.studentId}</span>
+                      <Link
+                        href={`/admin/students/${user._id}`}
+                        className="font-mono text-xs text-explore-teal hover:underline"
+                      >
+                        {user.studentId}
+                      </Link>
                     ) : (
                       <span className="font-mono text-xs text-white/40">{user._id.slice(-8)}</span>
                     )}

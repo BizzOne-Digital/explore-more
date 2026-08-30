@@ -46,6 +46,7 @@ async function main() {
   const {
     User,
     StudentProfile,
+    GuardianStudentLink,
     Page,
     SiteSettings,
     Program,
@@ -151,6 +152,44 @@ async function main() {
     });
   }
   console.log(`✓ ${createdPlans.length} membership plans + demo parent subscription`);
+
+  // ── Demo Student User (linked to demo parent) ──
+  const studentEmail = (process.env.STUDENT_EMAIL ?? "student@exploremoreacademy.com").toLowerCase();
+  const studentPassword = process.env.STUDENT_PASSWORD ?? parentPassword;
+  const studentHash = await hashPassword(studentPassword);
+
+  await User.deleteMany({ email: studentEmail });
+  const studentUser = await User.create({
+    name: "Demo Student",
+    email: studentEmail,
+    passwordHash: studentHash,
+    role: "student",
+    emailVerified: true,
+    isActive: true,
+    notificationPreferences: {
+      events: true,
+      courses: true,
+      newsletter: false,
+      announcements: true,
+    },
+  });
+  await StudentProfile.create({
+    userId: studentUser._id,
+    grade: "5th",
+    schoolStatus: "homeschool",
+    profileComplete: 40,
+  });
+  await GuardianStudentLink.create({
+    guardianId: parentUser._id,
+    studentId: studentUser._id,
+    relationship: "Parent",
+    status: "approved",
+    consentGiven: true,
+    consentDate: new Date(),
+  });
+  console.log(
+    `✓ Demo student (${studentEmail}) linked to parent — Student ID: ${studentUser.studentId}`
+  );
 
   // ── Six Programs ──
   await Program.deleteMany({});

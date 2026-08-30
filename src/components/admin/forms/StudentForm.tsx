@@ -17,6 +17,7 @@ import {
 import { PageHeader } from "@/components/admin/PageHeader";
 import { Send, Trash2 } from "lucide-react";
 import { gradeSelectOptions } from "@/lib/grades";
+import { toDateInputValue } from "@/lib/admin/student-form-data";
 import { AssignTutorForm } from "@/components/admin/AssignTutorForm";
 
 const schema = z.object({
@@ -26,7 +27,7 @@ const schema = z.object({
   dateOfBirth: z.string().optional(),
   schoolStatus: z.enum(["homeschool", "traditional", "other", ""]).optional(),
   bio: z.string().optional(),
-  grade: z.string().min(1, "Grade is required"),
+  grade: z.string().optional(),
   isActive: z.boolean(),
   emailVerified: z.boolean(),
 });
@@ -35,7 +36,7 @@ type FormData = z.infer<typeof schema>;
 
 interface GuardianLink {
   _id: string;
-  guardianId: { name: string; email: string };
+  guardianId?: { name: string; email: string };
   relationship: string;
   status: string;
 }
@@ -76,9 +77,7 @@ export function StudentForm({
       name: (initialData?.name as string) ?? "",
       email: (initialData?.email as string) ?? "",
       phone: (initialData?.phone as string) ?? "",
-      dateOfBirth: initialData?.dateOfBirth
-        ? new Date(initialData.dateOfBirth as string).toISOString().slice(0, 10)
-        : "",
+      dateOfBirth: toDateInputValue(initialData?.dateOfBirth),
       schoolStatus: (initialData?.schoolStatus as FormData["schoolStatus"]) ?? "",
       bio: (initialData?.bio as string) ?? "",
       grade: (initialData?.grade as string) ?? "",
@@ -199,7 +198,7 @@ export function StudentForm({
     
     // Find parent/guardian email from links
     const parentLink = guardianLinks.find(link => link.status === "approved");
-    if (!parentLink) {
+    if (!parentLink?.guardianId) {
       setError("No parent/guardian account is linked to this student.");
       return;
     }
@@ -345,8 +344,10 @@ export function StudentForm({
                   className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
                 >
                   <div>
-                    <p className="font-medium text-white">{link.guardianId.name}</p>
-                    <p className="text-xs text-white/60">{link.guardianId.email}</p>
+                    <p className="font-medium text-white">
+                      {link.guardianId?.name ?? "Unknown parent"}
+                    </p>
+                    <p className="text-xs text-white/60">{link.guardianId?.email ?? "—"}</p>
                     <p className="text-xs text-white/40">{link.relationship}</p>
                   </div>
                   <div className="text-sm">

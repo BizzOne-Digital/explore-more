@@ -75,6 +75,8 @@ export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
 export const MAX_PORTFOLIO_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 /** Campaign attachments/images — no practical cap for admin uploads (server memory still applies). */
 export const MAX_CAMPAIGN_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1GB
+/** Notification attachments stored in MongoDB (16MB BSON document limit). */
+export const MAX_NOTIFICATION_UPLOAD_SIZE = 15 * 1024 * 1024; // 15MB
 export const ALLOWED_CAMPAIGN_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg",
   ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",

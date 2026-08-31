@@ -5,7 +5,7 @@ const ACTIVE_PARENT_FILTER = { role: "parent" as const, isActive: { $ne: false }
 
 export type BroadcastAudience = Extract<
   NotificationAudience,
-  "all_parents" | "portfolio_parents" | "tutoring_parents"
+  "all_parents" | "portfolio_parents" | "tutoring_parents" | "custom"
 >;
 
 export async function resolveNotificationRecipients(
@@ -88,6 +88,9 @@ export async function resolveNotificationRecipients(
 
       return parents.map((p) => p._id.toString());
     }
+
+    case "custom":
+      return [];
   }
 }
 
@@ -99,6 +102,8 @@ export function noRecipientsMessage(audience: BroadcastAudience): string {
       return "No portfolio parents found. Create parent accounts, link them to students, and set up homeschool portfolios first.";
     case "tutoring_parents":
       return "No tutoring parents found. Enroll students in courses and link their parent/guardian accounts first.";
+    case "custom":
+      return "Select at least one parent account.";
   }
 }
 

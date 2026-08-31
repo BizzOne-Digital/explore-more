@@ -16,7 +16,7 @@ export default async function ParentNotificationsPage() {
   })
     .populate("sentBy", "name")
     .sort({ sentAt: -1 })
-    .limit(50)
+    .limit(200)
     .lean();
 
   const reads = await ParentNotificationRead.find({

@@ -9,6 +9,7 @@ import {
   MAX_PORTFOLIO_UPLOAD_SIZE,
   MAX_UPLOAD_SIZE,
   MAX_CAMPAIGN_UPLOAD_SIZE,
+  MAX_NOTIFICATION_UPLOAD_SIZE,
   UPLOAD_DIRS,
 } from "@/lib/constants";
 import { deleteStoredUploadByUrl, storeUploadedImage } from "@/lib/services/stored-upload";
@@ -64,9 +65,9 @@ export async function uploadPublicImage(
 export async function uploadCampaignFile(
   file: File
 ): Promise<{ url: string; filename: string; originalName: string }> {
-  const maxSize = Math.min(MAX_CAMPAIGN_UPLOAD_SIZE, 50 * 1024 * 1024);
+  const maxSize = MAX_NOTIFICATION_UPLOAD_SIZE;
   if (file.size > maxSize) {
-    throw new Error(`File too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB`);
+    throw new Error(`File exceeds the maximum upload size (${Math.round(maxSize / 1024 / 1024)}MB)`);
   }
 
   const ext = path.extname(file.name).toLowerCase();

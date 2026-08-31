@@ -74,6 +74,14 @@ export function NotificationsClient({
 
   async function deleteNotifications(ids: string[]) {
     if (ids.length === 0) return;
+
+    const confirmed = window.confirm(
+      ids.length === 1
+        ? "Are you sure you want to delete this notification?"
+        : `Are you sure you want to delete ${ids.length} notifications?`
+    );
+    if (!confirmed) return;
+
     setDeleting(true);
     try {
       const response = await fetch("/api/parent/notifications", {
@@ -214,14 +222,27 @@ export function NotificationsClient({
                             <FileText className="h-5 w-5 shrink-0 text-explore-teal" />
                             {attachment.name}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenAttachment(item._id, attachment.url)}
-                            className="inline-flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white hover:bg-explore-teal/90"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            {attachment.isPdf ? "View PDF" : "Open attachment"}
-                          </button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAttachment(item._id, attachment.url)}
+                              className="inline-flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white hover:bg-explore-teal/90"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              {attachment.isPdf ? "View PDF" : "Open attachment"}
+                            </button>
+                            <a
+                              href={`${attachment.url}${attachment.url.includes("?") ? "&" : "?"}download=1`}
+                              className="inline-flex items-center gap-2 rounded-lg border border-explore-teal/30 px-4 py-2 text-sm font-semibold text-explore-teal hover:bg-explore-teal/5"
+                              onClick={() => {
+                                if (!items.find((n) => n._id === item._id)?.read) {
+                                  void markRead(item._id);
+                                }
+                              }}
+                            >
+                              Download
+                            </a>
+                          </div>
                         </div>
                       </div>
                     ))}

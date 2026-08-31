@@ -16,7 +16,7 @@ export async function GET() {
     })
       .populate("sentBy", "name")
       .sort({ sentAt: -1 })
-      .limit(50);
+      .limit(200);
 
     const reads = await ParentNotificationRead.find({
       userId: sessionResult.user.id,

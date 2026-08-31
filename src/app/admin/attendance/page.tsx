@@ -1,8 +1,10 @@
+import Link from "next/link";
 import connectDB from "@/lib/db";
 import { Attendance } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { AttendanceSearchForm } from "@/components/admin/AttendanceSearchForm";
 import { serialize, formatDate } from "@/lib/admin/serialize";
 import { ensureStudentUserId } from "@/lib/students/id";
 
@@ -49,31 +51,44 @@ export default async function Page() {
   const data = await getData();
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Attendance"
-        description="Attendance records"
-        
+        description="Attendance records — click a Student ID or search to view full history"
       />
+
+      <AttendanceSearchForm />
+
       <DataTable
         columns={[
-    {
-      key: "studentId",
-      header: "Student ID",
-      render: (row) => (
-        <div>
-          <p className="font-mono text-explore-teal">{row.studentId}</p>
-          {row.studentName ? (
-            <p className="text-xs text-white/50">{row.studentName}</p>
-          ) : null}
-        </div>
-      ),
-    },
-    { key: "sessionDate", header: "Session", render: (row) => formatDate(row.sessionDate) },
-    { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
+          {
+            key: "studentId",
+            header: "Student ID",
+            render: (row) => {
+              const isLinkable = /^\d{6}$/.test(row.studentId);
+              return (
+                <div>
+                  {isLinkable ? (
+                    <Link
+                      href={`/admin/attendance/student/${encodeURIComponent(row.studentId)}`}
+                      className="font-mono text-explore-teal hover:underline"
+                    >
+                      {row.studentId}
+                    </Link>
+                  ) : (
+                    <p className="font-mono text-explore-teal">{row.studentId}</p>
+                  )}
+                  {row.studentName ? (
+                    <p className="text-xs text-white/50">{row.studentName}</p>
+                  ) : null}
+                </div>
+              );
+            },
+          },
+          { key: "sessionDate", header: "Session", render: (row) => formatDate(row.sessionDate) },
+          { key: "status", header: "Status", render: (row) => <StatusBadge status={String(row.status)} /> },
         ]}
         data={data}
-        
         emptyMessage="No records found."
       />
     </div>

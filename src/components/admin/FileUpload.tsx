@@ -97,9 +97,15 @@ export function FileUpload({
           body: formData,
         });
 
-        const json = await res.json();
+        let json: { success?: boolean; error?: string; message?: string; data?: { url?: string; originalName?: string; filename?: string }; url?: string; filename?: string };
+        try {
+          json = await res.json();
+        } catch {
+          setError(res.ok ? "Upload failed" : `Upload failed (${res.status})`);
+          return;
+        }
 
-        if (!res.ok) {
+        if (!res.ok || json.success === false) {
           setError(json.error ?? json.message ?? "Upload failed");
           return;
         }

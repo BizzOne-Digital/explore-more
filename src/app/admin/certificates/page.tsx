@@ -38,6 +38,7 @@ export default async function Page({
         title="Certificates"
         description="Issue and manage student certificates by grade"
         basePath="/admin/certificates"
+        newAction={{ label: "Issue Single Certificate", href: "/admin/certificates/issue" }}
       />
     );
   }

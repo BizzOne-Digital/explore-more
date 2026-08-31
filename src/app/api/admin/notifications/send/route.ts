@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { ParentNotification, User } from "@/models";
@@ -15,14 +16,25 @@ import {
 } from "@/lib/notifications/display";
 import { z } from "zod";
 
-const notificationSchema = z.object({
-  title: z.string().min(1),
-  message: z.string().min(1),
-  audience: z.enum(["all_parents", "portfolio_parents", "tutoring_parents"]),
-  priority: z.enum(["normal", "important", "urgent"]),
-  attachmentPath: z.string().optional(),
-  attachmentName: z.string().optional(),
-});
+const notificationSchema = z
+  .object({
+    title: z.string().min(1),
+    message: z.string().min(1),
+    audience: z.enum(["all_parents", "portfolio_parents", "tutoring_parents", "custom"]),
+    priority: z.enum(["normal", "important", "urgent"]),
+    attachmentPath: z.string().optional(),
+    attachmentName: z.string().optional(),
+    recipientIds: z.array(z.string().min(1)).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.audience === "custom" && (!data.recipientIds || data.recipientIds.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select at least one parent account for a custom notification.",
+        path: ["recipientIds"],
+      });
+    }
+  });
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,13 +63,15 @@ export async function POST(request: NextRequest) {
         ? stripLocalPathsFromMessage(data.message) || data.message.trim()
         : data.message;
 
-    const recipients = await resolveNotificationRecipients(data.audience);
+    const recipients =
+      data.audience === "custom"
+        ? (data.recipientIds ?? [])
+        : await resolveNotificationRecipients(data.audience);
 
     if (recipients.length === 0 && !allowsEmptyRecipients(data.audience)) {
       return NextResponse.json({ error: noRecipientsMessage(data.audience) }, { status: 400 });
     }
 
-    // Create notification record
     const notification = await ParentNotification.create({
       title: data.title,
       message,
@@ -70,7 +84,6 @@ export async function POST(request: NextRequest) {
       sentBy: session.user.id,
     });
 
-    // Send emails to parents (async, don't wait)
     const parentUsers = await User.find({
       _id: { $in: recipients },
       isActive: true,
@@ -88,7 +101,6 @@ export async function POST(request: NextRequest) {
       urgent: "🚨",
     };
 
-    // Send emails in batches (don't block response)
     Promise.all(
       parentUsers.map((parent) =>
         sendTransactionalEmail({
@@ -123,7 +135,7 @@ export async function POST(request: NextRequest) {
                 }
 
                 <div style="margin: 30px 0;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004'}/parent/notifications" 
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004"}/parent/notifications" 
                      style="background: ${priorityColors[data.priority]}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                     View in Parent Portal
                   </a>
@@ -157,10 +169,14 @@ export async function POST(request: NextRequest) {
       recipientCount: recipients.length,
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      const message = error.issues[0]?.message ?? "Invalid notification data";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
     console.error("Send notification error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to send notification" },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Failed to send notification";
+    const status = /file|upload|size|type|invalid/i.test(message) ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

@@ -1,14 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Send, Loader } from "lucide-react";
 import { FileUpload } from "@/components/admin/FileUpload";
+import {
+  AdminSearchableSelect,
+  type SearchableOption,
+} from "@/components/admin/AdminSearchableSelect";
 import { containsLocalFilesystemPath } from "@/lib/notifications/display";
+
+interface ParentOption {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  guardianId?: string;
+}
 
 export function SendNotificationForm() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [audience, setAudience] = useState("all_parents");
+  const [selectedParentId, setSelectedParentId] = useState("");
+  const [parents, setParents] = useState<ParentOption[]>([]);
   const [priority, setPriority] = useState("normal");
   const [attachmentPath, setAttachmentPath] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
@@ -19,7 +33,49 @@ export function SendNotificationForm() {
   const [recipientHint, setRecipientHint] = useState("");
   const [loadingRecipients, setLoadingRecipients] = useState(false);
 
+  const parentOptions = useMemo<SearchableOption[]>(
+    () =>
+      parents.map((parent) => ({
+        value: parent._id,
+        label: parent.name,
+        sublabel: [parent.email, parent.guardianId, parent.phone].filter(Boolean).join(" · "),
+        searchText: [parent.name, parent.email, parent.guardianId, parent.phone, parent._id]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase(),
+      })),
+    [parents]
+  );
+
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadParents() {
+      try {
+        const response = await fetch("/api/admin/users");
+        const data = await response.json();
+        if (cancelled || !data.success) return;
+        const users = (data.data ?? []) as Array<ParentOption & { role: string }>;
+        setParents(users.filter((user) => user.role === "parent"));
+      } catch {
+        if (!cancelled) setParents([]);
+      }
+    }
+
+    loadParents();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (audience === "custom") {
+      setRecipientCount(selectedParentId ? 1 : 0);
+      setRecipientHint(selectedParentId ? "" : "Select a parent account below.");
+      setLoadingRecipients(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function loadRecipientCount() {
@@ -47,13 +103,19 @@ export function SendNotificationForm() {
     return () => {
       cancelled = true;
     };
-  }, [audience]);
+  }, [audience, selectedParentId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
     setSuccess("");
+
+    if (audience === "custom" && !selectedParentId) {
+      setError("Select a parent account to send this notification.");
+      setLoading(false);
+      return;
+    }
 
     if (containsLocalFilesystemPath(message) && !attachmentPath) {
       setError(
@@ -74,6 +136,7 @@ export function SendNotificationForm() {
           priority,
           attachmentPath: attachmentPath || undefined,
           attachmentName: attachmentName || undefined,
+          recipientIds: audience === "custom" ? [selectedParentId] : undefined,
         }),
       });
 
@@ -98,6 +161,7 @@ export function SendNotificationForm() {
       setTitle("");
       setMessage("");
       setAudience("all_parents");
+      setSelectedParentId("");
       setPriority("normal");
       setAttachmentPath("");
       setAttachmentName("");
@@ -112,11 +176,15 @@ export function SendNotificationForm() {
     }
   }
 
+  const canSubmit =
+    !loading &&
+    !loadingRecipients &&
+    (audience === "all_parents" || (recipientCount ?? 0) > 0);
+
   return (
     <form onSubmit={handleSubmit} className="rounded-lg bg-white/10 border border-white/20 p-6 space-y-4">
       <h3 className="font-semibold text-white mb-4">Create New Notification</h3>
 
-      {/* Title */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-white/70 mb-2">
           Notification Title *
@@ -132,7 +200,6 @@ export function SendNotificationForm() {
         />
       </div>
 
-      {/* Message */}
       <div>
         <label htmlFor="message" className="block text-sm font-medium text-white/70 mb-2">
           Message *
@@ -148,7 +215,6 @@ export function SendNotificationForm() {
         />
       </div>
 
-      {/* Audience & Priority */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="audience" className="block text-sm font-medium text-white/70 mb-2">
@@ -157,12 +223,16 @@ export function SendNotificationForm() {
           <select
             id="audience"
             value={audience}
-            onChange={(e) => setAudience(e.target.value)}
+            onChange={(e) => {
+              setAudience(e.target.value);
+              if (e.target.value !== "custom") setSelectedParentId("");
+            }}
             className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-white/40 focus:outline-none"
           >
             <option value="all_parents">All Parents</option>
             <option value="portfolio_parents">Portfolio Parents Only</option>
             <option value="tutoring_parents">Tutoring Parents Only</option>
+            <option value="custom">Specific Parent Account</option>
           </select>
         </div>
 
@@ -183,8 +253,19 @@ export function SendNotificationForm() {
         </div>
       </div>
 
+      {audience === "custom" && (
+        <AdminSearchableSelect
+          label="Parent Account *"
+          placeholder="Search by name, email, or Guardian ID"
+          searchHint="Type to search parent accounts"
+          value={selectedParentId}
+          onChange={setSelectedParentId}
+          options={parentOptions}
+        />
+      )}
+
       <FileUpload
-        label="Attachment (optional — PDF, images, documents)"
+        label="Attachment (optional — PDF, images, documents up to 15MB)"
         value={attachmentPath}
         fileName={attachmentName}
         onChange={(url, name) => {
@@ -196,7 +277,7 @@ export function SendNotificationForm() {
           setAttachmentName("");
         }}
         mode="file"
-        maxSize={50}
+        maxSize={15}
         accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
       />
       {containsLocalFilesystemPath(message) && !attachmentPath && (
@@ -209,6 +290,12 @@ export function SendNotificationForm() {
       <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
         {loadingRecipients ? (
           <span>Checking recipients...</span>
+        ) : audience === "custom" ? (
+          <span>
+            {selectedParentId
+              ? "This notification will be saved to the selected parent account and sent by email."
+              : recipientHint}
+          </span>
         ) : recipientCount === null ? (
           <span>Unable to load recipient count.</span>
         ) : recipientCount > 0 ? (
@@ -226,7 +313,6 @@ export function SendNotificationForm() {
         )}
       </div>
 
-      {/* Error/Success */}
       {error && (
         <div className="rounded-lg bg-red-500/20 border border-red-500/30 p-3">
           <p className="text-sm text-red-300">{error}</p>
@@ -239,14 +325,9 @@ export function SendNotificationForm() {
         </div>
       )}
 
-      {/* Submit Button */}
       <button
         type="submit"
-        disabled={
-          loading ||
-          loadingRecipients ||
-          (recipientCount === 0 && audience !== "all_parents")
-        }
+        disabled={!canSubmit}
         className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-explore-teal px-4 py-3 text-sm font-semibold text-white hover:bg-explore-teal/90 transition-colors disabled:opacity-50"
       >
         {loading ? (

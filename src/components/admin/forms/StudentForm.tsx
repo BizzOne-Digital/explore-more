@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   FormField,
@@ -19,6 +19,10 @@ import { Send, Trash2 } from "lucide-react";
 import { gradeSelectOptions } from "@/lib/grades";
 import { toDateInputValue } from "@/lib/admin/student-form-data";
 import { AssignTutorForm } from "@/components/admin/AssignTutorForm";
+import {
+  AdminSearchableSelect,
+  type SearchableOption,
+} from "@/components/admin/AdminSearchableSelect";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -45,6 +49,8 @@ interface ParentOption {
   _id: string;
   name: string;
   email: string;
+  phone?: string;
+  guardianId?: string;
 }
 
 export function StudentForm({

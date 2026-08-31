@@ -29,7 +29,7 @@ export default async function StudentDetailPage({
   const [profile, guardianLinks, parents] = await Promise.all([
     StudentProfile.findOne({ userId: id }).lean(),
     GuardianStudentLink.find({ studentId: id }).populate("guardianId", "name email").lean(),
-    User.find({ role: "parent" }).select("name email").sort({ name: 1 }).lean(),
+    User.find({ role: "parent" }).select("name email phone guardianId").sort({ name: 1 }).lean(),
   ]);
 
   const initialData = buildStudentFormInitialData(

@@ -36,6 +36,7 @@ interface UserData {
   phone?: string;
   role: string;
   studentId?: string;
+  tutorId?: string;
   staffId?: string;
   isActive: boolean;
   emailVerified: boolean;
@@ -286,10 +287,19 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 {roleLabels[user.role]}
               </span>
               {user.studentId && (
-                <span className="font-mono text-sm text-explore-teal">{user.studentId}</span>
+                <span className="font-mono text-sm text-explore-teal" title="Student ID">
+                  {user.studentId}
+                </span>
+              )}
+              {user.tutorId && (user.role === "instructor" || user.role === "administrator") && (
+                <span className="font-mono text-sm text-explore-teal" title="Tutor ID">
+                  {user.tutorId}
+                </span>
               )}
               {user.staffId && (
-                <span className="font-mono text-sm text-explore-teal">{user.staffId}</span>
+                <span className="font-mono text-sm text-white/50" title="Staff ID">
+                  {user.staffId}
+                </span>
               )}
             </div>
           </div>

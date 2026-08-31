@@ -37,3 +37,21 @@ export async function findTutorByTutorId(tutorId: string) {
     isActive: { $ne: false },
   }).lean();
 }
+
+/** Assign 6-digit Tutor IDs to instructors and administrators missing one. */
+export async function ensureAllTutorIds(): Promise<number> {
+  await connectDB();
+  const tutors = await User.find({
+    role: { $in: ["instructor", "administrator"] },
+  }).select("_id tutorId");
+
+  let assigned = 0;
+  for (const user of tutors) {
+    if (!user.tutorId) {
+      await ensureTutorId(user._id.toString());
+      assigned++;
+    }
+  }
+
+  return assigned;
+}

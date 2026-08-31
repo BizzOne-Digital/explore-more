@@ -13,9 +13,28 @@ interface User {
   phone?: string;
   role: string;
   studentId?: string;
+  tutorId?: string;
+  staffId?: string;
+  guardianId?: string;
   isActive: boolean;
   emailVerified: boolean;
   createdAt: string;
+}
+
+function displayUserId(user: User): { label: string; value: string; href?: string } | null {
+  if (user.studentId) {
+    return { label: "Student ID", value: user.studentId, href: `/admin/students/${user._id}` };
+  }
+  if (user.tutorId && (user.role === "instructor" || user.role === "administrator")) {
+    return { label: "Tutor ID", value: user.tutorId, href: `/admin/users/${user._id}` };
+  }
+  if (user.guardianId && user.role === "parent") {
+    return { label: "Guardian ID", value: user.guardianId };
+  }
+  if (user.staffId && (user.role === "staff" || user.role === "instructor" || user.role === "administrator")) {
+    return { label: "Staff ID", value: user.staffId, href: `/admin/users/${user._id}` };
+  }
+  return null;
 }
 
 interface Props {
@@ -72,6 +91,9 @@ export function UserSearchTable({ users }: Props) {
             user.email.toLowerCase().includes(term) ||
             (user.phone && user.phone.includes(term)) ||
             (user.studentId && user.studentId.toLowerCase().includes(term)) ||
+            (user.tutorId && user.tutorId.toLowerCase().includes(term)) ||
+            (user.guardianId && user.guardianId.toLowerCase().includes(term)) ||
+            (user.staffId && user.staffId.toLowerCase().includes(term)) ||
             user._id.toLowerCase().includes(term) ||
             userMatchesRoleSearch(user.role, term));
 
@@ -106,7 +128,7 @@ export function UserSearchTable({ users }: Props) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
           <input
             type="text"
-            placeholder="Search by name, email, phone, role (e.g. parent, tutor), Student ID..."
+            placeholder="Search by name, email, phone, role, Student ID, Tutor ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-10 pr-4 text-sm text-white placeholder:text-white/30 focus:border-explore-teal focus:outline-none focus:ring-1 focus:ring-explore-teal"
@@ -189,16 +211,26 @@ export function UserSearchTable({ users }: Props) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {user.studentId ? (
-                      <Link
-                        href={`/admin/students/${user._id}`}
-                        className="font-mono text-xs text-explore-teal hover:underline"
-                      >
-                        {user.studentId}
-                      </Link>
-                    ) : (
-                      <span className="font-mono text-xs text-white/40">{user._id.slice(-8)}</span>
-                    )}
+                    {(() => {
+                      const idInfo = displayUserId(user);
+                      if (idInfo) {
+                        const content = (
+                          <span className="font-mono text-xs text-explore-teal">{idInfo.value}</span>
+                        );
+                        return idInfo.href ? (
+                          <Link href={idInfo.href} className="hover:underline" title={idInfo.label}>
+                            {content}
+                          </Link>
+                        ) : (
+                          <span title={idInfo.label}>{content}</span>
+                        );
+                      }
+                      return (
+                        <span className="font-mono text-xs text-white/40" title="Internal reference">
+                          {user._id.slice(-8)}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {user.isActive ? (

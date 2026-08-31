@@ -22,21 +22,58 @@ interface Props {
   users: User[];
 }
 
+/** Map common search terms to stored user roles. */
+const ROLE_SEARCH_ALIASES: Record<string, string> = {
+  student: "student",
+  students: "student",
+  parent: "parent",
+  parents: "parent",
+  guardian: "parent",
+  guardians: "parent",
+  staff: "staff",
+  tutor: "instructor",
+  tutors: "instructor",
+  instructor: "instructor",
+  instructors: "instructor",
+  admin: "administrator",
+  administrator: "administrator",
+  administrators: "administrator",
+};
+
+function userMatchesRoleSearch(userRole: string, term: string): boolean {
+  const normalized = term.trim().toLowerCase();
+  if (!normalized) return false;
+
+  if (userRole.toLowerCase().includes(normalized)) return true;
+
+  const mappedRole = ROLE_SEARCH_ALIASES[normalized];
+  if (mappedRole && userRole === mappedRole) return true;
+
+  return Object.entries(ROLE_SEARCH_ALIASES).some(
+    ([alias, role]) => userRole === role && alias.startsWith(normalized)
+  );
+}
+
 export function UserSearchTable({ users }: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      const term = searchTerm.toLowerCase();
-      
+      const term = searchTerm.toLowerCase().trim();
+
+      const roleOnlyFilter = term ? ROLE_SEARCH_ALIASES[term] : undefined;
+
       const matchesSearch =
-        !searchTerm ||
-        user.name.toLowerCase().includes(term) ||
-        user.email.toLowerCase().includes(term) ||
-        (user.phone && user.phone.includes(term)) ||
-        (user.studentId && user.studentId.toLowerCase().includes(term)) ||
-        user._id.toLowerCase().includes(term);
+        !term ||
+        (roleOnlyFilter
+          ? user.role === roleOnlyFilter
+          : user.name.toLowerCase().includes(term) ||
+            user.email.toLowerCase().includes(term) ||
+            (user.phone && user.phone.includes(term)) ||
+            (user.studentId && user.studentId.toLowerCase().includes(term)) ||
+            user._id.toLowerCase().includes(term) ||
+            userMatchesRoleSearch(user.role, term));
 
       const matchesRole = !roleFilter || user.role === roleFilter;
 
@@ -69,7 +106,7 @@ export function UserSearchTable({ users }: Props) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
           <input
             type="text"
-            placeholder="Search by name, email, phone, Student ID, or User ID..."
+            placeholder="Search by name, email, phone, role (e.g. parent, tutor), Student ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-10 pr-4 text-sm text-white placeholder:text-white/30 focus:border-explore-teal focus:outline-none focus:ring-1 focus:ring-explore-teal"
@@ -94,7 +131,7 @@ export function UserSearchTable({ users }: Props) {
               Staff ({roleCounts.staff})
             </option>
             <option value="instructor" className="bg-explore-charcoal">
-              Instructors ({roleCounts.instructor})
+              Tutors / Instructors ({roleCounts.instructor})
             </option>
             <option value="administrator" className="bg-explore-charcoal">
               Administrators ({roleCounts.administrator})

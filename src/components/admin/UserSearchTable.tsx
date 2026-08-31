@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { formatDate } from "@/lib/admin/serialize";
 import { Search, Filter } from "lucide-react";
 import Link from "next/link";
+import { AdminUserIdLink } from "@/components/admin/AdminUserIdLink";
 
 interface User {
   _id: string;
@@ -19,22 +20,6 @@ interface User {
   isActive: boolean;
   emailVerified: boolean;
   createdAt: string;
-}
-
-function displayUserId(user: User): { label: string; value: string; href?: string } | null {
-  if (user.studentId) {
-    return { label: "Student ID", value: user.studentId, href: `/admin/students/${user._id}` };
-  }
-  if (user.tutorId && (user.role === "instructor" || user.role === "administrator")) {
-    return { label: "Tutor ID", value: user.tutorId, href: `/admin/users/${user._id}` };
-  }
-  if (user.guardianId && user.role === "parent") {
-    return { label: "Guardian ID", value: user.guardianId };
-  }
-  if (user.staffId && (user.role === "staff" || user.role === "instructor" || user.role === "administrator")) {
-    return { label: "Staff ID", value: user.staffId, href: `/admin/users/${user._id}` };
-  }
-  return null;
 }
 
 interface Props {
@@ -211,26 +196,7 @@ export function UserSearchTable({ users }: Props) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {(() => {
-                      const idInfo = displayUserId(user);
-                      if (idInfo) {
-                        const content = (
-                          <span className="font-mono text-xs text-explore-teal">{idInfo.value}</span>
-                        );
-                        return idInfo.href ? (
-                          <Link href={idInfo.href} className="hover:underline" title={idInfo.label}>
-                            {content}
-                          </Link>
-                        ) : (
-                          <span title={idInfo.label}>{content}</span>
-                        );
-                      }
-                      return (
-                        <span className="font-mono text-xs text-white/40" title="Internal reference">
-                          {user._id.slice(-8)}
-                        </span>
-                      );
-                    })()}
+                    <AdminUserIdLink user={user} />
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {user.isActive ? (

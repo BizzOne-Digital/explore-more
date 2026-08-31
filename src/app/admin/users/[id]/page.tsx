@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { ParentAccountDashboard } from "@/components/admin/parent/ParentAccountDashboard";
 import { UserAccountDocuments } from "@/components/admin/UserAccountDocuments";
+import { CopyIdButton } from "@/components/parent/CopyIdButton";
 import { formatDistanceToNow } from "date-fns";
 
 interface UserData {
@@ -38,6 +39,7 @@ interface UserData {
   studentId?: string;
   tutorId?: string;
   staffId?: string;
+  guardianId?: string;
   isActive: boolean;
   emailVerified: boolean;
   createdAt: string;
@@ -287,18 +289,36 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 {roleLabels[user.role]}
               </span>
               {user.studentId && (
-                <span className="font-mono text-sm text-explore-teal" title="Student ID">
+                <Link
+                  href={`/admin/students/${user._id}`}
+                  className="inline-flex items-center gap-1 font-mono text-sm text-explore-teal hover:underline"
+                  title="Student ID — open student profile"
+                >
                   {user.studentId}
-                </span>
+                </Link>
               )}
               {user.tutorId && (user.role === "instructor" || user.role === "administrator") && (
-                <span className="font-mono text-sm text-explore-teal" title="Tutor ID">
-                  {user.tutorId}
+                <span className="inline-flex items-center gap-1">
+                  <span className="font-mono text-sm text-explore-teal" title="Tutor ID">
+                    {user.tutorId}
+                  </span>
+                  <CopyIdButton value={user.tutorId} label="" variant="dark" />
                 </span>
               )}
-              {user.staffId && (
-                <span className="font-mono text-sm text-white/50" title="Staff ID">
-                  {user.staffId}
+              {user.guardianId && user.role === "parent" && (
+                <span className="inline-flex items-center gap-1">
+                  <span className="font-mono text-sm text-explore-teal" title="Guardian ID">
+                    {user.guardianId}
+                  </span>
+                  <CopyIdButton value={user.guardianId} label="" variant="dark" />
+                </span>
+              )}
+              {user.staffId && user.role === "staff" && (
+                <span className="inline-flex items-center gap-1">
+                  <span className="font-mono text-sm text-white/60" title="Staff ID">
+                    {user.staffId}
+                  </span>
+                  <CopyIdButton value={user.staffId} label="" variant="dark" />
                 </span>
               )}
             </div>

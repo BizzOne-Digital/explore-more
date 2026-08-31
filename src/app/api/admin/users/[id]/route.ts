@@ -3,6 +3,7 @@ import { User, StudentProfile, InstructorProfile, GuardianStudentLink } from "@/
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 import { logActivity, extractChanges, getIpAddress, getUserAgent } from "@/lib/admin/audit-log";
+import { ensureTutorId } from "@/lib/tutor/tutor-id";
 import bcrypt from "bcryptjs";
 
 export async function GET(
@@ -23,19 +24,28 @@ export async function GET(
       return apiError(new Error("User not found"), 404);
     }
 
+    if (user.role === "instructor" || user.role === "administrator") {
+      await ensureTutorId(id);
+    }
+
+    const freshUser = await User.findById(id).lean();
+    if (!freshUser) {
+      return apiError(new Error("User not found"), 404);
+    }
+
     // Get related data
     let profile = null;
     let guardianLinks: unknown[] = [];
     let studentLinks: unknown[] = [];
 
-    if (user.role === "student") {
+    if (freshUser.role === "student") {
       profile = await StudentProfile.findOne({ userId: id }).lean();
       guardianLinks = await GuardianStudentLink.find({ studentId: id })
         .populate("guardianId", "name email")
         .lean();
-    } else if (user.role === "instructor") {
+    } else if (freshUser.role === "instructor") {
       profile = await InstructorProfile.findOne({ userId: id }).lean();
-    } else if (user.role === "parent") {
+    } else if (freshUser.role === "parent") {
       const { ParentProfile } = await import("@/models");
       profile = await ParentProfile.findOne({ userId: id }).lean();
       studentLinks = await GuardianStudentLink.find({ guardianId: id })
@@ -44,7 +54,7 @@ export async function GET(
     }
 
     return apiSuccess({
-      user,
+      user: freshUser,
       profile,
       guardianLinks,
       studentLinks,

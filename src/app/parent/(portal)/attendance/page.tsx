@@ -7,6 +7,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { AttendanceFilters } from "@/components/parent/AttendanceFilters";
 import { AttendanceExcuseForm } from "@/components/parent/AttendanceExcuseForm";
 import { RecordDailyAttendanceForm } from "@/components/parent/RecordDailyAttendanceForm";
+import { DownloadReportButton } from "@/components/parent/DownloadReportButton";
 import Link from "next/link";
 import { LinkChildForm } from "@/components/parent/LinkChildForm";
 import {
@@ -73,11 +74,20 @@ export default async function ParentAttendancePage({
       </div>
 
       {students.length > 0 && (
-        <AttendanceFilters
-          students={students.map((s) => ({ id: s.id, name: s.name }))}
-          selectedStudentId={selectedStudentId}
-          monthParam={monthParam}
-        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <AttendanceFilters
+            students={students.map((s) => ({ id: s.id, name: s.name }))}
+            selectedStudentId={selectedStudentId}
+            monthParam={monthParam}
+          />
+          {selectedStudent && (
+            <DownloadReportButton
+              href={`/api/parent/attendance/export?studentId=${selectedStudent.id}&month=${monthParam}`}
+              label="Download Attendance PDF"
+              filename={`attendance-${monthParam}-${selectedStudent.name.replace(/[^\w.-]+/g, "_")}.pdf`}
+            />
+          )}
+        </div>
       )}
 
       {students.length === 0 ? (

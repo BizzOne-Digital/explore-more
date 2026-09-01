@@ -7,6 +7,7 @@ import { resolveParentContext } from "@/lib/parent/context";
 import { PortfolioSubNav } from "@/components/parent/ParentNav";
 import { StudentYearSelector } from "@/components/parent/StudentYearSelector";
 import { AttendanceForm } from "@/components/parent/PortfolioForms";
+import { DownloadReportButton } from "@/components/parent/DownloadReportButton";
 import { ATTENDANCE_TYPE_LABELS } from "@/lib/portfolio/constants";
 
 export default async function AttendancePage({
@@ -28,10 +29,24 @@ export default async function AttendancePage({
     ["present", "instruction", "field_trip", "educational_activity"].includes(r.type)
   ).length;
 
+  const studentName = ctx.students.find((s) => s.id === ctx.studentId)?.name ?? "Student";
+  const safeName = studentName.replace(/[^\w.-]+/g, "_");
+
   return (
     <div className="space-y-6">
-      <h2 className="font-display text-2xl font-bold">Attendance & Instruction Log</h2>
-      <p className="text-sm text-explore-charcoal/70">Days of Instruction recorded: <strong>{instructionDays}</strong></p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-2xl font-bold">Attendance & Instruction Log</h2>
+          <p className="text-sm text-explore-charcoal/70">
+            Days of Instruction recorded: <strong>{instructionDays}</strong>
+          </p>
+        </div>
+        <DownloadReportButton
+          href={`/api/parent/portfolio/attendance/export?portfolioId=${ctx.portfolio._id.toString()}`}
+          label="Download Instruction Log PDF"
+          filename={`instruction-log-${ctx.schoolYear.replace(/[^\d-]/g, "")}-${safeName}.pdf`}
+        />
+      </div>
       <Suspense fallback={null}>
         <StudentYearSelector students={ctx.students.map((s) => ({ id: s.id, name: s.name }))} selectedStudentId={ctx.studentId} selectedYear={ctx.schoolYear} />
         <PortfolioSubNav />

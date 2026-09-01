@@ -36,13 +36,18 @@ export default async function ExportPage({
         <p><strong>School Year:</strong> {ctx.schoolYear}</p>
       </div>
 
-      <ExportPortfolioForm portfolioId={ctx.portfolio._id.toString()} />
+      <ExportPortfolioForm
+        portfolioId={ctx.portfolio._id.toString()}
+        studentName={studentName}
+        schoolYear={ctx.schoolYear}
+      />
 
       <div className="rounded-xl bg-white p-5 shadow-sm text-sm text-explore-charcoal/70">
         <p className="font-semibold text-explore-charcoal">Export options</p>
         <ul className="mt-2 list-disc pl-5 space-y-1">
+          <li>Download a professional PDF summary with work samples, reading, activities, curriculum, and instruction logs</li>
           <li>Download individual files from Work Samples, Activities, and Curriculum sections</li>
-          <li>Download complete portfolio as ZIP with all original files</li>
+          <li>Download complete portfolio as ZIP with PDF summary and all original files</li>
           <li>Access remains available after portfolio submission and review</li>
         </ul>
       </div>

@@ -330,8 +330,17 @@ export function SubmitPortfolioButton({
   );
 }
 
-export function ExportPortfolioForm({ portfolioId }: { portfolioId: string }) {
+export function ExportPortfolioForm({
+  portfolioId,
+  studentName,
+  schoolYear,
+}: {
+  portfolioId: string;
+  studentName: string;
+  schoolYear: string;
+}) {
   const [loading, setLoading] = useState(false);
+  const safeName = studentName.replace(/[^\w.-]+/g, "_");
 
   async function exportZip() {
     setLoading(true);
@@ -344,26 +353,62 @@ export function ExportPortfolioForm({ portfolioId }: { portfolioId: string }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "homeschool-portfolio.zip";
+    a.download = `portfolio-${schoolYear.replace(/[^\d-]/g, "")}-${safeName}.zip`;
     a.click();
     URL.revokeObjectURL(url);
     setLoading(false);
   }
 
+  async function exportPdf() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/parent/portfolio/export/pdf?portfolioId=${portfolioId}`);
+      if (!res.ok) throw new Error("PDF export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `portfolio-${schoolYear.replace(/[^\d-]/g, "")}-${safeName}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Could not generate portfolio PDF. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm border border-explore-charcoal/8">
-      <h3 className="font-display text-lg font-bold">Export My Homeschool Portfolio</h3>
-      <p className="mt-2 text-sm text-explore-charcoal/70">
-        Download all original uploaded files as a ZIP archive. Your records always remain accessible to you.
+    <div className="rounded-2xl bg-white p-6 shadow-sm border border-explore-charcoal/8 space-y-4">
+      <div>
+        <h3 className="font-display text-lg font-bold">Export My Homeschool Portfolio</h3>
+        <p className="mt-2 text-sm text-explore-charcoal/70">
+          Download a professionally formatted PDF summary of all portfolio records, or export the
+          complete archive with original uploaded files.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={exportPdf}
+          disabled={loading}
+          className="rounded-lg bg-explore-teal px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {loading ? "Preparing…" : "Download Portfolio Summary (PDF)"}
+        </button>
+        <button
+          type="button"
+          onClick={exportZip}
+          disabled={loading}
+          className="rounded-lg bg-explore-forest px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {loading ? "Preparing…" : "Download Complete Archive (ZIP)"}
+        </button>
+      </div>
+      <p className="text-xs text-explore-charcoal/50">
+        The ZIP archive includes Portfolio-Summary.pdf plus all original work samples, curriculum,
+        and activity files.
       </p>
-      <button
-        type="button"
-        onClick={exportZip}
-        disabled={loading}
-        className="mt-4 rounded-lg bg-explore-forest px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
-      >
-        {loading ? "Preparing…" : "Download Original Files (.ZIP)"}
-      </button>
     </div>
   );
 }

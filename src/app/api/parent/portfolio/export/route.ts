@@ -8,9 +8,12 @@ import {
   PortfolioActivity,
   PortfolioCurriculum,
   PortfolioWorkSample,
-  User,
 } from "@/models";
 import { getPrivateFilePath } from "@/lib/services/upload";
+import {
+  generatePortfolioSummaryPdf,
+  getPortfolioReportData,
+} from "@/lib/pdf/portfolio-report";
 import fs from "fs";
 
 export async function POST(request: Request) {
@@ -26,7 +29,6 @@ export async function POST(request: Request) {
 
     const { portfolio } = access;
     await connectDB();
-    const student = await User.findById(portfolio.studentId).select("name");
 
     const selected = categories ?? {
       workSamples: true,
@@ -38,50 +40,39 @@ export async function POST(request: Request) {
     const passThrough = new PassThrough();
     archive.pipe(passThrough);
 
-    const manifest: string[] = [
-      `Explore More Academy — Homeschool Portfolio Export`,
-      `Student: ${student?.name ?? "Student"}`,
-      `School Year: ${portfolio.schoolYear}`,
-      `Exported: ${new Date().toLocaleString()}`,
-      "",
-    ];
+    const reportData = await getPortfolioReportData(portfolioId);
+    if (reportData) {
+      const summaryPdf = await generatePortfolioSummaryPdf(reportData);
+      archive.append(Buffer.from(summaryPdf), { name: "Portfolio-Summary.pdf" });
+    }
 
     if (selected.workSamples !== false) {
       const samples = await PortfolioWorkSample.find({ portfolioId });
-      manifest.push(`Work Samples (${samples.length})`);
       for (const sample of samples) {
-        manifest.push(`- ${sample.subject}: ${sample.assignmentName}`);
         for (const file of sample.files) {
           addFileToArchive(archive, file.path, `work-samples/${file.originalName}`);
         }
       }
-      manifest.push("");
     }
 
     if (selected.curriculum !== false) {
       const items = await PortfolioCurriculum.find({ portfolioId });
-      manifest.push(`Curriculum (${items.length})`);
       for (const item of items) {
-        manifest.push(`- ${item.subject}: ${item.materialName}`);
         for (const file of item.files) {
           addFileToArchive(archive, file.path, `curriculum/${file.originalName}`);
         }
       }
-      manifest.push("");
     }
 
     if (selected.activities !== false) {
       const activities = await PortfolioActivity.find({ portfolioId });
-      manifest.push(`Activities (${activities.length})`);
       for (const activity of activities) {
-        manifest.push(`- ${activity.category}: ${activity.activityName}`);
         for (const file of activity.files) {
           addFileToArchive(archive, file.path, `activities/${file.originalName}`);
         }
       }
     }
 
-    archive.append(manifest.join("\n"), { name: "README.txt" });
     await archive.finalize();
 
     const chunks: Buffer[] = [];

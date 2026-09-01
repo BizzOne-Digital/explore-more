@@ -14,7 +14,7 @@ interface StaffMember {
 interface Conversation {
   _id: string;
   subject: string;
-  staffId: { name: string };
+  staffId: { _id?: string; name: string };
   parentUnread: number;
   lastMessageAt: string;
 }
@@ -156,9 +156,15 @@ function StaffRecipientPicker({
 export function ParentMessagesClient({
   conversations: initial,
   staff,
+  initialStaffId,
+  initialStudentId,
+  initialSubject,
 }: {
   conversations: Conversation[];
   staff: StaffMember[];
+  initialStaffId?: string;
+  initialStudentId?: string;
+  initialSubject?: string;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -166,11 +172,26 @@ export function ParentMessagesClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [body, setBody] = useState("");
-  const [staffId, setStaffId] = useState(staff[0]?._id ?? "");
-  const [subject, setSubject] = useState("");
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const defaultStaffId =
+    initialStaffId && staff.some((member) => member._id === initialStaffId)
+      ? initialStaffId
+      : (staff[0]?._id ?? "");
+  const [staffId, setStaffId] = useState(defaultStaffId);
+  const [studentId, setStudentId] = useState(initialStudentId ?? "");
+  const [subject, setSubject] = useState(initialSubject ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (initialStaffId && staff.some((member) => member._id === initialStaffId)) {
+      setStaffId(initialStaffId);
+      setSelectedId(null);
+    }
+    if (initialStudentId) setStudentId(initialStudentId);
+    if (initialSubject) setSubject(initialSubject);
+  }, [initialStaffId, initialStudentId, initialSubject, staff]);
+
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
   async function loadThread(id: string) {
     setSelectedId(id);
@@ -207,6 +228,10 @@ export function ParentMessagesClient({
     else {
       formData.set("staffId", staffId);
       formData.set("subject", subject);
+      if (studentId) {
+        formData.set("studentId", studentId);
+        formData.set("staffCategory", "tutor");
+      }
     }
 
     for (const file of attachedFiles) {

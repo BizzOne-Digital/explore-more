@@ -2,9 +2,13 @@ import { z } from "zod";
 import connectDB from "@/lib/db";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireTutorPortal } from "@/lib/tutor/api-auth";
-import { tutorHasStudentAccess } from "@/lib/tutor/permissions";
+import {
+  canPublishResourceToStudent,
+  getPublishableStudentIds,
+} from "@/lib/tutor/permissions";
 import { Resource } from "@/models";
 import { TUTOR_RESOURCE_TYPES } from "@/lib/tutor/constants";
+import mongoose from "mongoose";
 
 const createSchema = z.object({
   title: z.string().min(1),
@@ -13,6 +17,7 @@ const createSchema = z.object({
   url: z.string().optional(),
   filePath: z.string().optional(),
   studentId: z.string().optional(),
+  audience: z.enum(["single", "all"]).optional(),
   isPublic: z.boolean().optional(),
 });
 
@@ -54,10 +59,36 @@ export async function POST(request: Request) {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return jsonError("Invalid resource data", 400);
 
-  if (parsed.data.studentId) {
-    if (!(await tutorHasStudentAccess(sessionResult.user.id, parsed.data.studentId))) {
-      return jsonError("Student not assigned to you", 403);
+  const role = sessionResult.user.role;
+  const audience = parsed.data.audience ?? (parsed.data.isPublic ? "all" : "single");
+
+  let assignedStudentIds: string[] = [];
+  let isPublic = false;
+
+  if (audience === "all") {
+    const publishableIds = await getPublishableStudentIds(sessionResult.user.id, role);
+    if (publishableIds.length === 0) {
+      return jsonError("No students available to publish to", 400);
     }
+    if (role === "administrator") {
+      isPublic = true;
+    } else {
+      assignedStudentIds = publishableIds;
+    }
+  } else {
+    if (!parsed.data.studentId) {
+      return jsonError("Please select a student", 400);
+    }
+    if (
+      !(await canPublishResourceToStudent(
+        sessionResult.user.id,
+        role,
+        parsed.data.studentId
+      ))
+    ) {
+      return jsonError("Student not available for publishing", 403);
+    }
+    assignedStudentIds = [parsed.data.studentId];
   }
 
   if (!parsed.data.url && !parsed.data.filePath) {
@@ -72,8 +103,8 @@ export async function POST(request: Request) {
     type: parsed.data.type,
     url: parsed.data.url,
     filePath: parsed.data.filePath,
-    isPublic: parsed.data.isPublic ?? false,
-    assignedStudentIds: parsed.data.studentId ? [parsed.data.studentId] : [],
+    isPublic,
+    assignedStudentIds: assignedStudentIds.map((id) => new mongoose.Types.ObjectId(id)),
     createdBy: sessionResult.user.id,
   });
 

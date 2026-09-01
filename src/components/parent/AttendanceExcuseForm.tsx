@@ -66,7 +66,7 @@ export function AttendanceExcuseForm({ studentId }: { studentId: string }) {
       </div>
       <p className="text-sm text-explore-charcoal/60">
         Submit an explanation for an absence. You can attach a doctor&apos;s note or other supporting
-        document. Your submission will appear in the attendance records for that date.
+        document. The day will be marked <strong>Excused</strong> in your attendance records.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

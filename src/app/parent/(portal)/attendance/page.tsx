@@ -164,10 +164,17 @@ export default async function ParentAttendancePage({
                             Daily log
                           </span>
                         )}
+                        {record.parentExcuseNote && (
+                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                            Parent excuse
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 text-sm text-explore-charcoal/60">
                         {record.isDailyLog
-                          ? "Homeschool day"
+                          ? record.parentExcuseNote
+                            ? "Absence / excuse submitted"
+                            : "Homeschool day"
                           : (record.courseId as { title?: string } | null)?.title ||
                             (record.eventId as { title?: string } | null)?.title ||
                             "General Session"}

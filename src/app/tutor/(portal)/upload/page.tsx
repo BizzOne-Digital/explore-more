@@ -6,8 +6,8 @@ export default function TutorUploadPage() {
       <div>
         <h2 className="font-display text-2xl font-bold">Upload Student Resource</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Select a student, choose a resource type, and publish worksheets, homework, PDFs, or
-          links to their account and parent portal.
+          Search for a student by name or Student ID, or publish to all students at once.
+          Worksheets, homework, PDFs, and links appear in the student and parent portals.
         </p>
       </div>
       <TutorUploadResourceForm />

@@ -105,6 +105,7 @@ export async function POST(request: Request) {
     const excuseFields: Record<string, unknown> = {
       parentExcuseNote: note.trim(),
       parentExcuseSubmittedAt: new Date(),
+      status: "excused",
     };
     if (body.docPath?.trim()) {
       excuseFields.parentExcuseDocUrl = body.docPath.trim();
@@ -135,7 +136,6 @@ export async function POST(request: Request) {
       record = await Attendance.create({
         studentId: new mongoose.Types.ObjectId(accessibleId),
         sessionDate: startOfDay,
-        status: "excused",
         isDailyLog: true,
         recordedBy: new mongoose.Types.ObjectId(sessionResult.user.id),
         ...excuseFields,

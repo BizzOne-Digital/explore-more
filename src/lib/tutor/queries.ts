@@ -114,6 +114,50 @@ export async function listTutorStudents(tutorUserId: string) {
   });
 }
 
+export type ResourcePublishStudent = {
+  studentId: string;
+  studentName: string;
+  studentNumber?: string;
+  grade?: string;
+};
+
+export async function listStudentsForResourcePublish(
+  userId: string,
+  role: string
+): Promise<ResourcePublishStudent[]> {
+  await connectDB();
+
+  if (role === "administrator") {
+    const students = await User.find({ role: "student", isActive: { $ne: false } })
+      .select("name studentId")
+      .sort({ name: 1 })
+      .lean();
+
+    if (students.length === 0) return [];
+
+    const studentIds = students.map((s) => s._id);
+    const profiles = await StudentProfile.find({ userId: { $in: studentIds } })
+      .select("userId grade")
+      .lean();
+    const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+
+    return students.map((s) => ({
+      studentId: s._id.toString(),
+      studentName: s.name,
+      studentNumber: s.studentId ?? undefined,
+      grade: profileMap.get(s._id.toString())?.grade,
+    }));
+  }
+
+  const assigned = await listTutorStudents(userId);
+  return assigned.map((s) => ({
+    studentId: s.studentId,
+    studentName: s.studentName,
+    studentNumber: s.studentNumber,
+    grade: s.grade,
+  }));
+}
+
 export async function getTutorStudentDetail(tutorUserId: string, studentId: string) {
   await connectDB();
 

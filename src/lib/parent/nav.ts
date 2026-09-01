@@ -15,6 +15,7 @@ import {
   UserCircle,
   NotebookPen,
   Library,
+  Award,
 } from "lucide-react";
 
 export interface ParentNavItem {
@@ -42,6 +43,7 @@ export const parentNavGroups: ParentNavGroup[] = [
       { label: "My Children", href: "/parent/students", icon: Users, requiredFeature: "parentDashboard" },
       { label: "Assessments", href: "/parent/assessments", icon: ClipboardCheck, requiredFeature: "midTermAssessment" },
       { label: "Attendance", href: "/parent/attendance", icon: CalendarDays, requiredFeature: "parentDashboard" },
+      { label: "Certificates", href: "/parent/certificates", icon: Award, requiredFeature: "parentDashboard" },
     ],
   },
   {

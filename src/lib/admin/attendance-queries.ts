@@ -7,6 +7,8 @@ export type AdminAttendanceHistoryRow = {
   sessionDate: string;
   status: string;
   notes?: string;
+  parentExcuseNote?: string;
+  parentExcuseDocUrl?: string;
   classLabel?: string;
   recordedByName?: string;
   isDailyLog?: boolean;
@@ -52,6 +54,8 @@ export async function getStudentAttendanceHistory(studentCode: string) {
           : String(record.sessionDate),
       status: record.status,
       notes: record.notes || undefined,
+      parentExcuseNote: record.parentExcuseNote || undefined,
+      parentExcuseDocUrl: record.parentExcuseDocUrl || undefined,
       classLabel,
       recordedByName: recorder?.name || undefined,
       isDailyLog: Boolean(record.isDailyLog),

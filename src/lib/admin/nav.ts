@@ -27,6 +27,8 @@ import {
   MessagesSquare,
   Bell,
   Settings,
+  Upload,
+  Library,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -68,6 +70,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     items: [
       { label: "Courses", href: "/admin/courses", icon: GraduationCap },
       { label: "Enrollments", href: "/admin/enrollments", icon: UserCheck },
+      { label: "Upload Resources", href: "/tutor/upload", icon: Upload },
+      { label: "Resource Library", href: "/tutor/resources", icon: Library },
     ],
   },
   {

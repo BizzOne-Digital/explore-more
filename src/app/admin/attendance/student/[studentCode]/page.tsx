@@ -69,6 +69,25 @@ export default async function StudentAttendanceHistoryPage({ params }: PageProps
               <span className="text-sm text-white/70">{row.notes?.trim() || "—"}</span>
             ),
           },
+          {
+            key: "parentExcuseNote",
+            header: "Parent Excuse",
+            render: (row) => (
+              <div className="space-y-1 text-sm text-white/70">
+                <span>{row.parentExcuseNote?.trim() || "—"}</span>
+                {row.parentExcuseDocUrl ? (
+                  <a
+                    href={`/api/files/private/${row.parentExcuseDocUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-explore-teal hover:underline"
+                  >
+                    View attachment
+                  </a>
+                ) : null}
+              </div>
+            ),
+          },
         ]}
         data={rows}
         emptyMessage="No attendance records for this student."

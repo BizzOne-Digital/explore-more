@@ -46,6 +46,7 @@ export const PRIVATE_STORED_FOLDERS = [
   "sponsors",
   "notifications",
   "user-documents",
+  "attendance",
 ] as const;
 export type PrivateStoredFolder = (typeof PRIVATE_STORED_FOLDERS)[number];
 

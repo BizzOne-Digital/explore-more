@@ -26,6 +26,10 @@ import {
   DollarSign,
   BookOpen,
   Inbox,
+  Upload,
+  Library,
+  ClipboardCheck,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -147,6 +151,62 @@ export default async function AdminDashboardPage() {
           accent="orange"
         />
       </div>
+
+      <section className="mb-8">
+        <h2 className="mb-4 font-display text-lg font-semibold text-white">Learning &amp; Resources</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Link
+            href="/tutor/upload"
+            className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-explore-lime/40 hover:bg-white/[0.07]"
+          >
+            <div className="rounded-lg bg-explore-lime/15 p-2.5 text-explore-lime">
+              <Upload className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-white">Upload Resource</p>
+              <p className="mt-1 text-xs text-white/50">
+                Share worksheets, homework, and PDFs with a student
+              </p>
+            </div>
+          </Link>
+          <Link
+            href="/tutor/resources"
+            className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-explore-teal/40 hover:bg-white/[0.07]"
+          >
+            <div className="rounded-lg bg-explore-teal/15 p-2.5 text-explore-teal">
+              <Library className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-white">Resource Library</p>
+              <p className="mt-1 text-xs text-white/50">View academy and tutor-shared materials</p>
+            </div>
+          </Link>
+          <Link
+            href="/admin/assessments"
+            className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-explore-orange/40 hover:bg-white/[0.07]"
+          >
+            <div className="rounded-lg bg-explore-orange/15 p-2.5 text-explore-orange">
+              <ClipboardCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-white">Assessments by Grade</p>
+              <p className="mt-1 text-xs text-white/50">Upload grade-wide PDFs for all parents</p>
+            </div>
+          </Link>
+          <Link
+            href="/tutor"
+            className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-white/20 hover:bg-white/[0.07]"
+          >
+            <div className="rounded-lg bg-white/10 p-2.5 text-white/80">
+              <ExternalLink className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-white">Staff Portal</p>
+              <p className="mt-1 text-xs text-white/50">Students, messages, schedule, and more</p>
+            </div>
+          </Link>
+        </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-xl border border-white/10 bg-white/5 p-5">

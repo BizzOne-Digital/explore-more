@@ -183,6 +183,18 @@ export default async function ParentAttendancePage({
                           Your excuse: {record.parentExcuseNote}
                         </p>
                       )}
+                      {record.parentExcuseDocUrl && (
+                        <p className="mt-1">
+                          <a
+                            href={`/api/files/private/${record.parentExcuseDocUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold text-explore-teal hover:underline"
+                          >
+                            View attached document
+                          </a>
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

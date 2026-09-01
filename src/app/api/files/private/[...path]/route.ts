@@ -1,7 +1,7 @@
 import connectDB from "@/lib/db";
 import { readPrivateFile } from "@/lib/services/upload";
 import { readPrivateStoredFile } from "@/lib/services/private-stored-upload";
-import { Result, Certificate, Assessment, AssessmentSubmission, UserDocument } from "@/models";
+import { Result, Certificate, Assessment, AssessmentSubmission, UserDocument, Attendance } from "@/models";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { canAccessStudentData } from "@/lib/auth/access";
 import { jsonError } from "@/lib/api/response";
@@ -66,6 +66,12 @@ async function authorizeFileAccess(
 
   if (folder === "books") {
     return false;
+  }
+
+  if (folder === "attendance") {
+    const attendance = await Attendance.findOne({ parentExcuseDocUrl: relativePath });
+    if (!attendance) return false;
+    return canAccessStudentData(user, attendance.studentId.toString());
   }
 
   if (folder === "documents") {

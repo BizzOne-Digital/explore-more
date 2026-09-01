@@ -102,30 +102,47 @@ export async function POST(request: Request) {
     }
 
     const { startOfDay, endOfDay } = dayBounds(sessionDate);
+    const excuseFields: Record<string, unknown> = {
+      parentExcuseNote: note.trim(),
+      parentExcuseSubmittedAt: new Date(),
+    };
+    if (body.docPath?.trim()) {
+      excuseFields.parentExcuseDocUrl = body.docPath.trim();
+    }
 
-    const record = await Attendance.findOneAndUpdate(
+    let record = await Attendance.findOneAndUpdate(
       {
         studentId: accessibleId,
+        isDailyLog: true,
         sessionDate: { $gte: startOfDay, $lte: endOfDay },
       },
-      {
-        $set: {
-          parentExcuseNote: note.trim(),
-          parentExcuseSubmittedAt: new Date(),
-        },
-      },
+      { $set: excuseFields },
       { new: true }
     );
 
     if (!record) {
-      return apiSuccess({
-        message:
-          "Your excuse note was received. Staff will attach it when attendance is recorded for that date.",
-        pending: true,
+      record = await Attendance.findOneAndUpdate(
+        {
+          studentId: accessibleId,
+          sessionDate: { $gte: startOfDay, $lte: endOfDay },
+        },
+        { $set: excuseFields },
+        { new: true }
+      );
+    }
+
+    if (!record) {
+      record = await Attendance.create({
+        studentId: new mongoose.Types.ObjectId(accessibleId),
+        sessionDate: startOfDay,
+        status: "excused",
+        isDailyLog: true,
+        recordedBy: new mongoose.Types.ObjectId(sessionResult.user.id),
+        ...excuseFields,
       });
     }
 
-    return apiSuccess({ record, message: "Excuse note submitted for the attendance record." });
+    return apiSuccess({ record, message: "Excuse note submitted and saved to attendance records." });
   } catch (error) {
     return apiError(error);
   }

@@ -1,7 +1,7 @@
 "use server";
 
-import { signOut } from "@/lib/auth";
+import { signOutToPath } from "@/lib/auth/sign-out";
 
 export async function tutorSignOut() {
-  await signOut({ redirectTo: "/tutor/login" });
+  await signOutToPath("/tutor/login");
 }

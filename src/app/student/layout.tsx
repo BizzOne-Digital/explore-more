@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { signOutToPath } from "@/lib/auth/sign-out";
 import { getStudentMembershipAccess } from "@/lib/membership/access";
 import {
   filterStudentNavForMembership,
@@ -69,7 +70,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
           <form
             action={async () => {
               "use server";
-              await signOut({ redirectTo: "/" });
+              await signOutToPath("/");
             }}
           >
             <button

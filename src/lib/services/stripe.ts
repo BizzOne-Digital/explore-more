@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { getAppUrl as resolveAppUrl } from "@/lib/app-url";
 
 let stripeInstance: Stripe | null = null;
 
@@ -27,16 +28,7 @@ export function isStripeConfigured(): boolean {
 }
 
 export function getAppUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  }
-  if (process.env.AUTH_URL) {
-    return process.env.AUTH_URL.replace(/\/$/, "");
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  return "http://localhost:3000";
+  return resolveAppUrl();
 }
 
 export async function createCheckoutSession(params: {

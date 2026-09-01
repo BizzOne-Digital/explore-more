@@ -60,15 +60,15 @@ export class AcademyReport {
 
     this.page.drawRectangle({
       x: 0,
-      y: PAGE_HEIGHT - 72,
+      y: PAGE_HEIGHT - 84,
       width: PAGE_WIDTH,
-      height: 72,
+      height: 84,
       color: BRAND.teal,
     });
 
     this.page.drawText(COMPANY.name, {
       x: MARGIN,
-      y: PAGE_HEIGHT - 38,
+      y: PAGE_HEIGHT - 30,
       size: 16,
       font: this.fontBold,
       color: BRAND.white,
@@ -76,7 +76,7 @@ export class AcademyReport {
 
     this.page.drawText(this.reportTitle, {
       x: MARGIN,
-      y: PAGE_HEIGHT - 58,
+      y: PAGE_HEIGHT - 50,
       size: 10,
       font: this.font,
       color: BRAND.white,
@@ -85,14 +85,14 @@ export class AcademyReport {
     if (this.reportSubtitle) {
       this.page.drawText(this.reportSubtitle, {
         x: MARGIN,
-        y: PAGE_HEIGHT - 72,
+        y: PAGE_HEIGHT - 66,
         size: 8,
         font: this.font,
         color: rgb(0.9, 0.95, 0.95),
       });
     }
 
-    this.y = PAGE_HEIGHT - 96;
+    this.y = PAGE_HEIGHT - 104;
   }
 
   private ensureSpace(needed: number) {

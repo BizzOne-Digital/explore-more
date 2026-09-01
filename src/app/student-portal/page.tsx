@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function StudentPortalEntryPage() {
   const session = await auth();
-  if (session?.user) {
+  if (session?.user?.role === "student") {
     const access = await getPortalAccessForUser(session.user.id, session.user.role, "student");
     if (access.hasAccess && access.redirectUrl) {
       redirect(access.redirectUrl);

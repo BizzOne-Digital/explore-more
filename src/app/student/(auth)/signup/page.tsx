@@ -1,7 +1,7 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { AuthFormShell } from "@/components/forms/AuthFormShell";
 import { StudentSignupForm } from "@/components/forms/StudentSignupForm";
 import { canOpenStudentSignup } from "@/lib/membership/signup-access";
 
@@ -30,11 +30,16 @@ export default async function StudentSignupPage({
   }
 
   return (
-    <AuthFormShell
-      title="Student Registration"
-      subtitle="Create your student account to enroll in courses, register for events, and track your progress."
-    >
-      <StudentSignupForm />
-    </AuthFormShell>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="font-display text-2xl font-bold text-explore-charcoal">Student Registration</h1>
+        <p className="mt-2 text-sm text-explore-charcoal/60">
+          Create your student account to enroll in courses, register for events, and track your progress.
+        </p>
+      </div>
+      <Suspense fallback={<p className="text-center text-sm text-explore-charcoal/50">Loading…</p>}>
+        <StudentSignupForm />
+      </Suspense>
+    </div>
   );
 }

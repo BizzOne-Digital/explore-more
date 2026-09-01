@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLinkedStudents } from "@/lib/parent/students";
+import { getAssignedTutorsByStudent } from "@/lib/parent/tutors";
 import { LinkChildForm } from "@/components/parent/LinkChildForm";
 
 export default async function ParentStudentsPage() {
@@ -9,6 +10,7 @@ export default async function ParentStudentsPage() {
   if (!session?.user) redirect("/parent/login?callbackUrl=/parent/students");
 
   const students = await getLinkedStudents(session.user.id);
+  const tutorsByStudent = await getAssignedTutorsByStudent(session.user.id);
 
   return (
     <div className="space-y-6">
@@ -32,7 +34,9 @@ export default async function ParentStudentsPage() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2">
-            {students.map((student) => (
+            {students.map((student) => {
+              const tutors = tutorsByStudent.get(student.id) ?? [];
+              return (
               <div key={student.id} className="rounded-2xl bg-white p-6 shadow-sm border border-explore-charcoal/8">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-explore-teal/20 text-explore-teal font-bold text-lg">
                   {student.name.charAt(0)}
@@ -43,6 +47,12 @@ export default async function ParentStudentsPage() {
                 )}
                 <p className="text-sm text-explore-charcoal/60">{student.relationship}</p>
                 {student.grade && <p className="text-sm text-explore-charcoal/60">Grade: {student.grade}</p>}
+                {tutors.length > 0 && (
+                  <p className="mt-2 text-sm text-explore-charcoal/70">
+                    <span className="font-medium">Tutor{tutors.length > 1 ? "s" : ""}:</span>{" "}
+                    {tutors.map((t) => t.tutorName).join(", ")}
+                  </p>
+                )}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link href={`/parent/students/${student.id}`} className="rounded-lg bg-explore-teal px-3 py-1.5 text-xs font-semibold text-white">
                     View Student Dashboard
@@ -61,7 +71,8 @@ export default async function ParentStudentsPage() {
                   </Link>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           <LinkChildForm />
         </>

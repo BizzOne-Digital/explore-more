@@ -82,11 +82,7 @@ export default async function ParentPortalLayout({ children }: { children: React
 
   if (!isAdmin && access.hasActiveMembership) {
     const required = getRequiredFeatureForParentPath(pathname);
-    if (pathname.startsWith("/parent/tutors")) {
-      if (!access.hasFeature("tutoringSession30") && !access.hasFeature("tutoringSession60")) {
-        redirect("/parent?upgrade=tutoring");
-      }
-    } else if (required && !access.hasFeature(required)) {
+    if (required && !access.hasFeature(required)) {
       redirect("/parent?upgrade=1");
     }
   }

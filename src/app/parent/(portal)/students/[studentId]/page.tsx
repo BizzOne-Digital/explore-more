@@ -23,6 +23,8 @@ import {
 } from "@/lib/grades/queries";
 import { formatGradeLabel, matchesStudentGrade } from "@/lib/grades";
 import type { GradeLevel } from "@/lib/grades";
+import { getAssignedTutorsForStudent } from "@/lib/parent/tutors";
+import { AssignedTutorCard } from "@/components/parent/AssignedTutorCard";
 
 type PageProps = { params: Promise<{ studentId: string }> };
 
@@ -47,7 +49,7 @@ export default async function ParentStudentPage({ params }: PageProps) {
 
   await connectDB();
 
-  const [student, profile, link, enrollments, registrations, results, certificates, attendance] =
+  const [student, profile, link, enrollments, registrations, results, certificates, attendance, assignedTutors] =
     await Promise.all([
       User.findById(studentId),
       StudentProfile.findOne({ userId: studentId }),
@@ -61,6 +63,7 @@ export default async function ParentStudentPage({ params }: PageProps) {
       Result.find({ studentId, publishedToStudent: true }).sort({ date: -1 }),
       Certificate.find({ studentId, publishedToStudent: { $ne: false } }).sort({ issueDate: -1 }),
       Attendance.find({ studentId }).sort({ sessionDate: -1 }).limit(10),
+      getAssignedTutorsForStudent(studentId),
     ]);
 
   if (!student) notFound();
@@ -108,6 +111,23 @@ export default async function ParentStudentPage({ params }: PageProps) {
           </div>
         )}
       </div>
+
+      <ParentSection title="Assigned Tutor">
+        {assignedTutors.length === 0 ? (
+          <p className="text-sm text-explore-charcoal/60">
+            No tutor is assigned to this student yet.{" "}
+            <Link href="/parent/tutors" className="text-explore-teal hover:underline">
+              View tutors
+            </Link>
+          </p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {assignedTutors.map((tutor) => (
+              <AssignedTutorCard key={tutor.assignmentId} tutor={tutor} />
+            ))}
+          </div>
+        )}
+      </ParentSection>
 
       <ParentSection title="Enrolled Courses">
         {gradeEnrollments.length === 0 ? (

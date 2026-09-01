@@ -11,7 +11,7 @@ export const PARENT_ROUTE_FEATURES: Array<{
   { prefix: "/parent/courses", feature: "parentDashboard" },
   { prefix: "/parent/resources", feature: "digitalResourceLibrary" },
   { prefix: "/parent/books", feature: "monthlyBook" },
-  { prefix: "/parent/tutors", feature: "tutoringSession30" },
+  { prefix: "/parent/tutors", feature: "parentDashboard" },
   { prefix: "/parent/notifications", feature: "communityAnnouncements" },
 ];
 

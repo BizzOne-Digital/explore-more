@@ -61,7 +61,7 @@ export const parentNavGroups: ParentNavGroup[] = [
         label: "Tutors & Staff",
         href: "/parent/tutors",
         icon: GraduationCap,
-        requiredAnyFeatures: ["tutoringSession30", "tutoringSession60"],
+        requiredFeature: "parentDashboard",
       },
       { label: "Notifications", href: "/parent/notifications", icon: Bell, badgeKey: "notifications", requiredFeature: "communityAnnouncements" },
     ],

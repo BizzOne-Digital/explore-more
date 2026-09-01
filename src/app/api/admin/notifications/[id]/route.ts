@@ -1,12 +1,16 @@
 import { z } from "zod";
+import mongoose from "mongoose";
+import { revalidatePath } from "next/cache";
 import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
-import { apiSuccess, apiError } from "@/lib/admin/api";
+import { apiSuccess, apiError, isValidObjectId } from "@/lib/admin/api";
 import { ParentNotification, ParentNotificationRead } from "@/models";
 import {
   containsLocalFilesystemPath,
   stripLocalPathsFromMessage,
 } from "@/lib/notifications/paths";
+
+export const runtime = "nodejs";
 
 const patchSchema = z.object({
   attachmentPath: z.string().min(1),
@@ -55,16 +59,21 @@ export async function DELETE(_request: Request, context: RouteContext) {
     if ("error" in sessionResult) return sessionResult.error;
 
     const { id } = await context.params;
+    if (!isValidObjectId(id)) {
+      return apiError(new Error("Invalid notification id"), 400);
+    }
 
     await connectDB();
 
-    const notification = await ParentNotification.findById(id);
+    const notificationObjectId = new mongoose.Types.ObjectId(id);
+    const notification = await ParentNotification.findById(notificationObjectId);
     if (!notification) return apiError(new Error("Notification not found"), 404);
 
-    await Promise.all([
-      ParentNotificationRead.deleteMany({ notificationId: id }),
-      ParentNotification.findByIdAndDelete(id),
-    ]);
+    await ParentNotificationRead.deleteMany({ notificationId: notificationObjectId });
+    await ParentNotification.findByIdAndDelete(notificationObjectId);
+
+    revalidatePath("/admin/notifications");
+    revalidatePath("/parent/notifications");
 
     return apiSuccess({ deleted: true });
   } catch (error) {

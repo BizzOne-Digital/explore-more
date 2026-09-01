@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
@@ -23,8 +23,13 @@ export function AdminNotificationsList({
   notifications: AdminNotificationItem[];
 }) {
   const router = useRouter();
+  const [items, setItems] = useState(notifications);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setItems(notifications);
+  }, [notifications]);
 
   async function handleDelete(notification: AdminNotificationItem) {
     const confirmed = window.confirm(
@@ -38,11 +43,27 @@ export function AdminNotificationsList({
     try {
       const response = await fetch(`/api/admin/notifications/${notification._id}`, {
         method: "DELETE",
+        credentials: "same-origin",
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error ?? "Failed to delete notification");
+
+      const rawText = await response.text();
+      let data: { success?: boolean; error?: string } | null = null;
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText) as { success?: boolean; error?: string };
+        } catch {
+          data = null;
+        }
       }
+
+      if (!response.ok || data?.success === false) {
+        throw new Error(
+          data?.error ??
+            (rawText.trim() ? rawText.trim().slice(0, 200) : "Failed to delete notification")
+        );
+      }
+
+      setItems((current) => current.filter((item) => item._id !== notification._id));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete notification");
@@ -51,7 +72,7 @@ export function AdminNotificationsList({
     }
   }
 
-  if (notifications.length === 0) {
+  if (items.length === 0) {
     return <p className="text-white/60 text-center py-8">No notifications sent yet.</p>;
   }
 
@@ -63,7 +84,7 @@ export function AdminNotificationsList({
         </p>
       ) : null}
 
-      {notifications.map((notif) => (
+      {items.map((notif) => (
         <div
           key={notif._id}
           className="rounded-lg bg-white/5 border border-white/10 p-4"
@@ -86,10 +107,11 @@ export function AdminNotificationsList({
                 type="button"
                 onClick={() => void handleDelete(notif)}
                 disabled={deletingId === notif._id}
-                className="rounded-lg p-1.5 text-white/50 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 px-2.5 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50"
                 aria-label={`Delete notification ${notif.title}`}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
+                {deletingId === notif._id ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>

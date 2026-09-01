@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
-import { getClientSignOutUrl } from "@/lib/app-url";
+import { useSession } from "next-auth/react";
+import { clientSignOut } from "@/lib/auth/client-sign-out";
 import { useState, useEffect, useRef } from "react";
 import {
   Menu,
@@ -222,7 +222,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
                       Parent Portal
                     </Link>
                     <button
-                      onClick={() => signOut({ callbackUrl: getClientSignOutUrl("/") })}
+                      onClick={() => clientSignOut("/")}
                       className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
                       <LogOut className="h-4 w-4" />

@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "explore-more-academy.vercel.app" }],
+      "destination": "https://exploremoreacademy.com/:path*",
+      "permanent": true
+    }
+  ]
+}

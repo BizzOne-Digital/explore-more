@@ -1,7 +1,7 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
-import { getClientSignOutUrl } from "@/lib/app-url";
+import { useSession } from "next-auth/react";
+import { clientSignOut } from "@/lib/auth/client-sign-out";
 import { LogOut, User } from "lucide-react";
 
 interface AdminHeaderProps {
@@ -27,7 +27,7 @@ export function AdminHeader({ title }: AdminHeaderProps) {
         </div>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: getClientSignOutUrl("/admin/login") })}
+          onClick={() => clientSignOut("/admin/login")}
           className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/60 transition hover:border-white/20 hover:text-white"
         >
           <LogOut className="h-3.5 w-3.5" />

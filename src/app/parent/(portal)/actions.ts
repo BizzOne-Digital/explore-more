@@ -3,5 +3,5 @@
 import { signOutToPath } from "@/lib/auth/sign-out";
 
 export async function parentSignOut() {
-  await signOutToPath("/");
+  await signOutToPath("/parent/login");
 }

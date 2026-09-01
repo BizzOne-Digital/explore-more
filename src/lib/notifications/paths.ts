@@ -1,9 +1,16 @@
 const LOCAL_PATH_PATTERN =
   /(?:file:\/\/[^\s<>"']+|[a-zA-Z]:[\\/][^\s<>"']+|\\(?:Users|Desktop|Documents)\\[^\s<>"']+|\/Users\/[^\s<>"']+|\/home\/[^\s<>"']+|(?<!\/uploads)\/(?:Desktop|Documents)\/[^\s<>"']+)/gi;
 
+const WEB_URL_PATTERN = /https?:\/\/[^\s<>"']+/gi;
+
+function textWithoutWebUrls(text: string): string {
+  return text.replace(WEB_URL_PATTERN, "");
+}
+
 export function isLocalFilesystemPath(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return false;
+  if (/^https?:\/\//i.test(trimmed)) return false;
   if (/^file:/i.test(trimmed)) return true;
   if (/^[a-zA-Z]:[\\/]/.test(trimmed)) return true;
   if (/^\/Users\//i.test(trimmed) || /^\/home\//i.test(trimmed)) return true;
@@ -20,8 +27,9 @@ export function isLocalFilesystemPath(value: string): boolean {
 }
 
 export function containsLocalFilesystemPath(text: string): boolean {
+  const sanitized = textWithoutWebUrls(text);
   LOCAL_PATH_PATTERN.lastIndex = 0;
-  if (LOCAL_PATH_PATTERN.test(text)) return true;
+  if (LOCAL_PATH_PATTERN.test(sanitized)) return true;
   return isLocalFilesystemPath(text);
 }
 
@@ -32,6 +40,7 @@ export function resolveNotificationFileUrl(url?: string | null): string | null {
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
   if (trimmed.startsWith("/")) return trimmed;
   if (trimmed.startsWith("notifications/")) return trimmed;
+  if (trimmed.startsWith("certificates/")) return trimmed;
   return `/${trimmed}`;
 }
 
@@ -58,6 +67,7 @@ export function normalizeAttachmentPath(url: string): string | null {
   const withoutLeading = stripLeadingSlash(resolved);
   if (withoutLeading.startsWith("uploads/")) return `/${withoutLeading}`;
   if (withoutLeading.startsWith("notifications/")) return withoutLeading;
+  if (withoutLeading.startsWith("certificates/")) return withoutLeading;
 
   return null;
 }
@@ -68,6 +78,8 @@ export function isLikelyAttachmentUrl(url: string): boolean {
   const lower = stripLeadingSlash(url).toLowerCase();
   if (lower.includes("uploads/")) return true;
   if (lower.startsWith("notifications/")) return true;
+  if (lower.startsWith("certificates/")) return true;
+  if (url.toLowerCase().startsWith("/api/files/private/certificates/")) return true;
   if (url.toLowerCase().startsWith("/api/parent/notifications/file")) return true;
 
   if (lower.startsWith("http://") || lower.startsWith("https://")) {
@@ -87,8 +99,16 @@ export function isLikelyAttachmentUrl(url: string): boolean {
 
 /** Parent-authenticated download URL for campaign/public uploads. */
 export function parentNotificationFileUrl(url: string): string {
+  const withoutLeading = stripLeadingSlash(url.trim());
+  if (withoutLeading.startsWith("certificates/")) {
+    return `/api/files/private/${withoutLeading}`;
+  }
+
   const uploadPath = normalizeAttachmentPath(url);
   if (uploadPath) {
+    if (uploadPath.startsWith("certificates/")) {
+      return `/api/files/private/${uploadPath}`;
+    }
     return `/api/parent/notifications/file?path=${encodeURIComponent(uploadPath)}`;
   }
   return resolveNotificationFileUrl(url) ?? url;
@@ -96,8 +116,9 @@ export function parentNotificationFileUrl(url: string): string {
 
 /** Remove pasted local file paths from notification message text. */
 export function stripLocalPathsFromMessage(message: string): string {
+  const sanitized = textWithoutWebUrls(message);
   LOCAL_PATH_PATTERN.lastIndex = 0;
-  return message.replace(LOCAL_PATH_PATTERN, "").replace(/\n{3,}/g, "\n\n").trim();
+  return sanitized.replace(LOCAL_PATH_PATTERN, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export function isPdfAttachment(path?: string | null, name?: string | null): boolean {

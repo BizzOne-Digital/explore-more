@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader } from "lucide-react";
+import { Loader, Upload, FileText } from "lucide-react";
+import { DragDropZone } from "@/components/admin/DragDropZone";
 import {
   TUTOR_RESOURCE_TYPES,
   TUTOR_RESOURCE_TYPE_LABELS,
@@ -27,6 +28,7 @@ export function TutorUploadResourceForm() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState("");
   const [audience, setAudience] = useState<PublishAudience>("single");
   const [form, setForm] = useState({
     studentId: "",
@@ -75,6 +77,7 @@ export function TutorUploadResourceForm() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Upload failed");
       setForm((f) => ({ ...f, filePath: json.filePath }));
+      setUploadedFileName(json.originalName || file.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -124,6 +127,7 @@ export function TutorUploadResourceForm() {
         url: "",
         filePath: "",
       });
+      setUploadedFileName("");
       setAudience("single");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to publish");
@@ -224,23 +228,81 @@ export function TutorUploadResourceForm() {
         />
       </label>
 
-      <label className="block text-sm font-medium">
-        File
-        <input
-          type="file"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFile(file);
+      <div>
+        <p className="text-sm font-medium text-explore-charcoal">Upload file</p>
+        <DragDropZone
+          disabled={uploading}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov"
+          onFiles={(files) => {
+            const file = files[0];
+            if (file) void handleFile(file);
           }}
-          className="mt-1 w-full text-sm"
-        />
-        {uploading && (
-          <span className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-            <Loader className="h-4 w-4 animate-spin" /> Uploading…
-          </span>
-        )}
-        {form.filePath && <p className="mt-1 text-xs text-green-600">File uploaded</p>}
-      </label>
+          className="mt-1 cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-10 text-center transition-colors hover:border-violet-300 hover:bg-violet-50/40"
+          dragActiveClassName="border-violet-500 bg-violet-50"
+        >
+          {({ dragOver, openFilePicker }) => (
+            <div className="space-y-3">
+              {uploading ? (
+                <Loader className="mx-auto h-10 w-10 animate-spin text-violet-600" />
+              ) : form.filePath ? (
+                <FileText className="mx-auto h-10 w-10 text-green-600" />
+              ) : (
+                <Upload className={`mx-auto h-10 w-10 ${dragOver ? "text-violet-600" : "text-gray-400"}`} />
+              )}
+              <p className="text-base font-semibold text-explore-charcoal">
+                {uploading
+                  ? "Uploading your file…"
+                  : form.filePath
+                    ? "File ready to publish"
+                    : dragOver
+                      ? "Drop your file here"
+                      : "Drag & drop your file here"}
+              </p>
+              <p className="text-sm text-gray-600">
+                {uploading ? (
+                  "Please wait while we upload your resource."
+                ) : form.filePath ? (
+                  <>
+                    <span className="font-medium text-green-700">{uploadedFileName || "File uploaded"}</span>
+                    {" · "}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setForm((f) => ({ ...f, filePath: "" }));
+                        setUploadedFileName("");
+                      }}
+                      className="font-semibold text-gray-500 hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    or{" "}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFilePicker();
+                      }}
+                      className="font-semibold text-violet-600 hover:underline"
+                    >
+                      browse your computer
+                    </button>{" "}
+                    to choose a file
+                  </>
+                )}
+              </p>
+              {!form.filePath && !uploading && (
+                <p className="text-xs text-gray-500">
+                  PDF, Word, Excel, images, zip, or video — up to 25 MB
+                </p>
+              )}
+            </div>
+          )}
+        </DragDropZone>
+      </div>
 
       <label className="block text-sm font-medium">
         Or link URL

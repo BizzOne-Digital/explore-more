@@ -27,6 +27,7 @@ export async function getCertificatesForGuardian(guardianId: string): Promise<Pa
   const certificates = await Certificate.find({
     studentId: { $in: studentIds },
     publishedToStudent: { $ne: false },
+    filePath: { $exists: true, $nin: [null, ""] },
   })
     .sort({ issueDate: -1 })
     .lean();

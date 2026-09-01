@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ParentNotification, ParentNotificationRead } from "@/models";
 import { NotificationsClient } from "@/components/parent/NotificationsClient";
+import { enrichCertificateNotificationAttachments } from "@/lib/certificates/notification-attachments";
 
 export default async function ParentNotificationsPage() {
   const session = await auth();
@@ -30,26 +31,29 @@ export default async function ParentNotificationsPage() {
     (n) => !readMap.get(n._id.toString())?.deletedAt
   );
 
-  const items = visibleNotifications.map((n) => {
-    const readRecord = readMap.get(n._id.toString());
-    return {
-      _id: n._id.toString(),
-      title: n.title,
-      message: n.message,
-      priority: n.priority,
-      sentAt: n.sentAt ? new Date(n.sentAt).toISOString() : undefined,
-      requiresAcknowledgment: Boolean(n.requiresAcknowledgment),
-      attachmentPath: n.attachmentPath || undefined,
-      attachmentName: n.attachmentName || undefined,
-      sentBy:
-        n.sentBy && typeof n.sentBy === "object" && "name" in n.sentBy
-          ? { name: (n.sentBy as { name?: string }).name }
-          : undefined,
-      read: readRecord?.readAt != null,
-      readAt: readRecord?.readAt ? new Date(readRecord.readAt).toISOString() : undefined,
-      acknowledged: readRecord?.acknowledgedAt != null,
-    };
-  });
+  const items = await enrichCertificateNotificationAttachments(
+    session.user.id,
+    visibleNotifications.map((n) => {
+      const readRecord = readMap.get(n._id.toString());
+      return {
+        _id: n._id.toString(),
+        title: n.title,
+        message: n.message,
+        priority: n.priority,
+        sentAt: n.sentAt ? new Date(n.sentAt).toISOString() : undefined,
+        requiresAcknowledgment: Boolean(n.requiresAcknowledgment),
+        attachmentPath: n.attachmentPath || undefined,
+        attachmentName: n.attachmentName || undefined,
+        sentBy:
+          n.sentBy && typeof n.sentBy === "object" && "name" in n.sentBy
+            ? { name: (n.sentBy as { name?: string }).name }
+            : undefined,
+        read: readRecord?.readAt != null,
+        readAt: readRecord?.readAt ? new Date(readRecord.readAt).toISOString() : undefined,
+        acknowledged: readRecord?.acknowledgedAt != null,
+      };
+    })
+  );
 
   const unreadCount = items.filter((i) => !i.read).length;
 

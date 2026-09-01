@@ -2,6 +2,7 @@ import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { ParentNotification, ParentNotificationRead } from "@/models";
+import { enrichCertificateNotificationAttachments } from "@/lib/certificates/notification-attachments";
 
 export async function GET() {
   try {
@@ -24,25 +25,28 @@ export async function GET() {
     });
     const readMap = new Map(reads.map((r) => [r.notificationId.toString(), r]));
 
-    const items = notifications
-      .filter((n) => !readMap.get(n._id.toString())?.deletedAt)
-      .map((n) => {
-        const readRecord = readMap.get(n._id.toString());
-        return {
-          _id: n._id.toString(),
-          title: n.title,
-          message: n.message,
-          priority: n.priority,
-          sentAt: n.sentAt,
-          requiresAcknowledgment: Boolean(n.requiresAcknowledgment),
-          attachmentPath: n.attachmentPath || undefined,
-          attachmentName: n.attachmentName || undefined,
-          sentBy: n.sentBy,
-          read: readRecord?.readAt != null,
-          readAt: readRecord?.readAt,
-          acknowledged: readRecord?.acknowledgedAt != null,
-        };
-      });
+    const items = await enrichCertificateNotificationAttachments(
+      sessionResult.user.id,
+      notifications
+        .filter((n) => !readMap.get(n._id.toString())?.deletedAt)
+        .map((n) => {
+          const readRecord = readMap.get(n._id.toString());
+          return {
+            _id: n._id.toString(),
+            title: n.title,
+            message: n.message,
+            priority: n.priority,
+            sentAt: n.sentAt,
+            requiresAcknowledgment: Boolean(n.requiresAcknowledgment),
+            attachmentPath: n.attachmentPath || undefined,
+            attachmentName: n.attachmentName || undefined,
+            sentBy: n.sentBy,
+            read: readRecord?.readAt != null,
+            readAt: readRecord?.readAt,
+            acknowledged: readRecord?.acknowledgedAt != null,
+          };
+        })
+    );
 
     const unreadCount = items.filter((i) => !i.read).length;
 

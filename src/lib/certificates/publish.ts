@@ -59,8 +59,9 @@ export async function publishCertificateToStudent(
     day: "numeric",
   });
   const fileUrl = getCertificateFileUrl(certificate.filePath);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004";
-  const studentProfileUrl = `${appUrl}/parent/students/${student._id.toString()}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://exploremoreacademy.com";
+  const certificatesUrl = `${appUrl.replace(/\/$/, "")}/parent/certificates`;
+  const attachmentExtension = certificate.fileType === "pdf" ? "pdf" : "png";
 
   const notificationTitle = "New Certificate Awarded!";
   const notificationMessage = [
@@ -70,7 +71,7 @@ export async function publishCertificateToStudent(
     association ? `Course/Program/Event: ${association}` : null,
     `Date Issued: ${issueDate}`,
     "",
-    `View in Parent Portal: ${studentProfileUrl}`,
+    `View certificates: ${certificatesUrl}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -83,6 +84,8 @@ export async function publishCertificateToStudent(
     priority: "normal",
     sentBy: issuedByUserId,
     sentAt: new Date(),
+    attachmentPath: certificate.filePath,
+    attachmentName: `${certificate.title}.${attachmentExtension}`,
   });
 
   const htmlBody = `
@@ -93,7 +96,7 @@ export async function publishCertificateToStudent(
       <p style="margin:0;"><strong>Date Issued:</strong> ${issueDate}</p>
     </div>
     <p><a href="${fileUrl}" style="color:#0c8991;font-weight:bold;">View Certificate</a></p>
-    <p><a href="${studentProfileUrl}" style="color:#0c8991;">Open Parent Portal</a></p>
+    <p><a href="${certificatesUrl}" style="color:#0c8991;">Open Certificates in Parent Portal</a></p>
   `;
 
   try {

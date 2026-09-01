@@ -7,7 +7,7 @@ import {
   AdminSearchableSelect,
   type SearchableOption,
 } from "@/components/admin/AdminSearchableSelect";
-import { containsLocalFilesystemPath } from "@/lib/notifications/display";
+import { containsLocalFilesystemPath } from "@/lib/notifications/paths";
 
 interface ParentOption {
   _id: string;
@@ -140,16 +140,23 @@ export function SendNotificationForm() {
         }),
       });
 
-      const contentType = response.headers.get("content-type") ?? "";
-      const data = contentType.includes("application/json")
-        ? await response.json()
-        : null;
+      const rawText = await response.text();
+      let data: Record<string, unknown> | null = null;
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText) as Record<string, unknown>;
+        } catch {
+          data = null;
+        }
+      }
 
       if (!response.ok) {
         const apiError =
-          data && typeof data === "object" && "error" in data && typeof data.error === "string"
+          data && typeof data.error === "string"
             ? data.error
-            : null;
+            : rawText.trim()
+              ? rawText.trim().slice(0, 300)
+              : null;
         throw new Error(apiError || `Failed to send notification (${response.status})`);
       }
 
@@ -157,7 +164,9 @@ export function SendNotificationForm() {
         throw new Error("Server returned an unexpected response. Please try again.");
       }
 
-      setSuccess(data.message || "Notification sent successfully!");
+      setSuccess(
+        typeof data.message === "string" ? data.message : "Notification sent successfully!"
+      );
       setTitle("");
       setMessage("");
       setAudience("all_parents");

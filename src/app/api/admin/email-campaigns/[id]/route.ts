@@ -4,7 +4,7 @@ import { apiSuccess, apiError, notFound } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 import { canEditCampaign } from "@/lib/email/campaign-utils";
 import { processEmailCampaign } from "@/lib/email/process-campaign";
-import { containsLocalFilesystemPath } from "@/lib/notifications/display";
+import { containsLocalFilesystemPath } from "@/lib/notifications/paths";
 
 type RouteParams = { params: Promise<{ id: string }> };
 

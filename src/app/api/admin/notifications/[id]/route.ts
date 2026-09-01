@@ -6,7 +6,7 @@ import { ParentNotification, ParentNotificationRead } from "@/models";
 import {
   containsLocalFilesystemPath,
   stripLocalPathsFromMessage,
-} from "@/lib/notifications/display";
+} from "@/lib/notifications/paths";
 
 const patchSchema = z.object({
   attachmentPath: z.string().min(1),

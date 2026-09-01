@@ -3,7 +3,7 @@ import { EmailCampaign } from "@/models";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 import { processEmailCampaign } from "@/lib/email/process-campaign";
-import { containsLocalFilesystemPath } from "@/lib/notifications/display";
+import { containsLocalFilesystemPath } from "@/lib/notifications/paths";
 
 export async function GET() {
   try {

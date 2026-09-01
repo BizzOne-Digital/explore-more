@@ -24,7 +24,7 @@ export const authConfig = {
         ...session,
         user: {
           ...session.user,
-          id: token.id as string,
+          id: (token.id ?? token.sub) as string,
           role: token.role as Role,
           emailVerified: Boolean(token.emailVerified),
         },

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { ZodError } from "zod";
-import { auth } from "@/lib/auth";
+import { z } from "zod";
 import connectDB from "@/lib/db";
+import { requireRole } from "@/lib/api/auth-helpers";
 import { ParentNotification, User } from "@/models";
 import { sendTransactionalEmail } from "@/lib/services/email";
 import {
@@ -13,8 +15,9 @@ import {
   containsLocalFilesystemPath,
   parentNotificationFileUrl,
   stripLocalPathsFromMessage,
-} from "@/lib/notifications/display";
-import { z } from "zod";
+} from "@/lib/notifications/paths";
+
+export const runtime = "nodejs";
 
 const notificationSchema = z
   .object({
@@ -36,12 +39,41 @@ const notificationSchema = z
     }
   });
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatApiError(error: unknown, fallback: string): { message: string; status: number } {
+  if (error instanceof ZodError) {
+    return { message: error.issues[0]?.message ?? "Invalid notification data", status: 400 };
+  }
+
+  if (error instanceof mongoose.Error.ValidationError) {
+    return { message: error.message, status: 400 };
+  }
+
+  if (error instanceof mongoose.Error.CastError) {
+    return { message: `Invalid data: ${error.message}`, status: 400 };
+  }
+
+  const message = error instanceof Error ? error.message : fallback;
+  const status = /file|upload|size|type|invalid|validation|required|cast/i.test(message) ? 400 : 500;
+  return { message, status };
+}
+
+function toObjectIds(ids: string[]): mongoose.Types.ObjectId[] {
+  return ids.map((id) => new mongoose.Types.ObjectId(id));
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "administrator") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const sessionResult = await requireRole(["administrator"]);
+    if ("error" in sessionResult) return sessionResult.error;
 
     const body = await request.json();
     const data = notificationSchema.parse(body);
@@ -63,29 +95,32 @@ export async function POST(request: NextRequest) {
         ? stripLocalPathsFromMessage(data.message) || data.message.trim()
         : data.message;
 
-    const recipients =
+    const recipientStrings =
       data.audience === "custom"
         ? (data.recipientIds ?? [])
         : await resolveNotificationRecipients(data.audience);
 
-    if (recipients.length === 0 && !allowsEmptyRecipients(data.audience)) {
+    if (recipientStrings.length === 0 && !allowsEmptyRecipients(data.audience)) {
       return NextResponse.json({ error: noRecipientsMessage(data.audience) }, { status: 400 });
     }
 
+    const recipientIds = toObjectIds(recipientStrings);
+    const sentBy = new mongoose.Types.ObjectId(sessionResult.user.id);
+
     const notification = await ParentNotification.create({
-      title: data.title,
+      title: data.title.trim(),
       message,
       audience: data.audience,
       priority: data.priority,
-      recipientIds: recipients,
-      attachmentPath: data.attachmentPath,
-      attachmentName: data.attachmentName,
+      recipientIds,
+      attachmentPath: data.attachmentPath?.trim() || undefined,
+      attachmentName: data.attachmentName?.trim() || undefined,
       sentAt: new Date(),
-      sentBy: session.user.id,
+      sentBy,
     });
 
     const parentUsers = await User.find({
-      _id: { $in: recipients },
+      _id: { $in: recipientIds },
       isActive: true,
     }).select("email name");
 
@@ -93,90 +128,80 @@ export async function POST(request: NextRequest) {
       normal: "#0c8991",
       important: "#f59e0b",
       urgent: "#ef4444",
-    };
+    } as const;
 
     const priorityLabels = {
       normal: "📢",
       important: "⚠️",
       urgent: "🚨",
-    };
+    } as const;
 
-    Promise.all(
-      parentUsers.map((parent) =>
-        sendTransactionalEmail({
-          to: parent.email,
-          subject: `${priorityLabels[data.priority]} ${data.title}`,
-          htmlBody: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: ${priorityColors[data.priority]}; padding: 20px; border-radius: 8px 8px 0 0;">
-                <h2 style="color: white; margin: 0;">
-                  ${priorityLabels[data.priority]} ${data.title}
-                </h2>
-              </div>
-              
-              <div style="background: #f5f5f5; padding: 20px; border-radius: 0 0 8px 8px;">
-                <p>Hello ${parent.name},</p>
-                
-                <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <p style="margin: 0; white-space: pre-wrap;">${message}</p>
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004";
+    const safeMessage = escapeHtml(message);
+    const attachmentBlock = data.attachmentPath?.trim()
+      ? `<div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 14px;">
+            📎 <strong>Attachment:</strong>
+            <a href="${appUrl}${parentNotificationFileUrl(data.attachmentPath)}" style="color: ${priorityColors[data.priority]};">
+              ${escapeHtml(data.attachmentName || "View attachment")}
+            </a>
+          </p>
+        </div>`
+      : "";
+
+    void (async () => {
+      for (const parent of parentUsers) {
+        try {
+          await sendTransactionalEmail({
+            to: parent.email,
+            subject: `${priorityLabels[data.priority]} ${data.title}`,
+            htmlBody: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: ${priorityColors[data.priority]}; padding: 20px; border-radius: 8px 8px 0 0;">
+                  <h2 style="color: white; margin: 0;">
+                    ${priorityLabels[data.priority]} ${escapeHtml(data.title)}
+                  </h2>
                 </div>
-
-                ${
-                  data.attachmentPath
-                    ? `<div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <p style="margin: 0; font-size: 14px;">
-                    📎 <strong>Attachment:</strong>
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004"}${parentNotificationFileUrl(data.attachmentPath)}" style="color: ${priorityColors[data.priority]};">
-                      ${data.attachmentName || "View attachment"}
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 0 0 8px 8px;">
+                  <p>Hello ${escapeHtml(parent.name)},</p>
+                  <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 0; white-space: pre-wrap;">${safeMessage}</p>
+                  </div>
+                  ${attachmentBlock}
+                  <div style="margin: 30px 0;">
+                    <a href="${appUrl}/parent/notifications"
+                       style="background: ${priorityColors[data.priority]}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                      View in Parent Portal
                     </a>
+                  </div>
+                  <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                    This is a ${data.priority} notification from Explore More Academy.
                   </p>
-                </div>`
-                    : ""
-                }
-
-                <div style="margin: 30px 0;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3004"}/parent/notifications" 
-                     style="background: ${priorityColors[data.priority]}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                    View in Parent Portal
-                  </a>
                 </div>
-
-                <p style="color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
-                  This is a ${data.priority} notification from Explore More Academy.<br>
-                  You can manage your notification preferences in your parent portal.
-                </p>
               </div>
-            </div>
-          `,
-          template: "notification",
-        }).catch((err) => {
-          console.error(`Failed to send email to ${parent.email}:`, err);
-        })
-      )
-    ).catch((err) => {
-      console.error("Batch email error:", err);
-    });
+            `,
+            template: "notification",
+          });
+        } catch (err) {
+          console.error(`Failed to send notification email to ${parent.email}:`, err);
+        }
+      }
+    })();
 
     const successMessage =
-      recipients.length > 0
-        ? `Notification sent to ${recipients.length} parent(s)`
+      recipientStrings.length > 0
+        ? `Notification sent to ${recipientStrings.length} parent(s)`
         : "Notification published. It will appear in the parent portal when parent accounts sign up.";
 
     return NextResponse.json({
       success: true,
       message: successMessage,
       notificationId: notification._id,
-      recipientCount: recipients.length,
+      recipientCount: recipientStrings.length,
     });
   } catch (error) {
-    if (error instanceof ZodError) {
-      const message = error.issues[0]?.message ?? "Invalid notification data";
-      return NextResponse.json({ error: message }, { status: 400 });
-    }
-
     console.error("Send notification error:", error);
-    const message = error instanceof Error ? error.message : "Failed to send notification";
-    const status = /file|upload|size|type|invalid/i.test(message) ? 400 : 500;
+    const { message, status } = formatApiError(error, "Failed to send notification");
     return NextResponse.json({ error: message }, { status });
   }
 }

@@ -93,7 +93,14 @@ export async function sendTransactionalEmail(params: {
   template: string;
   metadata?: Record<string, string>;
 }): Promise<{ jobId: string; sent: boolean; error?: string }> {
-  const jobId = await queueEmail(params);
+  let jobId: string;
+  try {
+    jobId = await queueEmail(params);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Email queue failed";
+    logEmailError(`queue failed (${params.template}) → ${params.to}`, error);
+    return { jobId: "", sent: false, error: message };
+  }
 
   if (!isSmtpConfigured()) {
     const error = "SMTP is not configured";

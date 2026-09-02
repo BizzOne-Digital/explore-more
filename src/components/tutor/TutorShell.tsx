@@ -1,8 +1,10 @@
 import { TutorSidebar } from "@/components/tutor/TutorSidebar";
+import { TutorPortalBackButton } from "@/components/tutor/TutorPortalBackButton";
 
 interface TutorShellProps {
   children: React.ReactNode;
   firstName: string;
+  userRole: string;
   tutorId?: string;
   unreadParentMessages?: number;
   unreadStaffMessages?: number;
@@ -13,6 +15,7 @@ interface TutorShellProps {
 export function TutorShell({
   children,
   firstName,
+  userRole,
   tutorId,
   unreadParentMessages,
   unreadStaffMessages,
@@ -30,8 +33,13 @@ export function TutorShell({
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="border-b border-gray-200 bg-white px-4 py-4 lg:px-6">
-          <p className="text-sm text-gray-500">Welcome back,</p>
-          <h1 className="font-display text-xl font-bold text-explore-charcoal">{firstName}</h1>
+          <div className="flex items-center gap-3">
+            <TutorPortalBackButton role={userRole} />
+            <div>
+              <p className="text-sm text-gray-500">Welcome back,</p>
+              <h1 className="font-display text-xl font-bold text-explore-charcoal">{firstName}</h1>
+            </div>
+          </div>
         </header>
         <main
           className="min-h-0 flex-1 overflow-x-clip overflow-y-auto bg-gray-50 p-4 lg:p-6"

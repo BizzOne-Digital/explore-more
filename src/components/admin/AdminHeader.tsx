@@ -27,7 +27,7 @@ export function AdminHeader({ title }: AdminHeaderProps) {
         </div>
         <button
           type="button"
-          onClick={() => clientSignOut("/admin/login")}
+          onClick={() => clientSignOut()}
           className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/60 transition hover:border-white/20 hover:text-white"
         >
           <LogOut className="h-3.5 w-3.5" />

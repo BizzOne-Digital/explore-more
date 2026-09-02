@@ -38,6 +38,7 @@ export default async function TutorPortalLayout({ children }: { children: React.
   return (
     <TutorShell
       firstName={firstName}
+      userRole={session.user.role}
       tutorId={tutorId}
       unreadParentMessages={unread.parentMessages}
       unreadStaffMessages={unread.staffMessages}

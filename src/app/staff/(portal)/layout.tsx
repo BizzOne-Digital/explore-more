@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { STAFF_PORTAL_ROLES } from "@/lib/constants";
 import { Conversation } from "@/models";
 import Link from "next/link";
-import { signOutToPath } from "@/lib/auth/sign-out";
+import { signOutToHome } from "@/lib/auth/sign-out";
 import { STAFF_NAV_ITEMS } from "@/lib/staff/nav";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export default async function StaffPortalLayout({ children }: { children: React.
           <form
             action={async () => {
               "use server";
-              await signOutToPath("/staff/login");
+              await signOutToHome();
             }}
           >
             <button

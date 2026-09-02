@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { signOutToPath } from "@/lib/auth/sign-out";
+import { signOutToHome } from "@/lib/auth/sign-out";
 import { getStudentMembershipAccess } from "@/lib/membership/access";
 import {
   filterStudentNavForMembership,
@@ -70,7 +70,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
           <form
             action={async () => {
               "use server";
-              await signOutToPath("/");
+              await signOutToHome();
             }}
           >
             <button

@@ -45,6 +45,8 @@ export const FOOTER_NAV: Record<string, NavLink[]> = {
     { pageKey: "gallery", href: "/gallery", label: "Gallery" },
   ],
   Resources: [
+    { href: "/resources/transcript", label: "Transcript Generator" },
+    { href: "/resources/certificate", label: "Certificate Generator" },
     { pageKey: "books", href: "/books", label: "Bookstore" },
     { pageKey: "membership", href: "/membership", label: "Membership" },
     { pageKey: "faqs", href: "/faqs", label: "FAQs" },

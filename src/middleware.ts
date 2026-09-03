@@ -41,6 +41,9 @@ const publicPaths = [
   "/privacy",
   "/terms",
   "/unsubscribe",
+  "/resources",
+  "/resources/transcript",
+  "/resources/certificate",
 ];
 
 function withPathname(request: NextRequest, pathname: string) {

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { getCertificateTemplate } from "@/lib/resources/certificate-templates";
 import { layoutToPreviewStyle } from "@/lib/resources/certificate-layout";
 import type { CertificatePayload } from "@/lib/resources/types";
@@ -20,15 +19,17 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
   const { layout } = template;
 
   return (
-    <div className="relative aspect-[1024/790] overflow-hidden rounded-xl border-2 border-explore-teal/30 bg-white shadow-inner">
-      <Image
-        src={template.previewPath}
-        alt={template.name}
-        fill
-        className="object-contain object-center"
-        sizes="(max-width: 1024px) 100vw, 50vw"
-        priority
-        unoptimized
+    <div
+      className="relative aspect-[1024/790] w-full overflow-hidden rounded-xl border-2 border-explore-teal/30 bg-white shadow-inner [container-type:inline-size]"
+    >
+      <div
+        className="absolute inset-0 bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url(${template.previewPath})`,
+          backgroundSize: "100% 100%",
+        }}
+        role="img"
+        aria-label={template.name}
       />
       <div className="pointer-events-none absolute inset-0">
         <p
@@ -36,14 +37,13 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
           style={{
             ...layoutToPreviewStyle(layout.studentName),
             color: fieldColor(layout.studentName),
-            fontSize: "clamp(0.9rem, 2.6vw, 1.5rem)",
           }}
         >
           {form.studentName.trim() || "Student Name"}
         </p>
         {form.homeschoolName.trim() && (
           <p
-            className="absolute truncate text-[10px] font-medium sm:text-xs"
+            className="absolute truncate font-medium"
             style={{
               ...layoutToPreviewStyle(layout.homeschoolName),
               color: fieldColor(layout.homeschoolName),
@@ -54,7 +54,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
         )}
         {form.achievement.trim() && (
           <p
-            className="absolute truncate text-[10px] font-medium sm:text-xs"
+            className="absolute truncate font-medium"
             style={{
               ...layoutToPreviewStyle(layout.achievement),
               color: fieldColor(layout.achievement),
@@ -65,7 +65,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
         )}
         {form.educatorName?.trim() && (
           <p
-            className="absolute truncate text-[10px] font-medium sm:text-xs"
+            className="absolute truncate font-medium"
             style={{
               ...layoutToPreviewStyle(layout.educatorName),
               color: fieldColor(layout.educatorName),
@@ -76,9 +76,9 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
         )}
         {form.dateAwarded.trim() && (
           <p
-            className="absolute truncate text-[10px] font-medium sm:text-xs"
+            className="absolute truncate font-medium"
             style={{
-              ...layoutToPreviewStyle(layout.dateAwarded, { maxWidthPercent: 32 }),
+              ...layoutToPreviewStyle(layout.dateAwarded, { maxWidthPercent: 35 }),
               color: fieldColor(layout.dateAwarded),
             }}
           >

@@ -11,9 +11,9 @@ export type CertificateTemplateId =
 export type CertificateTextAlign = "left" | "center";
 
 export type CertificateFieldLayout = {
-  /** Horizontal position as a fraction of page width (0–1). */
+  /** Horizontal position as a fraction of the printable content width (0–1). */
   x: number;
-  /** Vertical position as a fraction of page height from the bottom (0–1). */
+  /** Vertical position as a fraction of the printable content height from the top (0–1). */
   y: number;
   align: CertificateTextAlign;
   maxSize?: number;
@@ -40,13 +40,13 @@ export type CertificateTemplateDefinition = {
 const NAVY = { r: 0.08, g: 0.16, b: 0.28 };
 const FOREST = { r: 0.09, g: 0.29, b: 0.22 };
 
-/** Calibrated to the blank lines on the certificate artwork (1024×790 reference). */
+/** Calibrated to blank lines inside the printable content region (1024×790 reference). */
 const STANDARD_LAYOUT: CertificateTemplateDefinition["layout"] = {
-  studentName: { x: 0.5, y: 0.618, align: "center", minSize: 20, maxSize: 36, color: NAVY },
-  homeschoolName: { x: 0.415, y: 0.488, align: "left", maxSize: 13, color: NAVY },
-  achievement: { x: 0.415, y: 0.428, align: "left", maxSize: 13, color: NAVY },
-  educatorName: { x: 0.415, y: 0.368, align: "left", maxSize: 13, color: NAVY },
-  dateAwarded: { x: 0.415, y: 0.308, align: "left", maxSize: 13, color: NAVY },
+  studentName: { x: 0.5, y: 0.28, align: "center", minSize: 18, maxSize: 32, color: NAVY },
+  homeschoolName: { x: 0.32, y: 0.48, align: "left", maxSize: 12, color: NAVY },
+  achievement: { x: 0.32, y: 0.55, align: "left", maxSize: 12, color: NAVY },
+  educatorName: { x: 0.32, y: 0.62, align: "left", maxSize: 12, color: NAVY },
+  dateAwarded: { x: 0.32, y: 0.69, align: "left", maxSize: 12, color: NAVY },
 };
 
 export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [

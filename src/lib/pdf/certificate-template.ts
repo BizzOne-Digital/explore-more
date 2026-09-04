@@ -7,7 +7,7 @@ import {
   type CertificateFieldLayout,
   type CertificateTemplateDefinition,
 } from "@/lib/resources/certificate-templates";
-import { layoutFontSize } from "@/lib/resources/certificate-layout";
+import { resolveFieldPosition } from "@/lib/resources/certificate-layout";
 
 export async function generateCertificatePdf(data: CertificatePayload): Promise<Uint8Array> {
   const template = getCertificateTemplate(data.templateId);
@@ -51,19 +51,15 @@ function drawField(
 ) {
   if (!value) return;
 
-  const size = layoutFontSize(layout, pageWidth, value, (text, fontSize) =>
-    font.widthOfTextAtSize(text, fontSize)
+  const { x, y, fontSize } = resolveFieldPosition(layout, pageWidth, pageHeight, value, (text, size) =>
+    font.widthOfTextAtSize(text, size)
   );
   const color = layout.color ? rgb(layout.color.r, layout.color.g, layout.color.b) : rgb(0.08, 0.16, 0.28);
-  const x = layout.x * pageWidth;
-  const y = layout.y * pageHeight;
-  const textWidth = font.widthOfTextAtSize(value, size);
-  const drawX = layout.align === "center" ? x - textWidth / 2 : x;
 
   page.drawText(value, {
-    x: drawX,
+    x,
     y,
-    size,
+    size: fontSize,
     font,
     color,
   });

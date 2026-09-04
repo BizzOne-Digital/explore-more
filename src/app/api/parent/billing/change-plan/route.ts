@@ -3,7 +3,7 @@ import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { changeSubscriptionPlan } from "@/lib/billing/subscription-management";
-import { getParentBillingSummary, listActivePlans, canManageStripeSubscription } from "@/lib/billing/parent-billing";
+import { getParentBillingSummary, listActivePlans, canManageStripeSubscription, canCancelStripeSubscription } from "@/lib/billing/parent-billing";
 import { getStripe } from "@/lib/services/stripe";
 
 const changePlanSchema = z.object({
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       ...data,
       plans,
       canManageSubscription: canManageStripeSubscription(data.stripeConfigured, data.subscription),
+      canCancelSubscription: canCancelStripeSubscription(data.stripeConfigured, data.subscription),
       changeResult: result,
     });
   } catch (error) {

@@ -2,7 +2,7 @@ import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { ParentProfile } from "@/models";
-import { getParentBillingSummary, ensureParentSubscription, listActivePlans, canManageStripeSubscription } from "@/lib/billing/parent-billing";
+import { getParentBillingSummary, ensureParentSubscription, listActivePlans, canManageStripeSubscription, canCancelStripeSubscription } from "@/lib/billing/parent-billing";
 import { buildPartialUpdate } from "@/lib/billing/utils";
 
 export async function GET() {
@@ -20,6 +20,7 @@ export async function GET() {
       ...data,
       plans,
       canManageSubscription: canManageStripeSubscription(data.stripeConfigured, data.subscription),
+      canCancelSubscription: canCancelStripeSubscription(data.stripeConfigured, data.subscription),
     });
   } catch (error) {
     return apiError(error);
@@ -70,6 +71,7 @@ export async function PATCH(request: Request) {
       ...data,
       plans,
       canManageSubscription: canManageStripeSubscription(data.stripeConfigured, data.subscription),
+      canCancelSubscription: canCancelStripeSubscription(data.stripeConfigured, data.subscription),
     });
   } catch (error) {
     return apiError(error);

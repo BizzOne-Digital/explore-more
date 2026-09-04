@@ -30,6 +30,11 @@ type BillingData = {
     discountPercent: number;
     creditCents: number;
     stripeSubscriptionId?: string;
+    pendingPlan?: {
+      planId: string;
+      planName: string;
+      effectiveAt?: string;
+    };
   };
   paymentHistory: {
     id: string;
@@ -50,6 +55,7 @@ type BillingData = {
     description?: string;
   }>;
   canManageSubscription?: boolean;
+  canCancelSubscription?: boolean;
 };
 
 export function BillingClient() {
@@ -233,7 +239,20 @@ export function BillingClient() {
         return;
       }
       setData(json.data);
-      setSuccess(`Your plan has been updated to ${json.data.changeResult?.planName ?? "the selected plan"}.`);
+      const effectiveAt = json.data.changeResult?.effectiveAt;
+      const planName = json.data.changeResult?.planName ?? "the selected plan";
+      if (json.data.changeResult?.scheduled && effectiveAt) {
+        const date = new Date(effectiveAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        setSuccess(
+          `Your plan will switch to ${planName} on ${date}. You will not be charged until then.`
+        );
+      } else {
+        setSuccess(`Your plan has been updated to ${planName}.`);
+      }
     } catch {
       setError("Unable to change plan. Please try again.");
     } finally {
@@ -312,12 +331,15 @@ export function BillingClient() {
 
   const billing = data;
   const sub = billing.subscription;
-  const hasActiveMembership = ["active", "trialing", "past_due"].includes(sub.status);
+  const hasActiveMembership = ["active", "trialing", "past_due", "paused"].includes(sub.status);
   const canManageSubscription =
     billing.canManageSubscription ??
     (billing.stripeConfigured &&
       !!sub.stripeSubscriptionId &&
       hasActiveMembership);
+  const canCancelSubscription =
+    billing.canCancelSubscription ??
+    (billing.stripeConfigured && (hasActiveMembership || !!sub.stripeSubscriptionId));
   const renewalDate = sub.currentPeriodEnd
     ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-US", {
         year: "numeric",
@@ -325,6 +347,14 @@ export function BillingClient() {
         day: "numeric",
       })
     : "—";
+  const pendingPlan = sub.pendingPlan;
+  const pendingEffectiveDate = pendingPlan?.effectiveAt
+    ? new Date(pendingPlan.effectiveAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : renewalDate;
 
   return (
     <div className="space-y-8">
@@ -337,6 +367,54 @@ export function BillingClient() {
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {success}
         </div>
+      )}
+
+      {canCancelSubscription && (
+        <section className="rounded-xl border-2 border-explore-teal/25 bg-explore-teal/5 p-6">
+          <h3 className="font-display text-lg font-semibold text-explore-charcoal">
+            Subscription actions
+          </h3>
+          <p className="mt-1 text-sm text-explore-charcoal/65">
+            Cancel your membership or open the Stripe billing portal for payment updates.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {sub.cancelAtPeriodEnd ? (
+              <button
+                type="button"
+                onClick={() => handleCancelAction("resume")}
+                disabled={cancelLoading}
+                className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {cancelLoading ? "Updating…" : "Keep my subscription active"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleCancelAction("cancel")}
+                disabled={cancelLoading}
+                className="rounded-lg border-2 border-red-300 bg-white px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+              >
+                {cancelLoading ? "Updating…" : "Cancel subscription"}
+              </button>
+            )}
+            {canManageSubscription && (
+              <button
+                type="button"
+                onClick={() => openBillingPortal("subscription_manage")}
+                disabled={portalLoading}
+                className="rounded-lg border border-explore-teal bg-white px-5 py-2.5 text-sm font-semibold text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
+              >
+                {portalLoading ? "Opening…" : "Open Stripe billing portal"}
+              </button>
+            )}
+          </div>
+          {sub.cancelAtPeriodEnd && (
+            <p className="mt-3 text-sm text-amber-800">
+              Your subscription is scheduled to cancel on {renewalDate}. You will keep access until
+              then.
+            </p>
+          )}
+        </section>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -376,6 +454,11 @@ export function BillingClient() {
             {sub.cancelAtPeriodEnd && (
               <p className="text-xs text-amber-700">Cancels at end of current period.</p>
             )}
+            {pendingPlan && (
+              <p className="text-xs text-explore-teal">
+                Switching to {pendingPlan.planName} on {pendingEffectiveDate}.
+              </p>
+            )}
             {sub.discountPercent > 0 && (
               <div className="flex justify-between">
                 <span className="text-explore-charcoal/60">Discount</span>
@@ -391,68 +474,33 @@ export function BillingClient() {
           </div>
 
           <div className="mt-6 border-t border-explore-charcoal/10 pt-4">
-            <h4 className="text-sm font-semibold text-explore-charcoal">Manage subscription</h4>
+            <h4 className="text-sm font-semibold text-explore-charcoal">Change plan</h4>
             <p className="mt-1 text-xs text-explore-charcoal/60">
-              Upgrade, downgrade, or cancel your membership plan.
+              {canManageSubscription
+                ? "Switch plans at your next billing date — no charge today. See Available Plans below."
+                : hasActiveMembership
+                  ? "If plan options do not appear below, contact Explore More Academy and we can link your Stripe subscription."
+                  : "Subscribe from the membership page to get started."}
             </p>
 
-            {canManageSubscription ? (
-              <div className="mt-3 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => openBillingPortal("subscription_manage")}
-                  disabled={portalLoading}
-                  className="w-full rounded-lg bg-explore-teal px-4 py-2.5 text-sm font-semibold text-white hover:bg-explore-teal/90 disabled:opacity-50"
-                >
-                  {portalLoading ? "Opening…" : "Manage subscription (upgrade or downgrade)"}
-                </button>
-                {sub.cancelAtPeriodEnd ? (
-                  <button
-                    type="button"
-                    onClick={() => handleCancelAction("resume")}
-                    disabled={cancelLoading}
-                    className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 disabled:opacity-50"
-                  >
-                    {cancelLoading ? "Updating…" : "Keep my subscription active"}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleCancelAction("cancel")}
-                    disabled={cancelLoading}
-                    className="w-full rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {cancelLoading ? "Updating…" : "Cancel subscription"}
-                  </button>
-                )}
-              </div>
-            ) : billing.stripeConfigured && hasActiveMembership ? (
-              <div className="mt-3 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => openBillingPortal("subscription_manage")}
-                  disabled={portalLoading}
-                  className="w-full rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
-                >
-                  {portalLoading ? "Opening…" : "Open billing portal"}
-                </button>
-                <p className="text-xs text-explore-charcoal/55">
-                  If cancel or plan change options do not appear, contact Explore More Academy and
-                  we can help link your Stripe subscription.
-                </p>
-              </div>
-            ) : billing.stripeConfigured && sub.status === "none" ? (
+            {!canManageSubscription && billing.stripeConfigured && hasActiveMembership && (
+              <button
+                type="button"
+                onClick={() => openBillingPortal("subscription_manage")}
+                disabled={portalLoading}
+                className="mt-3 w-full rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
+              >
+                {portalLoading ? "Opening…" : "Open billing portal"}
+              </button>
+            )}
+
+            {!canManageSubscription && !hasActiveMembership && billing.stripeConfigured && (
               <a
                 href="/membership"
                 className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white hover:bg-explore-teal/90"
               >
                 View membership plans
               </a>
-            ) : (
-              <p className="mt-3 text-xs text-explore-charcoal/55">
-                Online subscription management is not available for this account. Please contact
-                Explore More Academy for billing help.
-              </p>
             )}
           </div>
 
@@ -513,14 +561,15 @@ export function BillingClient() {
           <h3 className="font-display text-lg font-semibold">Available Plans</h3>
           <p className="mt-1 text-sm text-explore-charcoal/60">
             {canManageSubscription
-              ? "Select a plan below to upgrade or downgrade. Prorated charges or credits may apply."
+              ? "Select a plan below to switch at your next billing date. You will not be charged until then."
               : hasActiveMembership
-                ? "Use Manage subscription above to change plans in Stripe, or contact the academy for help."
+                ? "Contact the academy if you need help changing plans."
                 : "Subscribe from the membership page to get started, then return here to manage your plan."}
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {billing.plans.map((plan) => {
               const isCurrent = sub.planId === plan._id || sub.planName === plan.name;
+              const isPending = pendingPlan?.planId === plan._id;
               return (
                 <div
                   key={plan._id}
@@ -542,6 +591,11 @@ export function BillingClient() {
                         Current
                       </span>
                     )}
+                    {isPending && !isCurrent && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                        Scheduled
+                      </span>
+                    )}
                   </div>
                   {plan.features?.length > 0 && (
                     <ul className="mt-3 list-inside list-disc text-xs text-explore-charcoal/70">
@@ -550,17 +604,22 @@ export function BillingClient() {
                       ))}
                     </ul>
                   )}
-                  {canManageSubscription && !isCurrent && (
+                  {canManageSubscription && !isCurrent && !isPending && (
                     <button
                       type="button"
                       onClick={() => changePlan(plan._id)}
                       disabled={planChangingId === plan._id}
                       className="mt-4 w-full rounded-lg bg-explore-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-explore-charcoal/90 disabled:opacity-50"
                     >
-                      {planChangingId === plan._id ? "Switching plan…" : "Switch to this plan"}
+                      {planChangingId === plan._id ? "Scheduling switch…" : "Switch at next billing date"}
                     </button>
                   )}
-                  {!canManageSubscription && !isCurrent && (
+                  {isPending && (
+                    <p className="mt-4 text-xs text-amber-800">
+                      Starts on {pendingEffectiveDate}. No charge until then.
+                    </p>
+                  )}
+                  {!canManageSubscription && !isCurrent && !hasActiveMembership && (
                     <a
                       href="/membership"
                       className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5"

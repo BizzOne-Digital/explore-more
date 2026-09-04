@@ -7,6 +7,7 @@ import {
   type CertificateFieldLayout,
   type CertificateTemplateDefinition,
 } from "@/lib/resources/certificate-templates";
+import { layoutFontSize } from "@/lib/resources/certificate-layout";
 
 export async function generateCertificatePdf(data: CertificatePayload): Promise<Uint8Array> {
   const template = getCertificateTemplate(data.templateId);
@@ -27,50 +28,15 @@ export async function generateCertificatePdf(data: CertificatePayload): Promise<
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
 
-  drawField(page, fontBold, template.layout.studentName, data.studentName.trim() || "Student Name", pageWidth, pageHeight, {
-    bold: true,
-    maxWidth: pageWidth * 0.72,
-  });
+  drawField(page, fontBold, template.layout.studentName, data.studentName.trim() || "Student Name", pageWidth, pageHeight);
 
-  drawField(
-    page,
-    font,
-    template.layout.homeschoolName,
-    data.homeschoolName.trim(),
-    pageWidth,
-    pageHeight,
-    { maxWidth: pageWidth * 0.48 }
-  );
+  drawField(page, font, template.layout.homeschoolName, data.homeschoolName.trim(), pageWidth, pageHeight);
 
-  drawField(
-    page,
-    font,
-    template.layout.achievement,
-    data.achievement.trim(),
-    pageWidth,
-    pageHeight,
-    { maxWidth: pageWidth * 0.48 }
-  );
+  drawField(page, font, template.layout.achievement, data.achievement.trim(), pageWidth, pageHeight);
 
-  drawField(
-    page,
-    font,
-    template.layout.educatorName,
-    data.educatorName?.trim() || "",
-    pageWidth,
-    pageHeight,
-    { maxWidth: pageWidth * 0.48 }
-  );
+  drawField(page, font, template.layout.educatorName, data.educatorName?.trim() || "", pageWidth, pageHeight);
 
-  drawField(
-    page,
-    font,
-    template.layout.dateAwarded,
-    data.dateAwarded.trim(),
-    pageWidth,
-    pageHeight,
-    { maxWidth: pageWidth * 0.3 }
-  );
+  drawField(page, font, template.layout.dateAwarded, data.dateAwarded.trim(), pageWidth, pageHeight);
 
   return doc.save();
 }
@@ -81,15 +47,13 @@ function drawField(
   layout: CertificateFieldLayout,
   value: string,
   pageWidth: number,
-  pageHeight: number,
-  options?: { bold?: boolean; maxWidth?: number }
+  pageHeight: number
 ) {
   if (!value) return;
 
-  const maxWidth = options?.maxWidth ?? pageWidth * 0.5;
-  const minSize = layout.minSize ?? 10;
-  const maxSize = layout.maxSize ?? 12;
-  const size = layout.align === "center" ? fitFontSize(value, font, maxWidth, minSize, maxSize) : maxSize;
+  const size = layoutFontSize(layout, pageWidth, value, (text, fontSize) =>
+    font.widthOfTextAtSize(text, fontSize)
+  );
   const color = layout.color ? rgb(layout.color.r, layout.color.g, layout.color.b) : rgb(0.08, 0.16, 0.28);
   const x = layout.x * pageWidth;
   const y = layout.y * pageHeight;
@@ -103,19 +67,6 @@ function drawField(
     font,
     color,
   });
-}
-
-function fitFontSize(
-  text: string,
-  font: PDFFont,
-  maxWidth: number,
-  minSize: number,
-  maxSize: number
-): number {
-  for (let size = maxSize; size >= minSize; size -= 1) {
-    if (font.widthOfTextAtSize(text, size) <= maxWidth) return size;
-  }
-  return minSize;
 }
 
 export { type CertificateTemplateDefinition };

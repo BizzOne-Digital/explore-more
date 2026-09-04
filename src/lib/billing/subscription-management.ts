@@ -130,6 +130,11 @@ async function ensurePlanStripePrice(plan: {
   return price.id;
 }
 
+function readPeriodStart(subscription: Stripe.Subscription): number | undefined {
+  return (subscription as Stripe.Subscription & { current_period_start?: number })
+    .current_period_start;
+}
+
 function readPeriodEnd(subscription: Stripe.Subscription): Date | undefined {
   const periodEnd = (subscription as Stripe.Subscription & { current_period_end?: number })
     .current_period_end;
@@ -172,6 +177,10 @@ export async function syncSubscriptionFromStripe(
       stripePriceId: priceId,
       currentPeriodEnd: readPeriodEnd(stripeSubscription),
       cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+      ...(plan?._id &&
+      stripeSubscription.metadata?.planId === plan._id.toString()
+        ? { pendingPlanId: null, pendingPlanEffectiveAt: null }
+        : {}),
     },
     { upsert: true }
   );
@@ -196,44 +205,79 @@ export async function changeSubscriptionPlan(userId: string, targetPlanId: strin
   if (!targetPlan) throw new Error("Plan not found");
 
   const currentPlanId = record.planId?.toString();
+  const pendingPlanId = record.pendingPlanId?.toString();
   if (currentPlanId === targetPlanId) {
     throw new Error("You are already on this plan.");
   }
+  if (pendingPlanId === targetPlanId) {
+    throw new Error("This plan change is already scheduled for your next billing date.");
+  }
 
   const stripeSubscription = await stripe.subscriptions.retrieve(record.stripeSubscriptionId);
-  const itemId = stripeSubscription.items.data[0]?.id;
-  if (!itemId) throw new Error("Subscription could not be updated. Please contact the academy.");
+  const currentItem = stripeSubscription.items.data[0];
+  if (!currentItem?.price?.id) {
+    throw new Error("Subscription could not be updated. Please contact the academy.");
+  }
 
-  const priceId = await ensurePlanStripePrice(targetPlan);
-  const updated = await stripe.subscriptions.update(record.stripeSubscriptionId, {
-    items: [{ id: itemId, price: priceId }],
-    proration_behavior: "create_prorations",
-    metadata: {
-      planId: targetPlan._id.toString(),
-      planSlug: targetPlan.slug,
-    },
+  const newPriceId = await ensurePlanStripePrice(targetPlan);
+  const periodStart = readPeriodStart(stripeSubscription);
+  const periodEnd = (stripeSubscription as Stripe.Subscription & { current_period_end?: number })
+    .current_period_end;
+
+  if (!periodStart || !periodEnd) {
+    throw new Error("Could not determine your billing cycle. Please contact the academy.");
+  }
+
+  if (stripeSubscription.schedule) {
+    const scheduleId =
+      typeof stripeSubscription.schedule === "string"
+        ? stripeSubscription.schedule
+        : stripeSubscription.schedule.id;
+    try {
+      await stripe.subscriptionSchedules.release(scheduleId);
+    } catch {
+      // Schedule may already be released.
+    }
+  }
+
+  const schedule = await stripe.subscriptionSchedules.create({
+    from_subscription: stripeSubscription.id,
   });
+
+  await stripe.subscriptionSchedules.update(schedule.id, {
+    end_behavior: "release",
+    phases: [
+      {
+        items: [{ price: currentItem.price.id, quantity: 1 }],
+        start_date: periodStart,
+        end_date: periodEnd,
+      },
+      {
+        items: [{ price: newPriceId, quantity: 1 }],
+        metadata: {
+          planId: targetPlan._id.toString(),
+          planSlug: targetPlan.slug,
+        },
+      },
+    ],
+  });
+
+  const effectiveAt = new Date(periodEnd * 1000);
 
   await ParentSubscription.findOneAndUpdate(
     { userId },
     {
-      planId: targetPlan._id,
-      stripePriceId: priceId,
-      status:
-        updated.status === "trialing"
-          ? "trialing"
-          : updated.status === "active"
-            ? "active"
-            : record.status,
-      currentPeriodEnd: readPeriodEnd(updated),
-      cancelAtPeriodEnd: updated.cancel_at_period_end,
+      pendingPlanId: targetPlan._id,
+      pendingPlanEffectiveAt: effectiveAt,
     }
   );
 
   return {
     planName: targetPlan.name,
-    status: updated.status,
-    currentPeriodEnd: readPeriodEnd(updated),
+    status: stripeSubscription.status,
+    currentPeriodEnd: effectiveAt,
+    scheduled: true,
+    effectiveAt,
   };
 }
 

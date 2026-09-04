@@ -52,6 +52,8 @@ export interface IParentSubscription extends Document {
   discountPercent: number;
   creditCents: number;
   adminNotes?: string;
+  pendingPlanId?: mongoose.Types.ObjectId;
+  pendingPlanEffectiveAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,6 +74,8 @@ const ParentSubscriptionSchema = new Schema<IParentSubscription>(
     discountPercent: { type: Number, default: 0 },
     creditCents: { type: Number, default: 0 },
     adminNotes: String,
+    pendingPlanId: { type: Schema.Types.ObjectId, ref: "SubscriptionPlan" },
+    pendingPlanEffectiveAt: Date,
   },
   { timestamps: true }
 );

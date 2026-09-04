@@ -6,7 +6,7 @@ import {
   cancelSubscription,
   resumeSubscription,
 } from "@/lib/billing/subscription-management";
-import { getParentBillingSummary, listActivePlans, canManageStripeSubscription } from "@/lib/billing/parent-billing";
+import { getParentBillingSummary, listActivePlans, canManageStripeSubscription, canCancelStripeSubscription } from "@/lib/billing/parent-billing";
 import { getStripe } from "@/lib/services/stripe";
 
 const cancelSchema = z.object({
@@ -55,6 +55,7 @@ export async function POST(request: Request) {
       ...data,
       plans,
       canManageSubscription: canManageStripeSubscription(data.stripeConfigured, data.subscription),
+      canCancelSubscription: canCancelStripeSubscription(data.stripeConfigured, data.subscription),
     });
   } catch (error) {
     return apiError(error instanceof Error ? error : new Error("Failed to update subscription"));

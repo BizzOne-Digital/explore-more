@@ -40,13 +40,13 @@ export type CertificateTemplateDefinition = {
 const NAVY = { r: 0.08, g: 0.16, b: 0.28 };
 const FOREST = { r: 0.09, g: 0.29, b: 0.22 };
 
-/** Shared field positions — templates use the same printable form layout. */
+/** Calibrated to the blank lines on the certificate artwork (1024×790 reference). */
 const STANDARD_LAYOUT: CertificateTemplateDefinition["layout"] = {
-  studentName: { x: 0.5, y: 0.555, align: "center", minSize: 18, maxSize: 34, color: NAVY },
-  homeschoolName: { x: 0.395, y: 0.405, align: "left", maxSize: 12, color: NAVY },
-  achievement: { x: 0.395, y: 0.352, align: "left", maxSize: 12, color: NAVY },
-  educatorName: { x: 0.395, y: 0.299, align: "left", maxSize: 12, color: NAVY },
-  dateAwarded: { x: 0.395, y: 0.246, align: "left", maxSize: 12, color: NAVY },
+  studentName: { x: 0.5, y: 0.618, align: "center", minSize: 20, maxSize: 36, color: NAVY },
+  homeschoolName: { x: 0.415, y: 0.488, align: "left", maxSize: 13, color: NAVY },
+  achievement: { x: 0.415, y: 0.428, align: "left", maxSize: 13, color: NAVY },
+  educatorName: { x: 0.415, y: 0.368, align: "left", maxSize: 13, color: NAVY },
+  dateAwarded: { x: 0.415, y: 0.308, align: "left", maxSize: 13, color: NAVY },
 };
 
 export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [

@@ -25,13 +25,27 @@ export function canManageStripeSubscription(
   );
 }
 
+export function canCancelStripeSubscription(
+  stripeConfigured: boolean,
+  subscription?: { status?: string; stripeSubscriptionId?: string | null; planId?: string }
+) {
+  if (!stripeConfigured) return false;
+  const status = subscription?.status ?? "none";
+  const hasMembership =
+    MANAGEABLE_STATUSES.has(status) || status === "paused" || !!subscription?.planId;
+  return hasMembership || !!subscription?.stripeSubscriptionId;
+}
+
 export async function getParentBillingSummary(userId: string) {
   await ensureStripeSubscriptionLinked(userId);
 
   const [user, profile, subscription] = await Promise.all([
     User.findById(userId).select("name email phone stripeCustomerId guardianId").lean(),
     ParentProfile.findOne({ userId }).lean(),
-    ParentSubscription.findOne({ userId }).populate("planId").lean(),
+    ParentSubscription.findOne({ userId })
+      .populate("planId")
+      .populate("pendingPlanId")
+      .lean(),
   ]);
 
   if (!user) throw new Error("User not found");
@@ -59,6 +73,13 @@ export async function getParentBillingSummary(userId: string) {
       : null;
 
   const planId = resolveMongoId(planDoc);
+
+  const pendingPlanDoc = subscription?.pendingPlanId;
+  const pendingPlan =
+    pendingPlanDoc && typeof pendingPlanDoc === "object" && "name" in pendingPlanDoc
+      ? (pendingPlanDoc as { name?: string })
+      : null;
+  const pendingPlanId = resolveMongoId(pendingPlanDoc);
 
   const paymentHistory = await getPaymentHistoryForParent({
     userId,
@@ -99,6 +120,13 @@ export async function getParentBillingSummary(userId: string) {
           discountPercent: subscription.discountPercent,
           creditCents: subscription.creditCents,
           stripeSubscriptionId: subscription.stripeSubscriptionId,
+          pendingPlan: pendingPlanId
+            ? {
+                planId: pendingPlanId,
+                planName: pendingPlan?.name ?? "Scheduled plan",
+                effectiveAt: subscription.pendingPlanEffectiveAt,
+              }
+            : undefined,
         }
       : {
           status: "none" as const,

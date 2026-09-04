@@ -60,10 +60,49 @@ export function computeCourseDuration(startDate: string, endDate: string): strin
 }
 
 export function suggestCredits(duration: string): string {
-  const lower = duration.toLowerCase();
-  if (lower.includes("full year") || lower.includes("year")) return "1.0";
+  const trimmed = duration.trim();
+  if (!trimmed) return "";
+
+  const lower = trimmed.toLowerCase();
+  if (lower.includes("full year") || lower === "year" || lower === "yr" || lower === "annual") {
+    return "1.0";
+  }
   if (lower.includes("semester") || lower.includes("half")) return "0.5";
+
+  const num = parseFloat(trimmed);
+  if (!Number.isNaN(num) && num > 0) {
+    return Number.isInteger(num) ? num.toFixed(1) : String(num);
+  }
+
   return "";
+}
+
+/** Resolve credits from the credits field, or infer from duration (e.g. "1" = 1.0 credit). */
+export function resolveCourseCredits(course: TranscriptCourseInput): number {
+  const explicit = parseFloat(course.credits.trim());
+  if (!Number.isNaN(explicit) && explicit > 0) return explicit;
+
+  const suggested = suggestCredits(course.duration);
+  if (suggested) {
+    const inferred = parseFloat(suggested);
+    if (!Number.isNaN(inferred) && inferred > 0) return inferred;
+  }
+
+  return 0;
+}
+
+export function normalizeTranscriptCourse(course: TranscriptCourseInput): TranscriptCourseInput {
+  const creditsValue = resolveCourseCredits(course);
+  const percent = parseFloat(course.gradePercent);
+  const letterGrade =
+    course.letterGrade.trim() ||
+    (Number.isNaN(percent) ? "" : percentToLetter(percent));
+
+  return {
+    ...course,
+    letterGrade,
+    credits: creditsValue > 0 ? creditsValue.toFixed(1) : course.credits,
+  };
 }
 
 export function computeTranscriptTotals(courses: TranscriptCourseInput[]) {
@@ -72,8 +111,10 @@ export function computeTranscriptTotals(courses: TranscriptCourseInput[]) {
   let gpaCredits = 0;
 
   for (const course of courses) {
-    const credits = parseFloat(course.credits);
-    if (!course.courseName.trim() || Number.isNaN(credits) || credits <= 0) continue;
+    if (!course.courseName.trim()) continue;
+
+    const credits = resolveCourseCredits(course);
+    if (credits <= 0) continue;
 
     totalCredits += credits;
 

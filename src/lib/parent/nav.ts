@@ -16,6 +16,8 @@ import {
   NotebookPen,
   Library,
   Award,
+  FileText,
+  ScrollText,
 } from "lucide-react";
 
 export interface ParentNavItem {
@@ -53,6 +55,8 @@ export const parentNavGroups: ParentNavGroup[] = [
       { label: "My Resources", href: "/parent/resources", icon: FolderOpen, requiredFeature: "digitalResourceLibrary" },
       { label: "My Books", href: "/parent/books", icon: BookOpen, requiredFeature: "monthlyBook" },
       { label: "Portfolio", href: "/parent/portfolio", icon: NotebookPen, requiredFeature: "parentDashboard" },
+      { label: "Transcript Generator", href: "/parent/tools/transcript", icon: FileText },
+      { label: "Certificate Generator", href: "/parent/tools/certificate", icon: ScrollText },
     ],
   },
   {

@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { COMPANY } from "@/lib/constants";
 import { COMMON_COURSES, GRADE_LEVELS } from "@/lib/resources/grades";
 import type { CertificatePayload } from "@/lib/resources/types";
+import {
+  LinkedStudentPicker,
+  type LinkedStudentOption,
+} from "@/components/resources/LinkedStudentPicker";
 
 const DEFAULT_FORM: CertificatePayload = {
   studentName: "",
@@ -15,8 +19,19 @@ const DEFAULT_FORM: CertificatePayload = {
   dateAwarded: "",
 };
 
-export function CertificateGeneratorForm() {
-  const [form, setForm] = useState<CertificatePayload>(DEFAULT_FORM);
+type CertificateGeneratorFormProps = {
+  linkedStudents?: LinkedStudentOption[];
+  defaultHomeschoolName?: string;
+};
+
+export function CertificateGeneratorForm({
+  linkedStudents = [],
+  defaultHomeschoolName = "",
+}: CertificateGeneratorFormProps) {
+  const [form, setForm] = useState<CertificatePayload>({
+    ...DEFAULT_FORM,
+    homeschoolName: defaultHomeschoolName,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,6 +89,21 @@ export function CertificateGeneratorForm() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
+      {linkedStudents.length > 0 && (
+        <div className="lg:col-span-2">
+          <LinkedStudentPicker
+            students={linkedStudents}
+            onSelect={(child) =>
+              setForm((prev) => ({
+                ...prev,
+                studentName: child.name,
+                achievement: child.grade || prev.achievement,
+              }))
+            }
+          />
+        </div>
+      )}
+
       <section className="rounded-2xl border border-explore-charcoal/10 bg-white p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">Step 1</p>
         <h2 className="mt-1 font-display text-2xl font-bold text-explore-charcoal">Student Information</h2>

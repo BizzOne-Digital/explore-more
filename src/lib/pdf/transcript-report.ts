@@ -1,6 +1,7 @@
 import { AcademyReport, formatReportDate } from "@/lib/pdf/academy-report";
 import {
   computeTranscriptTotals,
+  normalizeTranscriptCourse,
   percentToLetter,
   type TranscriptCourseInput,
 } from "@/lib/resources/grades";
@@ -10,7 +11,7 @@ export async function generateTranscriptPdf(
   student: TranscriptStudentInfo,
   courses: TranscriptCourseInput[]
 ): Promise<Uint8Array> {
-  const validCourses = courses.filter((c) => c.courseName.trim());
+  const validCourses = courses.filter((c) => c.courseName.trim()).map(normalizeTranscriptCourse);
   const { totalCredits, cumulativeGpa } = computeTranscriptTotals(validCourses);
 
   const report = await AcademyReport.create(

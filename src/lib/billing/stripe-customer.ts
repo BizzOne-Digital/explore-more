@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { User } from "@/models";
 import type { IPaymentMethodSnapshot } from "@/models/Billing";
 import { getAppUrl, getStripe } from "@/lib/services/stripe";
+import type { BillingPortalFlow } from "@/lib/billing/subscription-management";
 
 export async function getOrCreateStripeCustomer(userId: string): Promise<string | null> {
   const stripe = getStripe();
@@ -68,7 +69,8 @@ export async function getDefaultPaymentMethod(
 
 export async function createBillingPortalSession(
   userId: string,
-  returnPath = "/parent/billing"
+  returnPath = "/parent/billing",
+  flow: BillingPortalFlow = { type: "default" }
 ): Promise<string | null> {
   const stripe = getStripe();
   if (!stripe) return null;
@@ -77,10 +79,26 @@ export async function createBillingPortalSession(
     const customerId = await getOrCreateStripeCustomer(userId);
     if (!customerId) return null;
 
-    const session = await stripe.billingPortal.sessions.create({
+    const params: Stripe.BillingPortal.SessionCreateParams = {
       customer: customerId,
       return_url: `${getAppUrl()}${returnPath}`,
-    });
+    };
+
+    if (flow.type === "payment_method") {
+      params.flow_data = { type: "payment_method_update" };
+    } else if (flow.type === "subscription_update") {
+      params.flow_data = {
+        type: "subscription_update",
+        subscription_update: { subscription: flow.subscriptionId },
+      };
+    } else if (flow.type === "subscription_cancel") {
+      params.flow_data = {
+        type: "subscription_cancel",
+        subscription_cancel: { subscription: flow.subscriptionId },
+      };
+    }
+
+    const session = await stripe.billingPortal.sessions.create(params);
 
     return session.url;
   } catch (err) {

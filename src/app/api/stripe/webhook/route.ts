@@ -12,6 +12,7 @@ import {
   activateMembershipForUser,
   savePendingMembership,
 } from "@/lib/billing/membership-activation";
+import { syncSubscriptionFromStripe } from "@/lib/billing/subscription-management";
 import {
   expiredCheckoutReason,
   asyncPaymentFailedReason,
@@ -396,6 +397,25 @@ export async function POST(request: Request) {
   if (event.type === "invoice.payment_failed") {
     const invoice = event.data.object as Stripe.Invoice;
     await handleInvoicePaymentFailed(invoice);
+  }
+
+  if (
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.deleted"
+  ) {
+    await connectDB();
+    const subscription = event.data.object as Stripe.Subscription;
+    const customerId =
+      typeof subscription.customer === "string"
+        ? subscription.customer
+        : subscription.customer?.id;
+
+    if (customerId) {
+      const user = await User.findOne({ stripeCustomerId: customerId }).select("_id").lean();
+      if (user?._id) {
+        await syncSubscriptionFromStripe(user._id.toString(), subscription);
+      }
+    }
   }
 
   return new Response(JSON.stringify({ received: true }), {

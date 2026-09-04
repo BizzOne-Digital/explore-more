@@ -5,17 +5,23 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { FileText, Award } from "lucide-react";
 
-const TOOLS = [
-  { href: "/resources/transcript", label: "Transcript Generator", icon: FileText },
-  { href: "/resources/certificate", label: "Certificate Generator", icon: Award },
+const PUBLIC_TOOLS = [
+  { slug: "transcript", label: "Transcript Generator", icon: FileText },
+  { slug: "certificate", label: "Certificate Generator", icon: Award },
 ] as const;
 
-export function ResourceToolNav() {
+type ResourceToolNavProps = {
+  /** Route prefix, e.g. `/resources` or `/parent/tools` */
+  basePath?: string;
+};
+
+export function ResourceToolNav({ basePath = "/resources" }: ResourceToolNavProps) {
   const pathname = usePathname();
 
   return (
     <nav className="flex flex-wrap justify-center gap-2 sm:gap-3">
-      {TOOLS.map(({ href, label, icon: Icon }) => {
+      {PUBLIC_TOOLS.map(({ slug, label, icon: Icon }) => {
+        const href = `${basePath}/${slug}`;
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link

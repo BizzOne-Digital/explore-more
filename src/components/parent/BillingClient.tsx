@@ -19,6 +19,7 @@ type BillingData = {
   paymentMethod: { brand: string; last4: string; expMonth?: number; expYear?: number } | null;
   subscription: {
     status: string;
+    planId?: string;
     planName: string;
     priceCents: number;
     interval: "month" | "year";
@@ -28,6 +29,7 @@ type BillingData = {
     cancelAtPeriodEnd: boolean;
     discountPercent: number;
     creditCents: number;
+    stripeSubscriptionId?: string;
   };
   paymentHistory: {
     id: string;
@@ -55,6 +57,8 @@ export function BillingClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [planChangingId, setPlanChangingId] = useState<string | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({
@@ -191,21 +195,84 @@ export function BillingClient() {
     }
   }
 
-  async function openPaymentPortal() {
+  async function openBillingPortal(flow: "payment_method" | "subscription_manage" | "subscription_cancel") {
     setPortalLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/parent/billing/portal", { method: "POST" });
+      const res = await fetch("/api/parent/billing/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flow }),
+      });
       const json = await res.json();
       if (!json.success) {
-        setError(json.error || "Unable to open payment portal");
+        setError(json.error || "Unable to open billing portal");
         return;
       }
       window.location.href = json.data.url;
     } catch {
-      setError("Unable to open payment portal");
+      setError("Unable to open billing portal");
     } finally {
       setPortalLoading(false);
+    }
+  }
+
+  async function changePlan(planId: string) {
+    setPlanChangingId(planId);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch("/api/parent/billing/change-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error || "Unable to change plan");
+        return;
+      }
+      setData(json.data);
+      setSuccess(`Your plan has been updated to ${json.data.changeResult?.planName ?? "the selected plan"}.`);
+    } catch {
+      setError("Unable to change plan. Please try again.");
+    } finally {
+      setPlanChangingId(null);
+    }
+  }
+
+  async function handleCancelAction(action: "cancel" | "resume") {
+    const confirmMessage =
+      action === "cancel"
+        ? "Cancel your subscription at the end of the current billing period? You will keep access until then."
+        : "Keep your subscription active and remove the scheduled cancellation?";
+
+    if (!window.confirm(confirmMessage)) return;
+
+    setCancelLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch("/api/parent/billing/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, atPeriodEnd: true }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error || "Unable to update subscription");
+        return;
+      }
+      setData(json.data);
+      setSuccess(
+        action === "cancel"
+          ? "Your subscription is scheduled to cancel at the end of the current billing period."
+          : "Your subscription will remain active."
+      );
+    } catch {
+      setError("Unable to update subscription. Please try again.");
+    } finally {
+      setCancelLoading(false);
     }
   }
 
@@ -245,6 +312,11 @@ export function BillingClient() {
 
   const billing = data;
   const sub = billing.subscription;
+  const hasStripeSubscription = !!sub.stripeSubscriptionId;
+  const canChangePlans =
+    billing.stripeConfigured &&
+    hasStripeSubscription &&
+    ["active", "trialing", "past_due"].includes(sub.status);
   const renewalDate = sub.currentPeriodEnd
     ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-US", {
         year: "numeric",
@@ -316,15 +388,44 @@ export function BillingClient() {
               </div>
             )}
           </div>
-          {billing.canManageSubscription && (
-            <button
-              type="button"
-              onClick={openPaymentPortal}
-              disabled={portalLoading}
-              className="mt-4 w-full rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
+          {canChangePlans && (
+            <div className="mt-4 space-y-2">
+              <button
+                type="button"
+                onClick={() => openBillingPortal("subscription_manage")}
+                disabled={portalLoading}
+                className="w-full rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
+              >
+                Manage subscription in Stripe
+              </button>
+              {sub.cancelAtPeriodEnd ? (
+                <button
+                  type="button"
+                  onClick={() => handleCancelAction("resume")}
+                  disabled={cancelLoading}
+                  className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 disabled:opacity-50"
+                >
+                  {cancelLoading ? "Updating…" : "Keep my subscription active"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleCancelAction("cancel")}
+                  disabled={cancelLoading}
+                  className="w-full rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {cancelLoading ? "Updating…" : "Cancel subscription"}
+                </button>
+              )}
+            </div>
+          )}
+          {!hasStripeSubscription && billing.stripeConfigured && sub.status === "none" && (
+            <a
+              href="/membership"
+              className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white hover:bg-explore-teal/90"
             >
-              Manage subscription (upgrade, downgrade, or cancel)
-            </button>
+              View membership plans
+            </a>
           )}
           {sub.features.length > 0 && (
             <div className="mt-4 border-t border-explore-charcoal/10 pt-4">
@@ -358,7 +459,7 @@ export function BillingClient() {
           {billing.stripeConfigured ? (
             <button
               type="button"
-              onClick={openPaymentPortal}
+              onClick={() => openBillingPortal("payment_method")}
               disabled={portalLoading}
               className="mt-4 inline-flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white hover:bg-explore-teal/90 disabled:opacity-50"
             >
@@ -382,24 +483,63 @@ export function BillingClient() {
         <section className="rounded-xl bg-white p-6 shadow-sm">
           <h3 className="font-display text-lg font-semibold">Available Plans</h3>
           <p className="mt-1 text-sm text-explore-charcoal/60">
-            Use the secure billing portal to upgrade, downgrade, or cancel when enabled by the academy.
+            {canChangePlans
+              ? "Select a plan below to upgrade or downgrade. Prorated charges or credits may apply."
+              : "Subscribe from the membership page to get started, then return here to manage your plan."}
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {billing.plans.map((plan) => (
-              <div
-                key={plan._id}
-                className={`rounded-lg border p-4 ${
-                  sub.planName === plan.name
-                    ? "border-explore-teal bg-explore-teal/5"
-                    : "border-explore-charcoal/15"
-                }`}
-              >
-                <p className="font-semibold">{plan.name}</p>
-                <p className="text-sm text-explore-charcoal/70">
-                  {formatCents(plan.priceCents)} / {formatInterval(plan.interval).toLowerCase()}
-                </p>
-              </div>
-            ))}
+            {billing.plans.map((plan) => {
+              const isCurrent = sub.planId === plan._id || sub.planName === plan.name;
+              return (
+                <div
+                  key={plan._id}
+                  className={`rounded-lg border p-4 ${
+                    isCurrent
+                      ? "border-explore-teal bg-explore-teal/5"
+                      : "border-explore-charcoal/15"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{plan.name}</p>
+                      <p className="text-sm text-explore-charcoal/70">
+                        {formatCents(plan.priceCents)} / {formatInterval(plan.interval).toLowerCase()}
+                      </p>
+                    </div>
+                    {isCurrent && (
+                      <span className="rounded-full bg-explore-teal px-2 py-0.5 text-xs font-semibold text-white">
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  {plan.features?.length > 0 && (
+                    <ul className="mt-3 list-inside list-disc text-xs text-explore-charcoal/70">
+                      {plan.features.slice(0, 4).map((feature) => (
+                        <li key={feature}>{feature}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {canChangePlans && !isCurrent && (
+                    <button
+                      type="button"
+                      onClick={() => changePlan(plan._id)}
+                      disabled={planChangingId === plan._id}
+                      className="mt-4 w-full rounded-lg bg-explore-charcoal px-4 py-2 text-sm font-medium text-white hover:bg-explore-charcoal/90 disabled:opacity-50"
+                    >
+                      {planChangingId === plan._id ? "Switching plan…" : "Switch to this plan"}
+                    </button>
+                  )}
+                  {!canChangePlans && !isCurrent && (
+                    <a
+                      href="/membership"
+                      className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5"
+                    >
+                      Subscribe
+                    </a>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

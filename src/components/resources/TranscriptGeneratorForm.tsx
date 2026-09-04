@@ -11,11 +11,16 @@ import {
   GRADE_LEVELS,
   computeCourseDuration,
   computeTranscriptTotals,
+  normalizeTranscriptCourse,
   percentToLetter,
   suggestCredits,
   type TranscriptCourseInput,
 } from "@/lib/resources/grades";
 import type { TranscriptStudentInfo } from "@/lib/resources/types";
+import {
+  LinkedStudentPicker,
+  type LinkedStudentOption,
+} from "@/components/resources/LinkedStudentPicker";
 
 function emptyCourse(): TranscriptCourseInput {
   return {
@@ -40,8 +45,19 @@ const DEFAULT_STUDENT: TranscriptStudentInfo = {
   cityStateZip: "",
 };
 
-export function TranscriptGeneratorForm() {
-  const [student, setStudent] = useState<TranscriptStudentInfo>(DEFAULT_STUDENT);
+type TranscriptGeneratorFormProps = {
+  linkedStudents?: LinkedStudentOption[];
+  defaultHomeschoolName?: string;
+};
+
+export function TranscriptGeneratorForm({
+  linkedStudents = [],
+  defaultHomeschoolName = "",
+}: TranscriptGeneratorFormProps) {
+  const [student, setStudent] = useState<TranscriptStudentInfo>({
+    ...DEFAULT_STUDENT,
+    homeschoolName: defaultHomeschoolName,
+  });
   const [courses, setCourses] = useState<TranscriptCourseInput[]>([emptyCourse(), emptyCourse(), emptyCourse()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -69,11 +85,14 @@ export function TranscriptGeneratorForm() {
           const duration = computeCourseDuration(next.startDate, next.endDate);
           if (duration) {
             next.duration = duration;
-            if (!next.credits) {
-              const suggested = suggestCredits(duration);
-              if (suggested) next.credits = suggested;
-            }
+            const suggested = suggestCredits(duration);
+            if (suggested) next.credits = suggested;
           }
+        }
+
+        if ("duration" in patch && patch.duration !== undefined) {
+          const suggested = suggestCredits(patch.duration);
+          if (suggested) next.credits = suggested;
         }
 
         return next;
@@ -96,7 +115,9 @@ export function TranscriptGeneratorForm() {
       return;
     }
 
-    const namedCourses = courses.filter((c) => c.courseName.trim());
+    const namedCourses = courses
+      .filter((c) => c.courseName.trim())
+      .map(normalizeTranscriptCourse);
     if (namedCourses.length === 0) {
       setError("Add at least one course.");
       return;
@@ -107,7 +128,7 @@ export function TranscriptGeneratorForm() {
       const res = await fetch("/api/public/transcript/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ student, courses }),
+        body: JSON.stringify({ student, courses: namedCourses }),
       });
 
       if (!res.ok) {
@@ -131,6 +152,19 @@ export function TranscriptGeneratorForm() {
 
   return (
     <div className="space-y-10">
+      {linkedStudents.length > 0 && (
+        <LinkedStudentPicker
+          students={linkedStudents}
+          onSelect={(child) =>
+            setStudent((prev) => ({
+              ...prev,
+              studentName: child.name,
+              gradeLevel: child.grade || prev.gradeLevel,
+            }))
+          }
+        />
+      )}
+
       <section className="rounded-2xl border border-explore-charcoal/10 bg-white p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">Step 1</p>
         <h2 className="mt-1 font-display text-2xl font-bold text-explore-charcoal">Student &amp; School Information</h2>

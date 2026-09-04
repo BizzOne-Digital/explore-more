@@ -82,6 +82,7 @@ export async function getParentBillingSummary(userId: string) {
           cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
           discountPercent: subscription.discountPercent,
           creditCents: subscription.creditCents,
+          stripeSubscriptionId: subscription.stripeSubscriptionId,
         }
       : {
           status: "none" as const,
@@ -93,6 +94,7 @@ export async function getParentBillingSummary(userId: string) {
           cancelAtPeriodEnd: false,
           discountPercent: 0,
           creditCents: 0,
+          stripeSubscriptionId: undefined,
         },
     paymentHistory,
     stripeConfigured,

@@ -1,7 +1,9 @@
 import type Stripe from "stripe";
-import { ParentSubscription, SubscriptionPlan } from "@/models";
+import { ParentSubscription, SubscriptionPlan, User } from "@/models";
 import { getStripe } from "@/lib/services/stripe";
 import { stripeProductData } from "@/lib/stripe/tax-codes";
+
+const MANAGEABLE_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 export type BillingPortalFlow =
   | { type: "default" }
@@ -9,24 +11,88 @@ export type BillingPortalFlow =
   | { type: "subscription_update"; subscriptionId: string }
   | { type: "subscription_cancel"; subscriptionId: string };
 
-export async function getParentStripeSubscription(userId: string) {
-  const record = await ParentSubscription.findOne({ userId }).populate("planId").lean();
-  if (!record?.stripeSubscriptionId) {
-    return { record, stripeSubscription: null as Stripe.Subscription | null };
-  }
-
+export async function ensureStripeSubscriptionLinked(userId: string) {
   const stripe = getStripe();
+  let record = await ParentSubscription.findOne({ userId }).populate("planId").lean();
+
   if (!stripe) {
-    return { record, stripeSubscription: null };
+    return {
+      record,
+      stripeSubscription: null as Stripe.Subscription | null,
+      stripeSubscriptionId: record?.stripeSubscriptionId ?? null,
+    };
   }
 
-  try {
-    const stripeSubscription = await stripe.subscriptions.retrieve(record.stripeSubscriptionId);
-    return { record, stripeSubscription };
-  } catch (err) {
-    console.error("Failed to retrieve Stripe subscription:", err);
-    return { record, stripeSubscription: null };
+  const user = await User.findById(userId).select("stripeCustomerId email").lean();
+  if (!user) {
+    return {
+      record,
+      stripeSubscription: null,
+      stripeSubscriptionId: record?.stripeSubscriptionId ?? null,
+    };
   }
+
+  let customerId = user.stripeCustomerId;
+  if (!customerId && user.email) {
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    customerId = customers.data[0]?.id;
+    if (customerId) {
+      await User.findByIdAndUpdate(userId, { stripeCustomerId: customerId });
+    }
+  }
+
+  if (record?.stripeSubscriptionId) {
+    try {
+      const existing = await stripe.subscriptions.retrieve(record.stripeSubscriptionId);
+      if (MANAGEABLE_STATUSES.has(existing.status)) {
+        await syncSubscriptionFromStripe(userId, existing);
+        record = await ParentSubscription.findOne({ userId }).populate("planId").lean();
+        return {
+          record,
+          stripeSubscription: existing,
+          stripeSubscriptionId: existing.id,
+        };
+      }
+    } catch {
+      // Stored subscription id is stale — look up by customer below.
+    }
+  }
+
+  if (customerId) {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 20,
+    });
+
+    const manageable =
+      subscriptions.data.find((sub) => MANAGEABLE_STATUSES.has(sub.status)) ??
+      subscriptions.data.find((sub) => sub.status !== "canceled");
+
+    if (manageable) {
+      await syncSubscriptionFromStripe(userId, manageable);
+      record = await ParentSubscription.findOne({ userId }).populate("planId").lean();
+      return {
+        record,
+        stripeSubscription: manageable,
+        stripeSubscriptionId: manageable.id,
+      };
+    }
+  }
+
+  return {
+    record,
+    stripeSubscription: null,
+    stripeSubscriptionId: record?.stripeSubscriptionId ?? null,
+  };
+}
+
+export async function getParentStripeSubscription(userId: string) {
+  const linked = await ensureStripeSubscriptionLinked(userId);
+  return {
+    record: linked.record,
+    stripeSubscription: linked.stripeSubscription,
+  };
 }
 
 async function ensurePlanStripePrice(plan: {
@@ -117,6 +183,8 @@ export async function changeSubscriptionPlan(userId: string, targetPlanId: strin
   const stripe = getStripe();
   if (!stripe) throw new Error("Online plan changes are not available. Please contact the academy.");
 
+  await ensureStripeSubscriptionLinked(userId);
+
   const [record, targetPlan] = await Promise.all([
     ParentSubscription.findOne({ userId }),
     SubscriptionPlan.findOne({ _id: targetPlanId, isActive: true }),
@@ -173,6 +241,8 @@ export async function cancelSubscription(userId: string, atPeriodEnd = true) {
   const stripe = getStripe();
   if (!stripe) throw new Error("Online cancellation is not available. Please contact the academy.");
 
+  await ensureStripeSubscriptionLinked(userId);
+
   const record = await ParentSubscription.findOne({ userId });
   if (!record?.stripeSubscriptionId) {
     throw new Error("No active subscription found to cancel.");
@@ -213,6 +283,8 @@ export async function cancelSubscription(userId: string, atPeriodEnd = true) {
 export async function resumeSubscription(userId: string) {
   const stripe = getStripe();
   if (!stripe) throw new Error("Unable to resume subscription.");
+
+  await ensureStripeSubscriptionLinked(userId);
 
   const record = await ParentSubscription.findOne({ userId });
   if (!record?.stripeSubscriptionId) {

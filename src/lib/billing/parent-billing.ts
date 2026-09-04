@@ -10,8 +10,24 @@ import { getStripe } from "@/lib/services/stripe";
 import { resolveMongoId } from "./utils";
 import { getParentMembershipAccess } from "@/lib/membership/access";
 import { previewPortalAccess } from "@/lib/membership/portal-preview";
+import { ensureStripeSubscriptionLinked } from "./subscription-management";
+
+const MANAGEABLE_STATUSES = new Set(["active", "trialing", "past_due"]);
+
+export function canManageStripeSubscription(
+  stripeConfigured: boolean,
+  subscription?: { status?: string; stripeSubscriptionId?: string | null }
+) {
+  return (
+    stripeConfigured &&
+    !!subscription?.stripeSubscriptionId &&
+    MANAGEABLE_STATUSES.has(subscription.status ?? "none")
+  );
+}
 
 export async function getParentBillingSummary(userId: string) {
+  await ensureStripeSubscriptionLinked(userId);
+
   const [user, profile, subscription] = await Promise.all([
     User.findById(userId).select("name email phone stripeCustomerId guardianId").lean(),
     ParentProfile.findOne({ userId }).lean(),

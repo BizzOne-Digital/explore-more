@@ -312,11 +312,12 @@ export function BillingClient() {
 
   const billing = data;
   const sub = billing.subscription;
-  const hasStripeSubscription = !!sub.stripeSubscriptionId;
-  const canChangePlans =
-    billing.stripeConfigured &&
-    hasStripeSubscription &&
-    ["active", "trialing", "past_due"].includes(sub.status);
+  const hasActiveMembership = ["active", "trialing", "past_due"].includes(sub.status);
+  const canManageSubscription =
+    billing.canManageSubscription ??
+    (billing.stripeConfigured &&
+      !!sub.stripeSubscriptionId &&
+      hasActiveMembership);
   const renewalDate = sub.currentPeriodEnd
     ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-US", {
         year: "numeric",
@@ -388,45 +389,73 @@ export function BillingClient() {
               </div>
             )}
           </div>
-          {canChangePlans && (
-            <div className="mt-4 space-y-2">
-              <button
-                type="button"
-                onClick={() => openBillingPortal("subscription_manage")}
-                disabled={portalLoading}
-                className="w-full rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
+
+          <div className="mt-6 border-t border-explore-charcoal/10 pt-4">
+            <h4 className="text-sm font-semibold text-explore-charcoal">Manage subscription</h4>
+            <p className="mt-1 text-xs text-explore-charcoal/60">
+              Upgrade, downgrade, or cancel your membership plan.
+            </p>
+
+            {canManageSubscription ? (
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => openBillingPortal("subscription_manage")}
+                  disabled={portalLoading}
+                  className="w-full rounded-lg bg-explore-teal px-4 py-2.5 text-sm font-semibold text-white hover:bg-explore-teal/90 disabled:opacity-50"
+                >
+                  {portalLoading ? "Opening…" : "Manage subscription (upgrade or downgrade)"}
+                </button>
+                {sub.cancelAtPeriodEnd ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCancelAction("resume")}
+                    disabled={cancelLoading}
+                    className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 disabled:opacity-50"
+                  >
+                    {cancelLoading ? "Updating…" : "Keep my subscription active"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleCancelAction("cancel")}
+                    disabled={cancelLoading}
+                    className="w-full rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {cancelLoading ? "Updating…" : "Cancel subscription"}
+                  </button>
+                )}
+              </div>
+            ) : billing.stripeConfigured && hasActiveMembership ? (
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => openBillingPortal("subscription_manage")}
+                  disabled={portalLoading}
+                  className="w-full rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
+                >
+                  {portalLoading ? "Opening…" : "Open billing portal"}
+                </button>
+                <p className="text-xs text-explore-charcoal/55">
+                  If cancel or plan change options do not appear, contact Explore More Academy and
+                  we can help link your Stripe subscription.
+                </p>
+              </div>
+            ) : billing.stripeConfigured && sub.status === "none" ? (
+              <a
+                href="/membership"
+                className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white hover:bg-explore-teal/90"
               >
-                Manage subscription in Stripe
-              </button>
-              {sub.cancelAtPeriodEnd ? (
-                <button
-                  type="button"
-                  onClick={() => handleCancelAction("resume")}
-                  disabled={cancelLoading}
-                  className="w-full rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 disabled:opacity-50"
-                >
-                  {cancelLoading ? "Updating…" : "Keep my subscription active"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleCancelAction("cancel")}
-                  disabled={cancelLoading}
-                  className="w-full rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-                >
-                  {cancelLoading ? "Updating…" : "Cancel subscription"}
-                </button>
-              )}
-            </div>
-          )}
-          {!hasStripeSubscription && billing.stripeConfigured && sub.status === "none" && (
-            <a
-              href="/membership"
-              className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white hover:bg-explore-teal/90"
-            >
-              View membership plans
-            </a>
-          )}
+                View membership plans
+              </a>
+            ) : (
+              <p className="mt-3 text-xs text-explore-charcoal/55">
+                Online subscription management is not available for this account. Please contact
+                Explore More Academy for billing help.
+              </p>
+            )}
+          </div>
+
           {sub.features.length > 0 && (
             <div className="mt-4 border-t border-explore-charcoal/10 pt-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-explore-charcoal/50">
@@ -483,9 +512,11 @@ export function BillingClient() {
         <section className="rounded-xl bg-white p-6 shadow-sm">
           <h3 className="font-display text-lg font-semibold">Available Plans</h3>
           <p className="mt-1 text-sm text-explore-charcoal/60">
-            {canChangePlans
+            {canManageSubscription
               ? "Select a plan below to upgrade or downgrade. Prorated charges or credits may apply."
-              : "Subscribe from the membership page to get started, then return here to manage your plan."}
+              : hasActiveMembership
+                ? "Use Manage subscription above to change plans in Stripe, or contact the academy for help."
+                : "Subscribe from the membership page to get started, then return here to manage your plan."}
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {billing.plans.map((plan) => {
@@ -519,7 +550,7 @@ export function BillingClient() {
                       ))}
                     </ul>
                   )}
-                  {canChangePlans && !isCurrent && (
+                  {canManageSubscription && !isCurrent && (
                     <button
                       type="button"
                       onClick={() => changePlan(plan._id)}
@@ -529,7 +560,7 @@ export function BillingClient() {
                       {planChangingId === plan._id ? "Switching plan…" : "Switch to this plan"}
                     </button>
                   )}
-                  {!canChangePlans && !isCurrent && (
+                  {!canManageSubscription && !isCurrent && (
                     <a
                       href="/membership"
                       className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5"

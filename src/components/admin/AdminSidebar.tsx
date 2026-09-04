@@ -3,13 +3,35 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { adminNavGroups } from "@/lib/admin/nav";
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const isActive = (href: string) => {
     if (href === "/admin") return pathname === "/admin";
@@ -76,28 +98,30 @@ export function AdminSidebar() {
   return (
     <>
       {/* Mobile toggle */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-lg bg-explore-charcoal p-2 text-white shadow-lg lg:hidden"
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="fixed left-3 top-3 z-[120] rounded-lg bg-explore-charcoal p-2 text-white shadow-lg lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
 
-      {/* Mobile drawer overlay */}
       {open && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
+        <div className="fixed inset-0 z-[130] lg:hidden">
+          <button
+            type="button"
             className="absolute inset-0 bg-black/60"
             onClick={() => setOpen(false)}
-            aria-hidden
+            aria-label="Close menu"
           />
-          <aside className="absolute left-0 top-0 h-full w-72 bg-explore-charcoal shadow-2xl">
+          <aside className="relative h-full w-72 max-w-[85vw] bg-explore-charcoal shadow-2xl">
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="absolute right-3 top-4 rounded-lg p-1.5 text-white/60 hover:text-white"
+              className="absolute right-3 top-3 z-10 rounded-lg p-2 text-white/70 hover:bg-white/10 hover:text-white"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />

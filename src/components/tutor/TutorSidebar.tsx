@@ -19,7 +19,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { TUTOR_NAV_ITEMS } from "@/lib/tutor/nav";
 import { CopyIdButton } from "@/components/parent/CopyIdButton";
@@ -56,6 +56,28 @@ export function TutorSidebar({
 }: TutorSidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const badgeFor = (href: string) => {
     if (href === "/tutor/messages") return unreadParentMessages;
@@ -145,14 +167,16 @@ export function TutorSidebar({
 
   return (
     <>
-      <button
-        type="button"
-        className="fixed left-4 top-4 z-[120] rounded-lg border border-gray-200 bg-white p-2 shadow lg:hidden"
-        onClick={() => setOpen(true)}
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      {!open && (
+        <button
+          type="button"
+          className="fixed left-3 top-3 z-[120] rounded-lg border border-gray-200 bg-white p-2 shadow lg:hidden"
+          onClick={() => setOpen(true)}
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
 
       <aside className="hidden w-64 shrink-0 border-r border-gray-200 bg-white lg:block">{navContent}</aside>
 
@@ -167,7 +191,7 @@ export function TutorSidebar({
           <aside className="relative h-full w-72 max-w-[85vw] bg-white shadow-xl">
             <button
               type="button"
-              className="absolute right-3 top-3 rounded-lg p-2"
+              className="absolute right-3 top-3 z-10 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-explore-charcoal"
               onClick={() => setOpen(false)}
               aria-label="Close menu"
             >

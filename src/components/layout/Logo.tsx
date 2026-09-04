@@ -23,7 +23,8 @@ export function Logo({ variant = "header", className, href = "/", plate = false 
       : {
           width: 320,
           height: 80,
-          className: "h-10 w-auto max-w-[160px] sm:h-12 sm:max-w-[220px] md:h-14 md:max-w-[260px]",
+          className:
+            "h-8 w-auto max-w-[108px] sm:h-10 sm:max-w-[150px] md:h-12 md:max-w-[200px] lg:h-14 lg:max-w-[260px]",
         };
 
   const image = (
@@ -51,7 +52,7 @@ export function Logo({ variant = "header", className, href = "/", plate = false 
   return (
     <Link
       href={href}
-      className="inline-flex min-w-0 max-w-[46vw] shrink items-center sm:max-w-none"
+      className="inline-flex min-w-0 max-w-[34vw] shrink items-center sm:max-w-none"
       aria-label="Explore More Academy home"
     >
       {image}

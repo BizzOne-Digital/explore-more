@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { parentNavGroups } from "@/lib/parent/nav";
 import { filterParentNavForMembership } from "@/lib/membership/nav-filter";
@@ -30,6 +30,28 @@ export function ParentSidebar({
     : filterParentNavForMembership(membershipFeatures);
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const badges = {
     messages: unreadMessages,
@@ -108,6 +130,7 @@ export function ParentSidebar({
         ) : null}
         <Link
           href="/"
+          onClick={() => setOpen(false)}
           className="text-xs text-gray-400 transition hover:text-explore-teal"
         >
           ← Back to website
@@ -118,27 +141,30 @@ export function ParentSidebar({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-lg border border-gray-200 bg-white p-2 text-explore-charcoal shadow-sm lg:hidden"
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="fixed left-3 top-3 z-[120] rounded-lg border border-gray-200 bg-white p-2 text-explore-charcoal shadow-sm lg:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
 
       {open && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
+        <div className="fixed inset-0 z-[130] lg:hidden">
+          <button
+            type="button"
             className="absolute inset-0 bg-black/40"
             onClick={() => setOpen(false)}
-            aria-hidden
+            aria-label="Close menu"
           />
-          <aside className="absolute left-0 top-0 h-full w-72 border-r border-gray-200 bg-white shadow-xl">
+          <aside className="relative h-full w-72 max-w-[85vw] border-r border-gray-200 bg-white shadow-xl">
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="absolute right-3 top-4 rounded-lg p-1.5 text-gray-400 hover:text-explore-charcoal"
+              className="absolute right-3 top-3 z-10 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-explore-charcoal"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />

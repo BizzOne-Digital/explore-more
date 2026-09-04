@@ -32,8 +32,8 @@ export function TutorShell({
         signOutAction={signOutAction}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="border-b border-gray-200 bg-white px-4 py-4 lg:px-6">
-          <div className="flex items-center gap-3">
+        <header className="border-b border-gray-200 bg-white px-3 py-2.5 sm:px-4 lg:px-6 lg:py-4">
+          <div className="flex items-center gap-3 pl-11 lg:pl-0">
             <TutorPortalBackButton role={userRole} />
             <div>
               <p className="text-sm text-gray-500">Welcome back,</p>

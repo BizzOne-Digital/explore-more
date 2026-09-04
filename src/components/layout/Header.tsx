@@ -139,7 +139,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
             : "bg-explore-cream/95 backdrop-blur-md shadow-sm border-b border-explore-charcoal/5"
         )}
       >
-        <div className="mx-auto flex max-w-7xl min-w-0 items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
+        <div className="mx-auto flex max-w-7xl min-w-0 items-center justify-between gap-1.5 px-2.5 py-2 sm:gap-3 sm:px-4 sm:py-3">
           <Logo variant="header" plate={transparent} />
 
           <div className="hidden min-w-0 lg:flex items-center gap-1">
@@ -274,6 +274,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={() => setMobileOpen(false)}
                 className={cn(
                   "block py-3 text-base font-medium border-b border-explore-charcoal/5",
                   pathname === link.href ? "text-explore-teal" : "text-explore-charcoal"
@@ -284,6 +285,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
             ))}
             <Link
               href={studentPortalHref}
+              onClick={() => setMobileOpen(false)}
               className={cn(
                 "block py-3 text-base font-medium border-b border-explore-charcoal/5",
                 pathname.startsWith("/student") || pathname === "/membership"
@@ -295,6 +297,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
             </Link>
             <Link
               href={parentPortalHref}
+              onClick={() => setMobileOpen(false)}
               className={cn(
                 "block py-3 text-base font-medium border-b border-explore-charcoal/5",
                 pathname.startsWith("/parent") || pathname === "/membership"
@@ -307,6 +310,7 @@ export function Header({ navigation = defaultNavigation }: HeaderProps) {
             {navigation.showProgramsCta && (
               <Link
                 href="/programs"
+                onClick={() => setMobileOpen(false)}
                 className="mt-4 block w-full text-center rounded-full bg-explore-orange px-4 py-3 text-sm font-semibold text-white"
               >
                 Start Your Adventure

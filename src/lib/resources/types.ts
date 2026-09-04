@@ -17,8 +17,10 @@ export type TranscriptPayload = {
 };
 
 export type CertificatePayload = {
+  templateId?: string;
   studentName: string;
   achievement: string;
   homeschoolName: string;
+  educatorName?: string;
   dateAwarded: string;
 };

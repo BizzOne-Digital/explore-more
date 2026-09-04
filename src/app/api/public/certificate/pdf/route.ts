@@ -2,11 +2,14 @@ import { z } from "zod";
 import { jsonError } from "@/lib/api/response";
 import { rateLimit } from "@/lib/api/rate-limit";
 import { generateCertificatePdf } from "@/lib/pdf/certificate-template";
+import { isCertificateTemplateId } from "@/lib/resources/certificate-templates";
 
 const certificateSchema = z.object({
+  templateId: z.string().optional(),
   studentName: z.string().min(1).max(120),
   achievement: z.string().min(1).max(200),
   homeschoolName: z.string().max(120).optional().default(""),
+  educatorName: z.string().max(120).optional().default(""),
   dateAwarded: z.string().min(1).max(60),
 });
 
@@ -27,6 +30,10 @@ export async function POST(request: Request) {
   const parsed = certificateSchema.safeParse(body);
   if (!parsed.success) {
     return jsonError(parsed.error.errors[0]?.message ?? "Invalid input");
+  }
+
+  if (parsed.data.templateId && !isCertificateTemplateId(parsed.data.templateId)) {
+    return jsonError("Invalid certificate template selected.");
   }
 
   try {

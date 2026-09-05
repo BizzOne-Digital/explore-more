@@ -9,7 +9,6 @@ export const TUTOR_RESOURCE_TYPES = [
   "image",
   "link",
   "video",
-  "assessment",
   "other",
 ] as const;
 
@@ -26,7 +25,6 @@ export const TUTOR_RESOURCE_TYPE_LABELS: Record<TutorResourceType, string> = {
   image: "Image",
   link: "Link",
   video: "Video",
-  assessment: "Assessment",
   other: "Other",
 };
 

@@ -3,7 +3,6 @@ import path from "path";
 import crypto from "crypto";
 import {
   ALLOWED_IMAGE_TYPES,
-  ALLOWED_PORTFOLIO_EXTENSIONS,
   ALLOWED_CAMPAIGN_EXTENSIONS,
   LEGACY_UPLOAD_FOLDER_MAP,
   MAX_PORTFOLIO_UPLOAD_SIZE,
@@ -88,15 +87,15 @@ export async function uploadPrivateFile(
   subfolder: PrivateUploadFolder,
   maxSize = 10 * 1024 * 1024
 ): Promise<{ path: string; filename: string; originalName: string; mimeType: string; size: number }> {
+  if (subfolder === "portfolio" || subfolder === "messages") {
+    return storePrivateUpload(file, subfolder, maxSize);
+  }
+
   if (file.size > maxSize) {
     throw new Error(`File too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB`);
   }
 
-  const allowedExts =
-    subfolder === "portfolio" || subfolder === "messages"
-      ? ALLOWED_PORTFOLIO_EXTENSIONS
-      : [".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"];
-
+  const allowedExts = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"];
   const filename = safeFilename(file.name, allowedExts);
   const dir = path.join(PRIVATE_STORAGE_ROOT, subfolder);
   await fs.mkdir(dir, { recursive: true });

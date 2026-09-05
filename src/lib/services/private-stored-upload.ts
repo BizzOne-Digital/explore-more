@@ -39,6 +39,13 @@ const NOTIFICATION_FILE_EXTENSIONS = [
   "svg",
 ] as const;
 
+const PORTFOLIO_FILE_EXTENSIONS = [
+  ...NOTIFICATION_FILE_EXTENSIONS,
+  "heic",
+] as const;
+
+const GENERAL_ATTACHMENT_EXTENSIONS = PORTFOLIO_FILE_EXTENSIONS;
+
 function extensionFromPrivateFile(file: File, folder?: PrivateStoredFolder): string | null {
   const fromMime = PRIVATE_MIME_TO_EXT[file.type];
   if (fromMime) return fromMime;
@@ -59,6 +66,15 @@ function extensionFromPrivateFile(file: File, folder?: PrivateStoredFolder): str
 
   if (folder === "user-documents") {
     if ((NOTIFICATION_FILE_EXTENSIONS as readonly string[]).includes(ext)) return ext;
+    return null;
+  }
+
+  if (
+    folder === "resources" ||
+    folder === "portfolio" ||
+    folder === "messages"
+  ) {
+    if ((GENERAL_ATTACHMENT_EXTENSIONS as readonly string[]).includes(ext)) return ext;
     return null;
   }
 
@@ -104,9 +120,9 @@ export async function storePrivateUpload(
     const allowed =
       folder === "sponsors"
         ? "PDF, Word (.doc, .docx)"
-        : folder === "notifications"
+        : folder === "notifications" || folder === "user-documents"
           ? "PDF, images, Office documents, zip, audio, and video"
-          : folder === "user-documents"
+          : folder === "resources" || folder === "portfolio" || folder === "messages"
             ? "PDF, images, Office documents, zip, audio, and video"
             : "PDF, JPEG, PNG, WebP, GIF";
     throw new Error(`Invalid file type. Allowed: ${allowed}`);

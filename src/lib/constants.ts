@@ -47,6 +47,9 @@ export const PRIVATE_STORED_FOLDERS = [
   "notifications",
   "user-documents",
   "attendance",
+  "resources",
+  "portfolio",
+  "messages",
 ] as const;
 export type PrivateStoredFolder = (typeof PRIVATE_STORED_FOLDERS)[number];
 
@@ -78,6 +81,8 @@ export const MAX_PORTFOLIO_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 export const MAX_CAMPAIGN_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1GB
 /** Notification attachments stored in MongoDB (16MB BSON document limit). */
 export const MAX_NOTIFICATION_UPLOAD_SIZE = 15 * 1024 * 1024; // 15MB
+/** Tutor worksheets/resources — separate from grade-based Assessments. */
+export const MAX_TUTOR_RESOURCE_UPLOAD_SIZE = 25 * 1024 * 1024; // 25MB
 export const ALLOWED_CAMPAIGN_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg",
   ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",

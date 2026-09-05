@@ -1,8 +1,10 @@
 import connectDB from "@/lib/db";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireTutorPortal } from "@/lib/tutor/api-auth";
-import { uploadPrivateFile } from "@/lib/services/upload";
+import { MAX_TUTOR_RESOURCE_UPLOAD_SIZE } from "@/lib/constants";
+import { storePrivateUpload } from "@/lib/services/private-stored-upload";
 
+/** Worksheet/resource files for the tutor portal — not grade Assessments (`assessments` folder). */
 export async function POST(request: Request) {
   const sessionResult = await requireTutorPortal();
   if ("error" in sessionResult) return sessionResult.error;
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
   await connectDB();
 
   try {
-    const uploaded = await uploadPrivateFile(file, "portfolio", 25 * 1024 * 1024);
+    const uploaded = await storePrivateUpload(file, "resources", MAX_TUTOR_RESOURCE_UPLOAD_SIZE);
     return jsonOk({
       filePath: uploaded.path,
       filename: uploaded.filename,

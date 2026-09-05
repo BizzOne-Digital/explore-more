@@ -16,6 +16,8 @@ export type TranscriptPayload = {
   courses: TranscriptCourseInput[];
 };
 
+import type { CertificateFieldStylesMap } from "@/lib/resources/certificate-fields";
+
 export type CertificatePayload = {
   templateId?: string;
   studentName: string;
@@ -23,4 +25,6 @@ export type CertificatePayload = {
   homeschoolName: string;
   educatorName?: string;
   dateAwarded: string;
+  /** Parent-adjusted positions and typography (optional). */
+  fieldStyles?: CertificateFieldStylesMap;
 };

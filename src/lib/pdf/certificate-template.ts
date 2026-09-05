@@ -1,13 +1,20 @@
 import fs from "fs/promises";
 import path from "path";
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { CertificatePayload } from "@/lib/resources/types";
 import {
   getCertificateTemplate,
   type CertificateFieldLayout,
   type CertificateTemplateDefinition,
 } from "@/lib/resources/certificate-templates";
-import { resolveFieldPosition } from "@/lib/resources/certificate-layout";
+import { CERTIFICATE_REF_WIDTH } from "@/lib/resources/certificate-layout";
+import {
+  CERTIFICATE_FIELD_KEYS,
+  defaultFieldStylesFromTemplate,
+  type CertificateFieldKey,
+  type CertificateFieldStyle,
+} from "@/lib/resources/certificate-fields";
+import { embedCertificateFont } from "@/lib/pdf/certificate-fonts";
 
 export async function generateCertificatePdf(data: CertificatePayload): Promise<Uint8Array> {
   const template = getCertificateTemplate(data.templateId);
@@ -25,25 +32,32 @@ export async function generateCertificatePdf(data: CertificatePayload): Promise<
   const page = doc.addPage([pageWidth, pageHeight]);
   page.drawImage(image, { x: 0, y: 0, width: pageWidth, height: pageHeight });
 
-  const font = await doc.embedFont(StandardFonts.TimesRoman);
-  const fontBold = await doc.embedFont(StandardFonts.TimesRomanBold);
+  const fieldStyles = data.fieldStyles ?? defaultFieldStylesFromTemplate(template);
+  const fontCache = new Map<string, PDFFont>();
 
-  drawField(
-    page,
-    fontBold,
-    template.layout.studentName,
-    data.studentName.trim() || "Student Name",
-    pageWidth,
-    pageHeight
-  );
+  async function getFont(style: CertificateFieldStyle): Promise<PDFFont> {
+    const key = `${style.fontFamily}:${style.bold}`;
+    if (!fontCache.has(key)) {
+      fontCache.set(key, await embedCertificateFont(doc, style.fontFamily, style.bold));
+    }
+    return fontCache.get(key)!;
+  }
 
-  drawField(page, font, template.layout.homeschoolName, data.homeschoolName.trim(), pageWidth, pageHeight);
+  const values: Record<CertificateFieldKey, string> = {
+    studentName: data.studentName.trim() || "Student Name",
+    homeschoolName: data.homeschoolName.trim(),
+    achievement: data.achievement.trim(),
+    educatorName: data.educatorName?.trim() || "",
+    dateAwarded: data.dateAwarded.trim(),
+  };
 
-  drawField(page, font, template.layout.achievement, data.achievement.trim(), pageWidth, pageHeight);
-
-  drawField(page, font, template.layout.educatorName, data.educatorName?.trim() || "", pageWidth, pageHeight);
-
-  drawField(page, font, template.layout.dateAwarded, data.dateAwarded.trim(), pageWidth, pageHeight);
+  for (const key of CERTIFICATE_FIELD_KEYS) {
+    const value = values[key];
+    if (!value) continue;
+    const style = fieldStyles[key];
+    const font = await getFont(style);
+    drawField(page, font, template.layout[key], style, value, pageWidth, pageHeight);
+  }
 
   return doc.save({ useObjectStreams: false });
 }
@@ -51,28 +65,26 @@ export async function generateCertificatePdf(data: CertificatePayload): Promise<
 function drawField(
   page: PDFPage,
   font: PDFFont,
-  layout: CertificateFieldLayout,
+  templateLayout: CertificateFieldLayout,
+  style: CertificateFieldStyle,
   value: string,
   pageWidth: number,
   pageHeight: number
 ) {
-  if (!value) return;
-
-  const { x, y, fontSize } = resolveFieldPosition(
-    layout,
-    pageWidth,
-    pageHeight,
-    value,
-    (text, size) => font.widthOfTextAtSize(text, size)
-  );
-  const color = layout.color ? rgb(layout.color.r, layout.color.g, layout.color.b) : rgb(0.08, 0.16, 0.28);
+  const scale = pageWidth / CERTIFICATE_REF_WIDTH;
+  const fontSize = style.fontSize * scale;
+  const anchorX = style.pageX * pageWidth;
+  const y = pageHeight - style.pageY * pageHeight;
+  const textWidth = font.widthOfTextAtSize(value, fontSize);
+  const x = style.align === "center" ? anchorX - textWidth / 2 : anchorX;
+  const color = style.color ?? templateLayout.color ?? { r: 0.08, g: 0.16, b: 0.28 };
 
   page.drawText(value, {
     x,
     y,
     size: fontSize,
     font,
-    color,
+    color: rgb(color.r, color.g, color.b),
   });
 }
 

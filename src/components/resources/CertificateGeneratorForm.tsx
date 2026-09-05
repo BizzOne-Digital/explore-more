@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -8,6 +8,8 @@ import { COMPANY } from "@/lib/constants";
 import { COMMON_COURSES, GRADE_LEVELS } from "@/lib/resources/grades";
 import type { CertificatePayload } from "@/lib/resources/types";
 import type { CertificateTemplateId } from "@/lib/resources/certificate-templates";
+import { getCertificateTemplate } from "@/lib/resources/certificate-templates";
+import { defaultFieldStylesFromTemplate, type CertificateFieldStylesMap } from "@/lib/resources/certificate-fields";
 import {
   LinkedStudentPicker,
   type LinkedStudentOption,
@@ -16,7 +18,7 @@ import {
   CertificateTemplatePicker,
   DEFAULT_CERTIFICATE_TEMPLATE_ID,
 } from "@/components/resources/CertificateTemplatePicker";
-import { CertificateTemplatePreview } from "@/components/resources/CertificateTemplatePreview";
+import { CertificateInteractiveEditor } from "@/components/resources/CertificateInteractiveEditor";
 
 const DEFAULT_FORM: CertificatePayload = {
   templateId: DEFAULT_CERTIFICATE_TEMPLATE_ID,
@@ -40,8 +42,16 @@ export function CertificateGeneratorForm({
     ...DEFAULT_FORM,
     homeschoolName: defaultHomeschoolName,
   });
+  const [fieldStyles, setFieldStyles] = useState<CertificateFieldStylesMap>(() =>
+    defaultFieldStylesFromTemplate(getCertificateTemplate(DEFAULT_CERTIFICATE_TEMPLATE_ID))
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const template = getCertificateTemplate(form.templateId);
+    setFieldStyles(defaultFieldStylesFromTemplate(template));
+  }, [form.templateId]);
 
   function update<K extends keyof CertificatePayload>(key: K, value: CertificatePayload[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -67,7 +77,7 @@ export function CertificateGeneratorForm({
       const res = await fetch("/api/public/certificate/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, fieldStyles }),
       });
 
       if (!res.ok) {
@@ -121,92 +131,98 @@ export function CertificateGeneratorForm({
         </div>
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <section className="rounded-2xl border border-explore-charcoal/10 bg-white p-6 shadow-sm sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">Step 2</p>
-          <h2 className="mt-1 font-display text-2xl font-bold text-explore-charcoal">Student Information</h2>
-          <p className="mt-2 text-sm text-explore-charcoal/70">
-            Fill in your student&apos;s details, then download a printable certificate.
-          </p>
+      <section className="rounded-2xl border border-explore-charcoal/10 bg-white p-6 shadow-sm sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">Step 2</p>
+        <h2 className="mt-1 font-display text-2xl font-bold text-explore-charcoal">Student Information</h2>
+        <p className="mt-2 text-sm text-explore-charcoal/70">
+          Fill in your student&apos;s details, then drag each line on the certificate to place it
+          exactly where you want.
+        </p>
 
-          <div className="mt-6 space-y-4">
-            <Input
-              label="Student Name"
-              required
-              value={form.studentName}
-              onChange={(e) => update("studentName", e.target.value)}
-              placeholder="Jane Smith"
+        <div className="mt-6 space-y-4">
+          <Input
+            label="Student Name"
+            required
+            value={form.studentName}
+            onChange={(e) => update("studentName", e.target.value)}
+            placeholder="Jane Smith"
+          />
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-explore-charcoal">
+              Grade or Course Completed<span className="ml-0.5 text-explore-orange">*</span>
+            </label>
+            <input
+              list="achievement-suggestions"
+              value={form.achievement}
+              onChange={(e) => update("achievement", e.target.value)}
+              placeholder="e.g. 5th Grade or Biology"
+              className="w-full rounded-xl border border-explore-charcoal/15 bg-white px-4 py-2.5 text-sm text-explore-charcoal placeholder:text-explore-charcoal/40 transition-colors focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
             />
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-explore-charcoal">
-                Grade or Course Completed<span className="ml-0.5 text-explore-orange">*</span>
-              </label>
-              <input
-                list="achievement-suggestions"
-                value={form.achievement}
-                onChange={(e) => update("achievement", e.target.value)}
-                placeholder="e.g. 5th Grade or Biology"
-                className="w-full rounded-xl border border-explore-charcoal/15 bg-white px-4 py-2.5 text-sm text-explore-charcoal placeholder:text-explore-charcoal/40 transition-colors focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
-              />
-              <datalist id="achievement-suggestions">
-                {achievementOptions
-                  .filter((o) => o.value)
-                  .map((o) => (
-                    <option key={o.value} value={o.value} />
-                  ))}
-              </datalist>
-            </div>
-            <Input
-              label="Homeschool Name"
-              value={form.homeschoolName}
-              onChange={(e) => update("homeschoolName", e.target.value)}
-              placeholder="Smith Homeschool"
-            />
-            <Input
-              label="Teacher / Parent / Home Educator"
-              value={form.educatorName || ""}
-              onChange={(e) => update("educatorName", e.target.value)}
-              placeholder="Parent or teacher name"
-            />
-            <Input
-              label="Date Completed"
-              required
-              value={form.dateAwarded}
-              onChange={(e) => update("dateAwarded", e.target.value)}
-              placeholder="May 2026"
-              helperText="e.g. May 2026 or June 15, 2026"
-            />
+            <datalist id="achievement-suggestions">
+              {achievementOptions
+                .filter((o) => o.value)
+                .map((o) => (
+                  <option key={o.value} value={o.value} />
+                ))}
+            </datalist>
           </div>
+          <Input
+            label="Homeschool Name"
+            value={form.homeschoolName}
+            onChange={(e) => update("homeschoolName", e.target.value)}
+            placeholder="Smith Homeschool"
+          />
+          <Input
+            label="Teacher / Parent / Home Educator"
+            value={form.educatorName || ""}
+            onChange={(e) => update("educatorName", e.target.value)}
+            placeholder="Parent or teacher name"
+          />
+          <Input
+            label="Date Completed"
+            required
+            value={form.dateAwarded}
+            onChange={(e) => update("dateAwarded", e.target.value)}
+            placeholder="May 2026"
+            helperText="e.g. May 2026 or June 15, 2026"
+          />
+        </div>
 
-          {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
-          <div className="mt-8">
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              disabled={loading}
-              onClick={downloadPdf}
-              className="w-full sm:w-auto"
-            >
-              <Download className="h-5 w-5" />
-              {loading ? "Generating PDF…" : "Download Certificate PDF"}
-            </Button>
-          </div>
-        </section>
+        <div className="mt-8">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            disabled={loading}
+            onClick={downloadPdf}
+            className="w-full sm:w-auto"
+          >
+            <Download className="h-5 w-5" />
+            {loading ? "Generating PDF…" : "Download Certificate PDF"}
+          </Button>
+        </div>
+      </section>
 
-        <section className="rounded-2xl border border-explore-charcoal/10 bg-explore-cream/50 p-6 sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">Preview</p>
-          <div className="mt-4">
-            <CertificateTemplatePreview form={form} />
-          </div>
-          <p className="mt-4 text-xs text-explore-charcoal/55">
-            {COMPANY.name} provides this certificate template to support homeschooling families. The
-            student&apos;s parent or guardian submits the information. {COMPANY.name} does not certify any
-            grade or course completion status.
-          </p>
-        </section>
-      </div>
+      <section className="rounded-2xl border border-explore-charcoal/10 bg-explore-cream/50 p-6 sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">Step 3</p>
+        <h2 className="mt-1 font-display text-2xl font-bold text-explore-charcoal">
+          Position &amp; style your text
+        </h2>
+        <div className="mt-4">
+          <CertificateInteractiveEditor
+            form={form}
+            fieldStyles={fieldStyles}
+            onFieldStylesChange={setFieldStyles}
+          />
+        </div>
+        <p className="mt-4 text-xs text-explore-charcoal/55">
+          {COMPANY.name} provides this certificate template to support homeschooling families. The
+          student&apos;s parent or guardian submits the information. {COMPANY.name} does not certify any
+          grade or course completion status.
+        </p>
+      </section>
     </div>
   );
 }

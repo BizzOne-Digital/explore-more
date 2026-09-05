@@ -3,6 +3,30 @@ import { jsonError } from "@/lib/api/response";
 import { rateLimit } from "@/lib/api/rate-limit";
 import { generateCertificatePdf } from "@/lib/pdf/certificate-template";
 import { isCertificateTemplateId } from "@/lib/resources/certificate-templates";
+import { CERTIFICATE_FIELD_KEYS } from "@/lib/resources/certificate-fields";
+
+const fieldStyleSchema = z.object({
+  pageX: z.number().min(0).max(1),
+  pageY: z.number().min(0).max(1),
+  fontSize: z.number().min(8).max(72),
+  fontFamily: z.enum(["times", "helvetica", "courier"]),
+  align: z.enum(["left", "center"]),
+  bold: z.boolean(),
+  color: z
+    .object({
+      r: z.number().min(0).max(1),
+      g: z.number().min(0).max(1),
+      b: z.number().min(0).max(1),
+    })
+    .optional(),
+});
+
+const fieldStylesSchema = z.object(
+  Object.fromEntries(CERTIFICATE_FIELD_KEYS.map((key) => [key, fieldStyleSchema])) as Record<
+    (typeof CERTIFICATE_FIELD_KEYS)[number],
+    typeof fieldStyleSchema
+  >
+);
 
 const certificateSchema = z.object({
   templateId: z.string().optional(),
@@ -11,6 +35,7 @@ const certificateSchema = z.object({
   homeschoolName: z.string().max(120).optional().default(""),
   educatorName: z.string().max(120).optional().default(""),
   dateAwarded: z.string().min(1).max(60),
+  fieldStyles: fieldStylesSchema.optional(),
 });
 
 export async function POST(request: Request) {

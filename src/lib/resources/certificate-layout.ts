@@ -1,20 +1,20 @@
 import type { CSSProperties } from "react";
-import type { CertificateFieldLayout } from "@/lib/resources/certificate-templates";
+import type {
+  CertificateContentRegion,
+  CertificateFieldLayout,
+} from "@/lib/resources/certificate-templates";
 
 /** Design reference size — layouts are calibrated to this width/height. */
 export const CERTIFICATE_REF_WIDTH = 1024;
 export const CERTIFICATE_REF_HEIGHT = 790;
 
-/**
- * Printable area on certificate artwork (sidebar templates leave ~21% on the left).
- * Field x/y are fractions inside this region; y is the baseline of the writing line.
- */
-export const CERTIFICATE_CONTENT_REGION = {
+/** Default printable area (sidebar templates). */
+export const CERTIFICATE_CONTENT_REGION: CertificateContentRegion = {
   left: 0.215,
   top: 0.11,
   width: 0.785,
   height: 0.84,
-} as const;
+};
 
 export type ResolvedCertificateFieldPosition = {
   x: number;
@@ -22,18 +22,17 @@ export type ResolvedCertificateFieldPosition = {
   fontSize: number;
 };
 
-function mapRegionYToPdfBaseline(regionY: number, _fontSize: number, pageHeight: number): number {
-  const lineFromTop =
-    CERTIFICATE_CONTENT_REGION.top * pageHeight +
-    regionY * CERTIFICATE_CONTENT_REGION.height * pageHeight;
+function mapRegionYToPdfBaseline(
+  regionY: number,
+  region: CertificateContentRegion,
+  pageHeight: number
+): number {
+  const lineFromTop = region.top * pageHeight + regionY * region.height * pageHeight;
   return pageHeight - lineFromTop;
 }
 
-function mapRegionXToPdfX(regionX: number, pageWidth: number): number {
-  return (
-    CERTIFICATE_CONTENT_REGION.left * pageWidth +
-    regionX * CERTIFICATE_CONTENT_REGION.width * pageWidth
-  );
+function mapRegionXToPdfX(regionX: number, region: CertificateContentRegion, pageWidth: number): number {
+  return region.left * pageWidth + regionX * region.width * pageWidth;
 }
 
 export function resolveFieldPosition(
@@ -41,11 +40,12 @@ export function resolveFieldPosition(
   pageWidth: number,
   pageHeight: number,
   text: string,
-  fontWidthAtSize: (text: string, size: number) => number
+  fontWidthAtSize: (text: string, size: number) => number,
+  region: CertificateContentRegion = CERTIFICATE_CONTENT_REGION
 ): ResolvedCertificateFieldPosition {
-  const fontSize = layoutFontSize(layout, pageWidth, text, fontWidthAtSize);
-  const anchorX = mapRegionXToPdfX(layout.x, pageWidth);
-  const y = mapRegionYToPdfBaseline(layout.y, fontSize, pageHeight);
+  const fontSize = layoutFontSize(layout, pageWidth, text, fontWidthAtSize, region);
+  const anchorX = mapRegionXToPdfX(layout.x, region, pageWidth);
+  const y = mapRegionYToPdfBaseline(layout.y, region, pageHeight);
   const textWidth = fontWidthAtSize(text, fontSize);
   const x = layout.align === "center" ? anchorX - textWidth / 2 : anchorX;
 
@@ -55,24 +55,21 @@ export function resolveFieldPosition(
 /** Convert content-region layout to CSS overlay styles (preview). */
 export function layoutToPreviewStyle(
   layout: CertificateFieldLayout,
+  region: CertificateContentRegion = CERTIFICATE_CONTENT_REGION,
   options?: { maxWidthPercent?: number }
 ): CSSProperties {
-  const left =
-    (CERTIFICATE_CONTENT_REGION.left + layout.x * CERTIFICATE_CONTENT_REGION.width) * 100;
-  const top =
-    (CERTIFICATE_CONTENT_REGION.top + layout.y * CERTIFICATE_CONTENT_REGION.height) * 100;
+  const left = (region.left + layout.x * region.width) * 100;
+  const top = (region.top + layout.y * region.height) * 100;
   const maxWidth =
     options?.maxWidthPercent ??
-    (layout.align === "center"
-      ? CERTIFICATE_CONTENT_REGION.width * 72
-      : CERTIFICATE_CONTENT_REGION.width * 52);
+    (layout.align === "center" ? region.width * 72 : region.width * 52);
   const fontSize = `${((layout.maxSize ?? 12) / CERTIFICATE_REF_WIDTH) * 100}cqw`;
 
   if (layout.align === "center") {
     return {
       left: `${left}%`,
       top: `${top}%`,
-      transform: "translate(-50%, -0.88em)",
+      transform: "translate(-50%, -0.82em)",
       maxWidth: `${maxWidth}%`,
       textAlign: "center",
       fontSize,
@@ -83,7 +80,7 @@ export function layoutToPreviewStyle(
   return {
     left: `${left}%`,
     top: `${top}%`,
-    transform: "translateY(-0.88em)",
+    transform: "translateY(-0.82em)",
     maxWidth: `${maxWidth}%`,
     textAlign: "left",
     fontSize,
@@ -95,15 +92,16 @@ export function layoutFontSize(
   layout: CertificateFieldLayout,
   pageWidth: number,
   text: string,
-  fontWidthAtSize: (text: string, size: number) => number
+  fontWidthAtSize: (text: string, size: number) => number,
+  region: CertificateContentRegion = CERTIFICATE_CONTENT_REGION
 ): number {
   const scale = pageWidth / CERTIFICATE_REF_WIDTH;
   const minSize = (layout.minSize ?? 10) * scale;
   const maxSize = (layout.maxSize ?? 12) * scale;
   const maxWidth =
     layout.align === "center"
-      ? pageWidth * CERTIFICATE_CONTENT_REGION.width * 0.72
-      : pageWidth * CERTIFICATE_CONTENT_REGION.width * 0.52;
+      ? pageWidth * region.width * 0.72
+      : pageWidth * region.width * 0.52;
 
   if (layout.align === "center") {
     for (let size = maxSize; size >= minSize; size -= scale) {

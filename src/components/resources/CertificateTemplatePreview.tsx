@@ -1,6 +1,6 @@
 "use client";
 
-import { getCertificateTemplate } from "@/lib/resources/certificate-templates";
+import { getCertificateTemplate, type CertificateFieldLayout } from "@/lib/resources/certificate-templates";
 import { layoutToPreviewStyle } from "@/lib/resources/certificate-layout";
 import type { CertificatePayload } from "@/lib/resources/types";
 
@@ -16,7 +16,10 @@ function fieldColor(layout: { color?: { r: number; g: number; b: number } }) {
 
 export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewProps) {
   const template = getCertificateTemplate(form.templateId);
-  const { layout } = template;
+  const { layout, contentRegion } = template;
+
+  const preview = (field: CertificateFieldLayout, options?: { maxWidthPercent?: number }) =>
+    layoutToPreviewStyle(field, contentRegion, options);
 
   return (
     <div
@@ -35,7 +38,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
         <p
           className="absolute truncate font-serif font-bold"
           style={{
-            ...layoutToPreviewStyle(layout.studentName),
+            ...preview(layout.studentName),
             color: fieldColor(layout.studentName),
           }}
         >
@@ -45,7 +48,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
           <p
             className="absolute truncate font-serif font-medium"
             style={{
-              ...layoutToPreviewStyle(layout.homeschoolName),
+              ...preview(layout.homeschoolName),
               color: fieldColor(layout.homeschoolName),
             }}
           >
@@ -56,7 +59,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
           <p
             className="absolute truncate font-serif font-medium"
             style={{
-              ...layoutToPreviewStyle(layout.achievement),
+              ...preview(layout.achievement),
               color: fieldColor(layout.achievement),
             }}
           >
@@ -67,7 +70,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
           <p
             className="absolute truncate font-serif font-medium"
             style={{
-              ...layoutToPreviewStyle(layout.educatorName),
+              ...preview(layout.educatorName),
               color: fieldColor(layout.educatorName),
             }}
           >
@@ -78,7 +81,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
           <p
             className="absolute truncate font-serif font-medium"
             style={{
-              ...layoutToPreviewStyle(layout.dateAwarded, { maxWidthPercent: 35 }),
+              ...preview(layout.dateAwarded, { maxWidthPercent: 35 }),
               color: fieldColor(layout.dateAwarded),
             }}
           >

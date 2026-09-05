@@ -25,8 +25,8 @@ export async function generateCertificatePdf(data: CertificatePayload): Promise<
   const page = doc.addPage([pageWidth, pageHeight]);
   page.drawImage(image, { x: 0, y: 0, width: pageWidth, height: pageHeight });
 
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const font = await doc.embedFont(StandardFonts.TimesRoman);
+  const fontBold = await doc.embedFont(StandardFonts.TimesRomanBold);
 
   drawField(page, fontBold, template.layout.studentName, data.studentName.trim() || "Student Name", pageWidth, pageHeight);
 
@@ -38,7 +38,7 @@ export async function generateCertificatePdf(data: CertificatePayload): Promise<
 
   drawField(page, font, template.layout.dateAwarded, data.dateAwarded.trim(), pageWidth, pageHeight);
 
-  return doc.save();
+  return doc.save({ useObjectStreams: false });
 }
 
 function drawField(

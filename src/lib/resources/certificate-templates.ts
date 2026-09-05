@@ -42,11 +42,11 @@ const FOREST = { r: 0.09, g: 0.29, b: 0.22 };
 
 /** Calibrated to blank lines inside the printable content region (1024×790 reference). */
 const STANDARD_LAYOUT: CertificateTemplateDefinition["layout"] = {
-  studentName: { x: 0.5, y: 0.28, align: "center", minSize: 18, maxSize: 32, color: NAVY },
-  homeschoolName: { x: 0.32, y: 0.48, align: "left", maxSize: 12, color: NAVY },
-  achievement: { x: 0.32, y: 0.55, align: "left", maxSize: 12, color: NAVY },
-  educatorName: { x: 0.32, y: 0.62, align: "left", maxSize: 12, color: NAVY },
-  dateAwarded: { x: 0.32, y: 0.69, align: "left", maxSize: 12, color: NAVY },
+  studentName: { x: 0.5, y: 0.31, align: "center", minSize: 20, maxSize: 36, color: NAVY },
+  homeschoolName: { x: 0.3, y: 0.57, align: "left", minSize: 14, maxSize: 17, color: NAVY },
+  achievement: { x: 0.3, y: 0.64, align: "left", minSize: 14, maxSize: 17, color: NAVY },
+  educatorName: { x: 0.3, y: 0.71, align: "left", minSize: 14, maxSize: 17, color: NAVY },
+  dateAwarded: { x: 0.3, y: 0.78, align: "left", minSize: 14, maxSize: 17, color: NAVY },
 };
 
 export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [

@@ -7,7 +7,7 @@ export const CERTIFICATE_REF_HEIGHT = 790;
 
 /**
  * Printable area on certificate artwork (sidebar templates leave ~21% on the left).
- * Field x/y are fractions inside this region; y is measured from the top.
+ * Field x/y are fractions inside this region; y is the baseline of the writing line.
  */
 export const CERTIFICATE_CONTENT_REGION = {
   left: 0.215,
@@ -22,11 +22,11 @@ export type ResolvedCertificateFieldPosition = {
   fontSize: number;
 };
 
-function mapRegionYToPdfBaseline(regionY: number, fontSize: number, pageHeight: number): number {
-  const topPx =
+function mapRegionYToPdfBaseline(regionY: number, _fontSize: number, pageHeight: number): number {
+  const lineFromTop =
     CERTIFICATE_CONTENT_REGION.top * pageHeight +
     regionY * CERTIFICATE_CONTENT_REGION.height * pageHeight;
-  return pageHeight - topPx - fontSize * 0.28;
+  return pageHeight - lineFromTop;
 }
 
 function mapRegionXToPdfX(regionX: number, pageWidth: number): number {
@@ -72,22 +72,22 @@ export function layoutToPreviewStyle(
     return {
       left: `${left}%`,
       top: `${top}%`,
-      transform: "translate(-50%, -50%)",
+      transform: "translate(-50%, -0.88em)",
       maxWidth: `${maxWidth}%`,
       textAlign: "center",
       fontSize,
-      lineHeight: 1.1,
+      lineHeight: 1,
     };
   }
 
   return {
     left: `${left}%`,
     top: `${top}%`,
-    transform: "translateY(-50%)",
+    transform: "translateY(-0.88em)",
     maxWidth: `${maxWidth}%`,
     textAlign: "left",
     fontSize,
-    lineHeight: 1.1,
+    lineHeight: 1,
   };
 }
 

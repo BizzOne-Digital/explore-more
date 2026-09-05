@@ -33,7 +33,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
       />
       <div className="pointer-events-none absolute inset-0">
         <p
-          className="absolute truncate font-bold"
+          className="absolute truncate font-serif font-bold"
           style={{
             ...layoutToPreviewStyle(layout.studentName),
             color: fieldColor(layout.studentName),
@@ -43,7 +43,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
         </p>
         {form.homeschoolName.trim() && (
           <p
-            className="absolute truncate font-medium"
+            className="absolute truncate font-serif font-medium"
             style={{
               ...layoutToPreviewStyle(layout.homeschoolName),
               color: fieldColor(layout.homeschoolName),
@@ -54,7 +54,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
         )}
         {form.achievement.trim() && (
           <p
-            className="absolute truncate font-medium"
+            className="absolute truncate font-serif font-medium"
             style={{
               ...layoutToPreviewStyle(layout.achievement),
               color: fieldColor(layout.achievement),
@@ -65,7 +65,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
         )}
         {form.educatorName?.trim() && (
           <p
-            className="absolute truncate font-medium"
+            className="absolute truncate font-serif font-medium"
             style={{
               ...layoutToPreviewStyle(layout.educatorName),
               color: fieldColor(layout.educatorName),
@@ -76,7 +76,7 @@ export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewP
         )}
         {form.dateAwarded.trim() && (
           <p
-            className="absolute truncate font-medium"
+            className="absolute truncate font-serif font-medium"
             style={{
               ...layoutToPreviewStyle(layout.dateAwarded, { maxWidthPercent: 35 }),
               color: fieldColor(layout.dateAwarded),

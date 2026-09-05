@@ -31,20 +31,19 @@ export async function generateCertificatePdf(data: CertificatePayload): Promise<
   drawField(
     page,
     fontBold,
-    template,
     template.layout.studentName,
     data.studentName.trim() || "Student Name",
     pageWidth,
     pageHeight
   );
 
-  drawField(page, font, template, template.layout.homeschoolName, data.homeschoolName.trim(), pageWidth, pageHeight);
+  drawField(page, font, template.layout.homeschoolName, data.homeschoolName.trim(), pageWidth, pageHeight);
 
-  drawField(page, font, template, template.layout.achievement, data.achievement.trim(), pageWidth, pageHeight);
+  drawField(page, font, template.layout.achievement, data.achievement.trim(), pageWidth, pageHeight);
 
-  drawField(page, font, template, template.layout.educatorName, data.educatorName?.trim() || "", pageWidth, pageHeight);
+  drawField(page, font, template.layout.educatorName, data.educatorName?.trim() || "", pageWidth, pageHeight);
 
-  drawField(page, font, template, template.layout.dateAwarded, data.dateAwarded.trim(), pageWidth, pageHeight);
+  drawField(page, font, template.layout.dateAwarded, data.dateAwarded.trim(), pageWidth, pageHeight);
 
   return doc.save({ useObjectStreams: false });
 }
@@ -52,7 +51,6 @@ export async function generateCertificatePdf(data: CertificatePayload): Promise<
 function drawField(
   page: PDFPage,
   font: PDFFont,
-  template: CertificateTemplateDefinition,
   layout: CertificateFieldLayout,
   value: string,
   pageWidth: number,
@@ -65,8 +63,7 @@ function drawField(
     pageWidth,
     pageHeight,
     value,
-    (text, size) => font.widthOfTextAtSize(text, size),
-    template.contentRegion
+    (text, size) => font.widthOfTextAtSize(text, size)
   );
   const color = layout.color ? rgb(layout.color.r, layout.color.g, layout.color.b) : rgb(0.08, 0.16, 0.28);
 

@@ -16,10 +16,10 @@ function fieldColor(layout: { color?: { r: number; g: number; b: number } }) {
 
 export function CertificateTemplatePreview({ form }: CertificateTemplatePreviewProps) {
   const template = getCertificateTemplate(form.templateId);
-  const { layout, contentRegion } = template;
+  const { layout } = template;
 
   const preview = (field: CertificateFieldLayout, options?: { maxWidthPercent?: number }) =>
-    layoutToPreviewStyle(field, contentRegion, options);
+    layoutToPreviewStyle(field, options);
 
   return (
     <div

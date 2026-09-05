@@ -10,18 +10,11 @@ export type CertificateTemplateId =
 
 export type CertificateTextAlign = "left" | "center";
 
-export type CertificateContentRegion = {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-};
-
 export type CertificateFieldLayout = {
-  /** Horizontal position as a fraction of the printable content width (0–1). */
-  x: number;
-  /** Vertical position as a fraction of the printable content height (baseline on the rule line). */
-  y: number;
+  /** Horizontal anchor as a fraction of page width (0–1). */
+  pageX: number;
+  /** Baseline on the rule line, as a fraction of page height from the top (0–1). */
+  pageY: number;
   align: CertificateTextAlign;
   maxSize?: number;
   minSize?: number;
@@ -35,7 +28,6 @@ export type CertificateTemplateDefinition = {
   imagePath: string;
   imageType: "jpg" | "png";
   previewPath: string;
-  contentRegion: CertificateContentRegion;
   layout: {
     studentName: CertificateFieldLayout;
     homeschoolName: CertificateFieldLayout;
@@ -48,68 +40,70 @@ export type CertificateTemplateDefinition = {
 const NAVY = { r: 0.08, g: 0.16, b: 0.28 };
 const FOREST = { r: 0.09, g: 0.29, b: 0.22 };
 
-/** Sidebar templates — printable area to the right of the left panel. */
-export const SIDEBAR_CONTENT_REGION: CertificateContentRegion = {
-  left: 0.215,
-  top: 0.11,
-  width: 0.785,
-  height: 0.84,
-};
-
-/** Classic books template — full-width center panel, no sidebar. */
-export const CLASSIC_CONTENT_REGION: CertificateContentRegion = {
-  left: 0.09,
-  top: 0.1,
-  width: 0.82,
-  height: 0.82,
-};
-
-/** Nature elegant — wider left green panel. */
-export const WIDE_SIDEBAR_CONTENT_REGION: CertificateContentRegion = {
-  left: 0.26,
-  top: 0.11,
-  width: 0.72,
-  height: 0.84,
-};
+const DETAIL = { minSize: 16, maxSize: 20 };
+const NAME = { minSize: 22, maxSize: 38 };
 
 type LayoutFields = CertificateTemplateDefinition["layout"];
-type LayoutPatch = {
-  studentName?: Partial<CertificateFieldLayout>;
-  homeschoolName?: Partial<CertificateFieldLayout>;
-  achievement?: Partial<CertificateFieldLayout>;
-  educatorName?: Partial<CertificateFieldLayout>;
-  dateAwarded?: Partial<CertificateFieldLayout>;
+
+/** Measured against each blank template at 1024×790 reference. */
+const LAYOUTS: Record<CertificateTemplateId, LayoutFields> = {
+  "adventure-explorer": {
+    studentName: { pageX: 0.5, pageY: 0.412, align: "center", ...NAME, color: NAVY },
+    homeschoolName: { pageX: 0.392, pageY: 0.572, align: "left", ...DETAIL, color: NAVY },
+    achievement: { pageX: 0.488, pageY: 0.638, align: "left", ...DETAIL, color: NAVY },
+    educatorName: { pageX: 0.528, pageY: 0.704, align: "left", ...DETAIL, color: NAVY },
+    dateAwarded: { pageX: 0.392, pageY: 0.77, align: "left", ...DETAIL, color: NAVY },
+  },
+  "navy-gold-classic": {
+    studentName: { pageX: 0.5, pageY: 0.42, align: "center", ...NAME, color: NAVY },
+    homeschoolName: { pageX: 0.392, pageY: 0.578, align: "left", ...DETAIL, color: NAVY },
+    achievement: { pageX: 0.488, pageY: 0.644, align: "left", ...DETAIL, color: NAVY },
+    educatorName: { pageX: 0.528, pageY: 0.71, align: "left", ...DETAIL, color: NAVY },
+    dateAwarded: { pageX: 0.392, pageY: 0.776, align: "left", ...DETAIL, color: NAVY },
+  },
+  "colorful-outdoor": {
+    studentName: { pageX: 0.5, pageY: 0.395, align: "center", ...NAME, color: NAVY },
+    homeschoolName: { pageX: 0.398, pageY: 0.558, align: "left", ...DETAIL, color: NAVY },
+    achievement: { pageX: 0.498, pageY: 0.624, align: "left", ...DETAIL, color: NAVY },
+    educatorName: { pageX: 0.538, pageY: 0.69, align: "left", ...DETAIL, color: NAVY },
+    dateAwarded: { pageX: 0.398, pageY: 0.756, align: "left", ...DETAIL, color: NAVY },
+  },
+  "vintage-green": {
+    studentName: { pageX: 0.5, pageY: 0.385, align: "center", ...NAME, color: FOREST },
+    homeschoolName: { pageX: 0.318, pageY: 0.548, align: "left", ...DETAIL, color: FOREST },
+    achievement: { pageX: 0.488, pageY: 0.614, align: "left", ...DETAIL, color: FOREST },
+    educatorName: { pageX: 0.538, pageY: 0.68, align: "left", ...DETAIL, color: FOREST },
+    dateAwarded: { pageX: 0.308, pageY: 0.746, align: "left", ...DETAIL, color: FOREST },
+  },
+  "nature-elegant": {
+    studentName: { pageX: 0.52, pageY: 0.408, align: "center", ...NAME, color: NAVY },
+    homeschoolName: { pageX: 0.418, pageY: 0.572, align: "left", ...DETAIL, color: NAVY },
+    achievement: { pageX: 0.508, pageY: 0.638, align: "left", ...DETAIL, color: NAVY },
+    educatorName: { pageX: 0.548, pageY: 0.704, align: "left", ...DETAIL, color: NAVY },
+    dateAwarded: { pageX: 0.418, pageY: 0.77, align: "left", ...DETAIL, color: NAVY },
+  },
+  "classic-books": {
+    studentName: { pageX: 0.5, pageY: 0.375, align: "center", ...NAME, color: NAVY },
+    homeschoolName: { pageX: 0.318, pageY: 0.538, align: "left", ...DETAIL, color: NAVY },
+    achievement: { pageX: 0.488, pageY: 0.604, align: "left", ...DETAIL, color: NAVY },
+    educatorName: { pageX: 0.538, pageY: 0.67, align: "left", ...DETAIL, color: NAVY },
+    dateAwarded: { pageX: 0.308, pageY: 0.736, align: "left", ...DETAIL, color: NAVY },
+  },
+  "rustic-wood": {
+    studentName: { pageX: 0.5, pageY: 0.4, align: "center", ...NAME, color: NAVY },
+    homeschoolName: { pageX: 0.388, pageY: 0.566, align: "left", ...DETAIL, color: NAVY },
+    achievement: { pageX: 0.484, pageY: 0.632, align: "left", ...DETAIL, color: NAVY },
+    educatorName: { pageX: 0.524, pageY: 0.698, align: "left", ...DETAIL, color: NAVY },
+    dateAwarded: { pageX: 0.388, pageY: 0.764, align: "left", ...DETAIL, color: NAVY },
+  },
+  "playful-stars": {
+    studentName: { pageX: 0.5, pageY: 0.388, align: "center", ...NAME, color: NAVY },
+    homeschoolName: { pageX: 0.4, pageY: 0.552, align: "left", ...DETAIL, color: NAVY },
+    achievement: { pageX: 0.498, pageY: 0.618, align: "left", ...DETAIL, color: NAVY },
+    educatorName: { pageX: 0.538, pageY: 0.684, align: "left", ...DETAIL, color: NAVY },
+    dateAwarded: { pageX: 0.4, pageY: 0.75, align: "left", ...DETAIL, color: NAVY },
+  },
 };
-
-function sidebarLayout(color: typeof NAVY, patch?: LayoutPatch): LayoutFields {
-  const base: LayoutFields = {
-    studentName: { x: 0.5, y: 0.369, align: "center", minSize: 22, maxSize: 38, color },
-    homeschoolName: { x: 0.28, y: 0.554, align: "left", minSize: 16, maxSize: 19, color },
-    achievement: { x: 0.43, y: 0.631, align: "left", minSize: 16, maxSize: 19, color },
-    educatorName: { x: 0.47, y: 0.708, align: "left", minSize: 16, maxSize: 19, color },
-    dateAwarded: { x: 0.27, y: 0.786, align: "left", minSize: 16, maxSize: 19, color },
-  };
-
-  if (!patch) return base;
-
-  return {
-    studentName: { ...base.studentName, ...patch.studentName },
-    homeschoolName: { ...base.homeschoolName, ...patch.homeschoolName },
-    achievement: { ...base.achievement, ...patch.achievement },
-    educatorName: { ...base.educatorName, ...patch.educatorName },
-    dateAwarded: { ...base.dateAwarded, ...patch.dateAwarded },
-  };
-}
-
-function classicLayout(color: typeof NAVY): LayoutFields {
-  return {
-    studentName: { x: 0.5, y: 0.341, align: "center", minSize: 22, maxSize: 38, color },
-    homeschoolName: { x: 0.28, y: 0.537, align: "left", minSize: 16, maxSize: 19, color },
-    achievement: { x: 0.48, y: 0.622, align: "left", minSize: 16, maxSize: 19, color },
-    educatorName: { x: 0.52, y: 0.707, align: "left", minSize: 16, maxSize: 19, color },
-    dateAwarded: { x: 0.26, y: 0.793, align: "left", minSize: 16, maxSize: 19, color },
-  };
-}
 
 export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
   {
@@ -119,8 +113,7 @@ export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
     imagePath: "images/certificate-templates/adventure-explorer.jpg",
     imageType: "jpg",
     previewPath: "/images/certificate-templates/adventure-explorer.jpg",
-    contentRegion: SIDEBAR_CONTENT_REGION,
-    layout: sidebarLayout(NAVY),
+    layout: LAYOUTS["adventure-explorer"],
   },
   {
     id: "navy-gold-classic",
@@ -129,14 +122,7 @@ export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
     imagePath: "images/certificate-templates/navy-gold-classic.jpg",
     imageType: "jpg",
     previewPath: "/images/certificate-templates/navy-gold-classic.jpg",
-    contentRegion: SIDEBAR_CONTENT_REGION,
-    layout: sidebarLayout(NAVY, {
-      studentName: { y: 0.375 },
-      homeschoolName: { y: 0.558 },
-      achievement: { y: 0.635 },
-      educatorName: { y: 0.712 },
-      dateAwarded: { y: 0.79 },
-    }),
+    layout: LAYOUTS["navy-gold-classic"],
   },
   {
     id: "colorful-outdoor",
@@ -145,14 +131,7 @@ export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
     imagePath: "images/certificate-templates/colorful-outdoor.jpg",
     imageType: "jpg",
     previewPath: "/images/certificate-templates/colorful-outdoor.jpg",
-    contentRegion: SIDEBAR_CONTENT_REGION,
-    layout: sidebarLayout(NAVY, {
-      studentName: { y: 0.358 },
-      homeschoolName: { y: 0.548, x: 0.3 },
-      achievement: { y: 0.625, x: 0.45 },
-      educatorName: { y: 0.702, x: 0.5 },
-      dateAwarded: { y: 0.78, x: 0.29 },
-    }),
+    layout: LAYOUTS["colorful-outdoor"],
   },
   {
     id: "vintage-green",
@@ -161,14 +140,7 @@ export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
     imagePath: "images/certificate-templates/vintage-green.jpg",
     imageType: "jpg",
     previewPath: "/images/certificate-templates/vintage-green.jpg",
-    contentRegion: SIDEBAR_CONTENT_REGION,
-    layout: sidebarLayout(FOREST, {
-      studentName: { y: 0.382 },
-      homeschoolName: { y: 0.56 },
-      achievement: { y: 0.637 },
-      educatorName: { y: 0.714 },
-      dateAwarded: { y: 0.792 },
-    }),
+    layout: LAYOUTS["vintage-green"],
   },
   {
     id: "nature-elegant",
@@ -177,14 +149,7 @@ export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
     imagePath: "images/certificate-templates/nature-elegant.jpg",
     imageType: "jpg",
     previewPath: "/images/certificate-templates/nature-elegant.jpg",
-    contentRegion: WIDE_SIDEBAR_CONTENT_REGION,
-    layout: sidebarLayout(NAVY, {
-      studentName: { y: 0.372 },
-      homeschoolName: { x: 0.24, y: 0.556 },
-      achievement: { x: 0.4, y: 0.633 },
-      educatorName: { x: 0.44, y: 0.71 },
-      dateAwarded: { x: 0.22, y: 0.788 },
-    }),
+    layout: LAYOUTS["nature-elegant"],
   },
   {
     id: "classic-books",
@@ -193,8 +158,7 @@ export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
     imagePath: "images/certificate-templates/classic-books.png",
     imageType: "png",
     previewPath: "/images/certificate-templates/classic-books.png",
-    contentRegion: CLASSIC_CONTENT_REGION,
-    layout: classicLayout(NAVY),
+    layout: LAYOUTS["classic-books"],
   },
   {
     id: "rustic-wood",
@@ -203,14 +167,7 @@ export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
     imagePath: "images/certificate-templates/rustic-wood.jpg",
     imageType: "jpg",
     previewPath: "/images/certificate-templates/rustic-wood.jpg",
-    contentRegion: SIDEBAR_CONTENT_REGION,
-    layout: sidebarLayout(NAVY, {
-      studentName: { y: 0.364 },
-      homeschoolName: { y: 0.55 },
-      achievement: { y: 0.627 },
-      educatorName: { y: 0.704 },
-      dateAwarded: { y: 0.782 },
-    }),
+    layout: LAYOUTS["rustic-wood"],
   },
   {
     id: "playful-stars",
@@ -219,14 +176,7 @@ export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
     imagePath: "images/certificate-templates/playful-stars.jpg",
     imageType: "jpg",
     previewPath: "/images/certificate-templates/playful-stars.jpg",
-    contentRegion: SIDEBAR_CONTENT_REGION,
-    layout: sidebarLayout(NAVY, {
-      studentName: { y: 0.355 },
-      homeschoolName: { y: 0.542, x: 0.3 },
-      achievement: { y: 0.619, x: 0.45 },
-      educatorName: { y: 0.696, x: 0.5 },
-      dateAwarded: { y: 0.774, x: 0.29 },
-    }),
+    layout: LAYOUTS["playful-stars"],
   },
 ];
 

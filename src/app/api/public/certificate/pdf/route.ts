@@ -2,7 +2,7 @@ import { z } from "zod";
 import { jsonError } from "@/lib/api/response";
 import { rateLimit } from "@/lib/api/rate-limit";
 import { generateCertificatePdf } from "@/lib/pdf/certificate-template";
-import { isCertificateTemplateId } from "@/lib/resources/certificate-templates";
+import { isValidCertificateTemplateId } from "@/lib/resources/certificate-template-resolve";
 import { CERTIFICATE_FIELD_KEYS } from "@/lib/resources/certificate-fields";
 
 const fieldStyleSchema = z.object({
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     return jsonError(parsed.error.errors[0]?.message ?? "Invalid input");
   }
 
-  if (parsed.data.templateId && !isCertificateTemplateId(parsed.data.templateId)) {
+  if (parsed.data.templateId && !isValidCertificateTemplateId(parsed.data.templateId)) {
     return jsonError("Invalid certificate template selected.");
   }
 

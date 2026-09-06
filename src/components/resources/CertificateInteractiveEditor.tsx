@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
-import { getCertificateTemplate } from "@/lib/resources/certificate-templates";
+import type { CertificateTemplateDefinition } from "@/lib/resources/certificate-templates";
 import {
   CERTIFICATE_FIELD_KEYS,
   CERTIFICATE_FIELD_LABELS,
@@ -16,6 +16,7 @@ import {
 import type { CertificatePayload } from "@/lib/resources/types";
 
 type CertificateInteractiveEditorProps = {
+  template: CertificateTemplateDefinition;
   form: CertificatePayload;
   fieldStyles: CertificateFieldStylesMap;
   onFieldStylesChange: (styles: CertificateFieldStylesMap) => void;
@@ -43,11 +44,11 @@ function fieldText(form: CertificatePayload, key: CertificateFieldKey): string {
 }
 
 export function CertificateInteractiveEditor({
+  template,
   form,
   fieldStyles,
   onFieldStylesChange,
 }: CertificateInteractiveEditorProps) {
-  const template = getCertificateTemplate(form.templateId);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<CertificateFieldKey | null>("studentName");
   const [dragging, setDragging] = useState<CertificateFieldKey | null>(null);

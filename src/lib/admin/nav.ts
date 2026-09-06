@@ -19,6 +19,7 @@ import {
   Trophy,
   CalendarCheck,
   Award,
+  Palette,
   UserCog,
   Images,
   MessageSquareQuote,
@@ -100,6 +101,7 @@ export const adminNavGroups: AdminNavGroup[] = [
       { label: "Results", href: "/admin/results", icon: Trophy },
       { label: "Attendance", href: "/admin/attendance", icon: CalendarCheck },
       { label: "Certificates", href: "/admin/certificates", icon: Award },
+      { label: "Certificate Designs", href: "/admin/certificate-designs", icon: Palette },
     ],
   },
   {

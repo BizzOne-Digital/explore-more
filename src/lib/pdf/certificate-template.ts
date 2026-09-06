@@ -1,12 +1,13 @@
-import fs from "fs/promises";
-import path from "path";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { CertificatePayload } from "@/lib/resources/types";
 import {
-  getCertificateTemplate,
   type CertificateFieldLayout,
   type CertificateTemplateDefinition,
 } from "@/lib/resources/certificate-templates";
+import {
+  resolveCertificateTemplate,
+  loadCertificateTemplateImage,
+} from "@/lib/resources/certificate-template-resolve";
 import { CERTIFICATE_REF_WIDTH } from "@/lib/resources/certificate-layout";
 import {
   CERTIFICATE_FIELD_KEYS,
@@ -17,9 +18,8 @@ import {
 import { embedCertificateFont } from "@/lib/pdf/certificate-fonts";
 
 export async function generateCertificatePdf(data: CertificatePayload): Promise<Uint8Array> {
-  const template = getCertificateTemplate(data.templateId);
-  const filePath = path.join(process.cwd(), "public", template.imagePath);
-  const imageBytes = await fs.readFile(filePath);
+  const template = await resolveCertificateTemplate(data.templateId);
+  const imageBytes = await loadCertificateTemplateImage(template);
 
   const doc = await PDFDocument.create();
   const image =

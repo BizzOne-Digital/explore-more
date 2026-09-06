@@ -2,18 +2,15 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/cn";
-import {
-  CERTIFICATE_TEMPLATES,
-  DEFAULT_CERTIFICATE_TEMPLATE_ID,
-  type CertificateTemplateId,
-} from "@/lib/resources/certificate-templates";
+import type { CertificateTemplateListItem } from "@/lib/resources/certificate-templates";
 
 type CertificateTemplatePickerProps = {
-  value: CertificateTemplateId;
-  onChange: (templateId: CertificateTemplateId) => void;
+  templates: CertificateTemplateListItem[];
+  value: string;
+  onChange: (templateId: string) => void;
 };
 
-export function CertificateTemplatePicker({ value, onChange }: CertificateTemplatePickerProps) {
+export function CertificateTemplatePicker({ templates, value, onChange }: CertificateTemplatePickerProps) {
   return (
     <div className="space-y-3">
       <div>
@@ -23,8 +20,9 @@ export function CertificateTemplatePicker({ value, onChange }: CertificateTempla
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {CERTIFICATE_TEMPLATES.map((template) => {
+        {templates.map((template) => {
           const selected = value === template.id;
+          const isRemote = template.previewPath.startsWith("/api/");
           return (
             <button
               key={template.id}
@@ -38,13 +36,21 @@ export function CertificateTemplatePicker({ value, onChange }: CertificateTempla
               )}
             >
               <div className="relative aspect-[4/3] bg-explore-cream">
-                <Image
-                  src={template.previewPath}
-                  alt={template.name}
-                  fill
-                  className="object-cover object-center"
-                  sizes="(max-width: 640px) 50vw, 25vw"
-                />
+                {isRemote ? (
+                  <img
+                    src={template.previewPath}
+                    alt={template.name}
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                  />
+                ) : (
+                  <Image
+                    src={template.previewPath}
+                    alt={template.name}
+                    fill
+                    className="object-cover object-center"
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                  />
+                )}
               </div>
               <div className="px-2 py-2">
                 <p className="text-xs font-semibold text-explore-charcoal">{template.name}</p>
@@ -59,5 +65,3 @@ export function CertificateTemplatePicker({ value, onChange }: CertificateTempla
     </div>
   );
 }
-
-export { DEFAULT_CERTIFICATE_TEMPLATE_ID };

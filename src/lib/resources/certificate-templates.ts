@@ -21,21 +21,44 @@ export type CertificateFieldLayout = {
   color?: { r: number; g: number; b: number };
 };
 
+export type CertificateTemplateLayout = {
+  studentName: CertificateFieldLayout;
+  homeschoolName: CertificateFieldLayout;
+  achievement: CertificateFieldLayout;
+  educatorName: CertificateFieldLayout;
+  dateAwarded: CertificateFieldLayout;
+};
+
 export type CertificateTemplateDefinition = {
-  id: CertificateTemplateId;
+  id: string;
   name: string;
   description: string;
   imagePath: string;
   imageType: "jpg" | "png";
   previewPath: string;
-  layout: {
-    studentName: CertificateFieldLayout;
-    homeschoolName: CertificateFieldLayout;
-    achievement: CertificateFieldLayout;
-    educatorName: CertificateFieldLayout;
-    dateAwarded: CertificateFieldLayout;
-  };
+  layout: CertificateTemplateLayout;
 };
+
+export type CertificateTemplateListItem = Pick<
+  CertificateTemplateDefinition,
+  "id" | "name" | "description" | "previewPath"
+>;
+
+export const CUSTOM_CERTIFICATE_TEMPLATE_PREFIX = "custom:";
+
+export function customCertificateTemplateId(designId: string): string {
+  return `${CUSTOM_CERTIFICATE_TEMPLATE_PREFIX}${designId}`;
+}
+
+export function parseCustomCertificateTemplateId(id: string): string | null {
+  if (!id.startsWith(CUSTOM_CERTIFICATE_TEMPLATE_PREFIX)) return null;
+  const designId = id.slice(CUSTOM_CERTIFICATE_TEMPLATE_PREFIX.length);
+  return designId || null;
+}
+
+export function isCustomCertificateTemplateId(id: string): boolean {
+  return parseCustomCertificateTemplateId(id) !== null;
+}
 
 const NAVY = { r: 0.08, g: 0.16, b: 0.28 };
 const FOREST = { r: 0.09, g: 0.29, b: 0.22 };
@@ -43,7 +66,7 @@ const FOREST = { r: 0.09, g: 0.29, b: 0.22 };
 const DETAIL = { minSize: 16, maxSize: 20 };
 const NAME = { minSize: 22, maxSize: 38 };
 
-type LayoutFields = CertificateTemplateDefinition["layout"];
+type LayoutFields = CertificateTemplateLayout;
 
 /** Measured against each blank template at 1024×790 reference. */
 const LAYOUTS: Record<CertificateTemplateId, LayoutFields> = {
@@ -104,6 +127,10 @@ const LAYOUTS: Record<CertificateTemplateId, LayoutFields> = {
     dateAwarded: { pageX: 0.4, pageY: 0.75, align: "left", ...DETAIL, color: NAVY },
   },
 };
+
+/** Default field positions for newly uploaded certificate backgrounds. */
+export const DEFAULT_CERTIFICATE_FIELD_LAYOUT: CertificateTemplateLayout =
+  LAYOUTS["adventure-explorer"];
 
 export const CERTIFICATE_TEMPLATES: CertificateTemplateDefinition[] = [
   {
@@ -185,6 +212,15 @@ export const DEFAULT_CERTIFICATE_TEMPLATE_ID: CertificateTemplateId = "adventure
 export function getCertificateTemplate(templateId?: string): CertificateTemplateDefinition {
   const match = CERTIFICATE_TEMPLATES.find((template) => template.id === templateId);
   return match ?? CERTIFICATE_TEMPLATES[0];
+}
+
+export function getBuiltinCertificateTemplateList(): CertificateTemplateListItem[] {
+  return CERTIFICATE_TEMPLATES.map(({ id, name, description, previewPath }) => ({
+    id,
+    name,
+    description,
+    previewPath,
+  }));
 }
 
 export function isCertificateTemplateId(value: string): value is CertificateTemplateId {

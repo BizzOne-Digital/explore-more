@@ -35,7 +35,13 @@ export const UPLOAD_DIRS = {
 } as const;
 
 /** MongoDB-backed admin image folders (serverless-safe). */
-export const STORED_UPLOAD_FOLDERS = ["products", "gallery", "pages", "misc"] as const;
+export const STORED_UPLOAD_FOLDERS = [
+  "products",
+  "gallery",
+  "pages",
+  "misc",
+  "certificate-templates",
+] as const;
 export type StoredUploadFolder = (typeof STORED_UPLOAD_FOLDERS)[number];
 
 /** MongoDB-backed private file folders (auth required to download). */

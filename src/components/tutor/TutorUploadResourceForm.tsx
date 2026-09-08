@@ -7,6 +7,8 @@ import {
   TUTOR_RESOURCE_TYPES,
   TUTOR_RESOURCE_TYPE_LABELS,
 } from "@/lib/tutor/constants";
+import { MAX_TUTOR_RESOURCE_UPLOAD_SIZE } from "@/lib/constants";
+import { readJsonResponse } from "@/lib/api/read-json-response";
 import {
   TutorSearchableSelect,
   type TutorSearchableOption,
@@ -70,14 +72,31 @@ export function TutorUploadResourceForm() {
   async function handleFile(file: File) {
     setUploading(true);
     setError("");
+
+    if (file.size > MAX_TUTOR_RESOURCE_UPLOAD_SIZE) {
+      setError(
+        `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is ${MAX_TUTOR_RESOURCE_UPLOAD_SIZE / 1024 / 1024} MB.`
+      );
+      setUploading(false);
+      return;
+    }
+
     try {
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/tutor/resources/upload", { method: "POST", body: fd });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Upload failed");
-      setForm((f) => ({ ...f, filePath: json.filePath }));
-      setUploadedFileName(json.originalName || file.name);
+      const { ok, data, error: message } = await readJsonResponse<{
+        error?: string;
+        filePath?: string;
+        originalName?: string;
+      }>(res, "Upload failed");
+
+      if (!ok || !data?.filePath) {
+        throw new Error(message || "Upload failed");
+      }
+
+      setForm((f) => ({ ...f, filePath: data.filePath! }));
+      setUploadedFileName(data.originalName || file.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -91,8 +110,23 @@ export function TutorUploadResourceForm() {
     setError("");
     setSuccess("");
 
-    if (audience === "single" && !form.studentId) {
-      setError("Please select a student by name or Student ID.");
+    const studentId = audience === "single" ? form.studentId : undefined;
+
+    if (audience === "single" && !studentId) {
+      setError("Please select a student from the list (click their name after searching).");
+      setLoading(false);
+      return;
+    }
+
+    if (!form.filePath && !form.url.trim()) {
+      setError("Please upload a file or enter a link URL.");
+      setLoading(false);
+      return;
+    }
+
+    const url = form.url.trim();
+    if (url && !/^https?:\/\//i.test(url)) {
+      setError("Link URL must start with http:// or https://");
       setLoading(false);
       return;
     }
@@ -102,17 +136,20 @@ export function TutorUploadResourceForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: form.title,
-          description: form.description,
+          title: form.title.trim(),
+          description: form.description.trim(),
           type: form.type,
-          url: form.url || undefined,
+          url: url || undefined,
           filePath: form.filePath || undefined,
           audience,
-          studentId: audience === "single" ? form.studentId : undefined,
+          studentId,
         }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to publish");
+      const { ok, error: message } = await readJsonResponse<{ error?: string }>(
+        res,
+        "Failed to publish"
+      );
+      if (!ok) throw new Error(message || "Failed to publish");
 
       setSuccess(
         audience === "all"
@@ -296,7 +333,8 @@ export function TutorUploadResourceForm() {
               </p>
               {!form.filePath && !uploading && (
                 <p className="text-xs text-gray-500">
-                  PDF, Word, Excel, images, zip, or video — up to 25 MB
+                  PDF, Word, Excel, images, zip, or video — up to{" "}
+                  {MAX_TUTOR_RESOURCE_UPLOAD_SIZE / 1024 / 1024} MB
                 </p>
               )}
             </div>
@@ -307,10 +345,11 @@ export function TutorUploadResourceForm() {
       <label className="block text-sm font-medium">
         Or link URL
         <input
-          type="url"
+          type="text"
+          inputMode="url"
           value={form.url}
           onChange={(e) => setForm({ ...form, url: e.target.value })}
-          placeholder="https://"
+          placeholder="https://example.com/resource"
           className="mt-1 w-full rounded-lg border px-3 py-2"
         />
       </label>

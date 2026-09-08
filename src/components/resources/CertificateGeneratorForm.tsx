@@ -94,7 +94,7 @@ export function CertificateGeneratorForm({
         const res = await fetch("/api/public/certificate/templates");
         if (!res.ok) return;
         const json = await res.json();
-        if (json.success && Array.isArray(json.data?.templates)) {
+        if (json.success && Array.isArray(json.data?.templates) && json.data.templates.length > 0) {
           setTemplates(json.data.templates);
         }
       } catch {

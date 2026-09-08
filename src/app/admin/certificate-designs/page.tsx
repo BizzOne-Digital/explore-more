@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Eye, EyeOff, Trash2, Upload } from "lucide-react";
 import { DragDropZone } from "@/components/admin/DragDropZone";
+import type { CertificateTemplateListItem } from "@/lib/resources/certificate-templates";
+import { getBuiltinCertificateTemplateList } from "@/lib/resources/certificate-templates";
+import { MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE } from "@/lib/constants";
 
 interface CertificateDesign {
   _id: string;
@@ -15,8 +19,31 @@ interface CertificateDesign {
   createdAt: string;
 }
 
+function DesignThumbnail({
+  src,
+  alt,
+  isRemote,
+}: {
+  src: string;
+  alt: string;
+  isRemote: boolean;
+}) {
+  return (
+    <div className="relative aspect-[4/3] bg-black/20">
+      {isRemote ? (
+        <img src={src} alt={alt} className="h-full w-full object-cover" />
+      ) : (
+        <Image src={src} alt={alt} fill className="object-cover" sizes="(max-width: 768px) 50vw, 33vw" />
+      )}
+    </div>
+  );
+}
+
 export default function CertificateDesignsPage() {
-  const [designs, setDesigns] = useState<CertificateDesign[]>([]);
+  const [builtin, setBuiltin] = useState<CertificateTemplateListItem[]>(
+    getBuiltinCertificateTemplateList()
+  );
+  const [custom, setCustom] = useState<CertificateDesign[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [name, setName] = useState("");
@@ -28,8 +55,13 @@ export default function CertificateDesignsPage() {
     try {
       const res = await fetch("/api/admin/certificate-designs");
       const json = await res.json();
-      if (json.success) {
-        setDesigns(json.data || []);
+      if (json.success && json.data) {
+        if (Array.isArray(json.data.builtin) && json.data.builtin.length > 0) {
+          setBuiltin(json.data.builtin);
+        }
+        if (Array.isArray(json.data.custom)) {
+          setCustom(json.data.custom);
+        }
       }
     } catch (err) {
       console.error("Failed to load certificate designs:", err);
@@ -51,8 +83,8 @@ export default function CertificateDesignsPage() {
       return;
     }
 
-    if (selected.size > 8 * 1024 * 1024) {
-      alert("Image must be 8MB or smaller.");
+    if (selected.size > MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE) {
+      alert(`Image must be ${MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE / 1024 / 1024}MB or smaller.`);
       return;
     }
 
@@ -106,7 +138,7 @@ export default function CertificateDesignsPage() {
     });
     const json = await res.json();
     if (json.success) {
-      setDesigns((prev) =>
+      setCustom((prev) =>
         prev.map((item) =>
           item._id === design._id ? { ...item, isActive: !design.isActive } : item
         )
@@ -122,7 +154,7 @@ export default function CertificateDesignsPage() {
     });
     const json = await res.json();
     if (json.success) {
-      setDesigns((prev) => prev.filter((item) => item._id !== design._id));
+      setCustom((prev) => prev.filter((item) => item._id !== design._id));
     } else {
       alert(json.error || "Could not delete design");
     }
@@ -140,8 +172,44 @@ export default function CertificateDesignsPage() {
         <div>
           <h1 className="text-3xl font-bold text-white">Certificate Designs</h1>
           <p className="mt-1 text-white/60">
-            Upload new certificate backgrounds for the public certificate generator
+            Manage certificate backgrounds for the{" "}
+            <Link href="/resources/certificate" className="text-explore-teal hover:underline">
+              public certificate generator
+            </Link>
           </p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-white/10 bg-white/5 p-6">
+        <h2 className="text-lg font-medium text-white">Built-in certificate styles</h2>
+        <p className="mt-1 text-sm text-white/60">
+          These {builtin.length} designs ship with the site and are always available to parents.
+          Upload additional designs below to add more options.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {builtin.map((design) => (
+            <div
+              key={design.id}
+              className="overflow-hidden rounded-lg border border-white/10 bg-white/5"
+            >
+              <DesignThumbnail
+                src={design.previewPath}
+                alt={design.name}
+                isRemote={design.previewPath.startsWith("/api/")}
+              />
+              <div className="p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-white">{design.name}</p>
+                  <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/70">
+                    Built-in
+                  </span>
+                </div>
+                {design.description && (
+                  <p className="mt-1 text-xs text-white/60 line-clamp-2">{design.description}</p>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -173,7 +241,9 @@ export default function CertificateDesignsPage() {
                   <p className="mt-3 text-sm font-medium text-white/80">
                     Drag & drop or click to select
                   </p>
-                  <p className="mt-1 text-xs text-white/50">JPG or PNG, up to 8MB</p>
+                  <p className="mt-1 text-xs text-white/50">
+                    JPG or PNG, up to {MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE / 1024 / 1024}MB
+                  </p>
                 </>
               )
             }
@@ -217,24 +287,22 @@ export default function CertificateDesignsPage() {
       </form>
 
       <div className="rounded-lg border border-white/10 bg-white/5 p-6">
-        <h2 className="text-lg font-medium text-white">Uploaded designs</h2>
+        <h2 className="text-lg font-medium text-white">Your uploaded designs</h2>
         {loading ? (
           <p className="mt-4 text-sm text-white/60">Loading…</p>
-        ) : designs.length === 0 ? (
-          <p className="mt-4 text-sm text-white/60">No custom designs yet.</p>
+        ) : custom.length === 0 ? (
+          <p className="mt-4 text-sm text-white/60">
+            No custom designs yet — uploads you add will appear here with hide and delete options.
+          </p>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {designs.map((design) => (
+            {custom.map((design) => (
               <div
                 key={design._id}
                 className="overflow-hidden rounded-lg border border-white/10 bg-white/5"
               >
-                <div className="relative aspect-[4/3] bg-black/20">
-                  <img
-                    src={design.imageUrl}
-                    alt={design.name}
-                    className="h-full w-full object-cover"
-                  />
+                <div className="relative">
+                  <DesignThumbnail src={design.imageUrl} alt={design.name} isRemote />
                   {!design.isActive && (
                     <span className="absolute left-2 top-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white">
                       Hidden

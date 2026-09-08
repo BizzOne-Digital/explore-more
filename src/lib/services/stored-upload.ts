@@ -32,13 +32,16 @@ function extensionFromFile(file: File): string | null {
   return null;
 }
 
-function validateStoredImage(file: File): { mimeType: string; ext: string } {
+function validateStoredImage(
+  file: File,
+  maxSize: number = MAX_STORED_IMAGE_SIZE
+): { mimeType: string; ext: string } {
   const ext = extensionFromFile(file);
   if (!ext || !(STORED_IMAGE_MIME_TYPES as readonly string[]).includes(file.type)) {
     throw new Error("Invalid file type. Allowed: JPEG, PNG, WebP, GIF");
   }
-  if (file.size > MAX_STORED_IMAGE_SIZE) {
-    throw new Error(`File too large. Maximum size is ${MAX_STORED_IMAGE_SIZE / 1024 / 1024}MB`);
+  if (file.size > maxSize) {
+    throw new Error(`File too large. Maximum size is ${maxSize / 1024 / 1024}MB`);
   }
   return { mimeType: file.type, ext };
 }
@@ -50,13 +53,14 @@ function generateStoredFilename(ext: string): string {
 
 export async function storeUploadedImage(
   file: File,
-  folder: StoredUploadFolder
+  folder: StoredUploadFolder,
+  maxSize: number = MAX_STORED_IMAGE_SIZE
 ): Promise<{ url: string; filename: string; size: number; folder: StoredUploadFolder }> {
   if (!isStoredUploadFolder(folder)) {
     throw new Error(`Invalid folder. Allowed: ${STORED_UPLOAD_FOLDERS.join(", ")}`);
   }
 
-  const { mimeType, ext } = validateStoredImage(file);
+  const { mimeType, ext } = validateStoredImage(file, maxSize);
   const filename = generateStoredFilename(ext);
   const buffer = Buffer.from(await file.arrayBuffer());
 

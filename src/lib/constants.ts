@@ -74,6 +74,8 @@ export const LEGACY_UPLOAD_FOLDER_MAP: Record<keyof typeof UPLOAD_DIRS, StoredUp
 
 export const PLACEHOLDER_IMAGE = "/images/placeholder.svg";
 export const MAX_STORED_IMAGE_SIZE = 8 * 1024 * 1024; // 8MB
+/** Certificate background images for the public generator. */
+export const MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 export const STORED_IMAGE_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -87,8 +89,8 @@ export const MAX_PORTFOLIO_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 export const MAX_CAMPAIGN_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1GB
 /** Notification attachments stored in MongoDB (16MB BSON document limit). */
 export const MAX_NOTIFICATION_UPLOAD_SIZE = 15 * 1024 * 1024; // 15MB
-/** Tutor worksheets/resources — separate from grade-based Assessments. */
-export const MAX_TUTOR_RESOURCE_UPLOAD_SIZE = 25 * 1024 * 1024; // 25MB
+/** Tutor worksheets/resources — Vercel serverless request body limit is ~4.5 MB. */
+export const MAX_TUTOR_RESOURCE_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB
 export const ALLOWED_CAMPAIGN_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg",
   ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",

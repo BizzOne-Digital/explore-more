@@ -87,6 +87,19 @@ export function TutorSearchableSelect({
             if (value) onChange("");
           }}
           onFocus={() => !disabled && setOpen(true)}
+          onBlur={() => {
+            window.setTimeout(() => {
+              if (containerRef.current?.contains(document.activeElement)) return;
+              if (!query.trim() || value) return;
+              const q = query.trim().toLowerCase();
+              const exact = options.find(
+                (option) =>
+                  option.label.toLowerCase() === q ||
+                  option.sublabel?.toLowerCase().includes(q)
+              );
+              if (exact) handleSelect(exact);
+            }, 0);
+          }}
           className="w-full rounded-lg border border-explore-charcoal/20 py-2 pl-3 pr-16 text-sm disabled:bg-gray-50 disabled:text-gray-400"
           autoComplete="off"
         />

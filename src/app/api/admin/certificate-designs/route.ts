@@ -2,7 +2,9 @@ import connectDB from "@/lib/db";
 import { CertificateDesign } from "@/models";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { requireRole } from "@/lib/api/auth-helpers";
-import { storeUploadedImage, deleteStoredUploadByUrl } from "@/lib/services/stored-upload";
+import { storeUploadedImage } from "@/lib/services/stored-upload";
+import { getBuiltinCertificateTemplateList } from "@/lib/resources/certificate-templates";
+import { MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
@@ -18,8 +20,11 @@ export async function GET() {
     if ("error" in sessionResult) return sessionResult.error;
 
     await connectDB();
-    const designs = await CertificateDesign.find().sort({ sortOrder: 1, createdAt: -1 }).lean();
-    return apiSuccess(designs);
+    const custom = await CertificateDesign.find().sort({ sortOrder: 1, createdAt: -1 }).lean();
+    return apiSuccess({
+      builtin: getBuiltinCertificateTemplateList(),
+      custom,
+    });
   } catch (error) {
     return apiError(error);
   }
@@ -50,7 +55,11 @@ export async function POST(request: Request) {
     }
 
     await connectDB();
-    const uploaded = await storeUploadedImage(file, "certificate-templates");
+    const uploaded = await storeUploadedImage(
+      file,
+      "certificate-templates",
+      MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE
+    );
 
     const design = await CertificateDesign.create({
       name,

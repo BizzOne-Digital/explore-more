@@ -13,6 +13,19 @@ const PRIVATE_MIME_TO_EXT: Record<string, string> = {
   "image/gif": "gif",
   "application/msword": "doc",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+  "text/plain": "txt",
+  "text/csv": "csv",
+  "application/zip": "zip",
+  "application/x-zip-compressed": "zip",
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "audio/mpeg": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
 };
 
 const SPONSOR_FILE_EXTENSIONS = ["pdf", "doc", "docx"] as const;

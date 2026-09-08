@@ -4,6 +4,9 @@ import { requireTutorPortal } from "@/lib/tutor/api-auth";
 import { MAX_TUTOR_RESOURCE_UPLOAD_SIZE } from "@/lib/constants";
 import { storePrivateUpload } from "@/lib/services/private-stored-upload";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 /** Worksheet/resource files for the tutor portal — not grade Assessments (`assessments` folder). */
 export async function POST(request: Request) {
   const sessionResult = await requireTutorPortal();

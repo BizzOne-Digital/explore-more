@@ -42,7 +42,10 @@ export type CertificateTemplateDefinition = {
 export type CertificateTemplateListItem = Pick<
   CertificateTemplateDefinition,
   "id" | "name" | "description" | "previewPath"
->;
+> & {
+  isActive?: boolean;
+  isBuiltin?: boolean;
+};
 
 export const CUSTOM_CERTIFICATE_TEMPLATE_PREFIX = "custom:";
 

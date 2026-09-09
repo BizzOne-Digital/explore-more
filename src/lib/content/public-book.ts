@@ -37,6 +37,10 @@ export function mapPublicBook(raw: Record<string, unknown>): PublicBook {
     featured: raw.featured as boolean | undefined,
     metaTitle: raw.metaTitle as string | undefined,
     metaDescription: raw.metaDescription as string | undefined,
+    isDigital:
+      typeof raw.digitalFile === "object" &&
+      raw.digitalFile !== null &&
+      (raw.digitalFile as { enabled?: boolean }).enabled === true,
   };
 }
 

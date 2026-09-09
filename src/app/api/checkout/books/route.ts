@@ -7,6 +7,8 @@ import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
 import { stripeProductData } from "@/lib/stripe/tax-codes";
+import { calculateBookShippingCents } from "@/lib/orders/book-shipping";
+import { fulfillBookOrder } from "@/lib/orders/fulfill-book-order";
 
 const itemSchema = z.object({
   bookId: z.string(),
@@ -57,14 +59,13 @@ export async function POST(request: Request) {
 
   const settings = await SiteSettings.findOne();
   const taxRate = settings?.taxRatePercent ?? 0;
-  const shippingFlat = settings?.shippingFlatCents ?? 0;
-  const freeShippingThreshold = settings?.freeShippingThresholdCents ?? 0;
 
   const orderItems: {
     bookId: typeof Book.prototype._id;
     title: string;
     quantity: number;
     priceCents: number;
+    isDigital: boolean;
   }[] = [];
   const lineItems: {
     price_data: {
@@ -94,22 +95,41 @@ export async function POST(request: Request) {
       title: book.title,
       quantity: item.quantity,
       priceCents,
+      isDigital: book.digitalFile?.enabled === true,
     });
 
-    lineItems.push({
-      price_data: {
-        currency: "usd",
-        product_data: stripeProductData({ name: book.title }, "books"),
-        unit_amount: priceCents,
-      },
-      quantity: item.quantity,
-    });
+    if (priceCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "usd",
+          product_data: stripeProductData({ name: book.title }, "books"),
+          unit_amount: priceCents,
+        },
+        quantity: item.quantity,
+      });
+    }
   }
 
   const taxCents = Math.round(subtotalCents * (taxRate / 100));
-  const shippingCents =
-    freeShippingThreshold > 0 && subtotalCents >= freeShippingThreshold ? 0 : shippingFlat;
+  const shippingCents = calculateBookShippingCents(
+    orderItems.map((item) => ({
+      priceCents: item.priceCents,
+      quantity: item.quantity,
+      isDigital: item.isDigital,
+    }))
+  );
   const totalCents = subtotalCents + taxCents + shippingCents;
+
+  if (shippingCents > 0) {
+    lineItems.push({
+      price_data: {
+        currency: "usd",
+        product_data: stripeProductData({ name: "Shipping" }, "books"),
+        unit_amount: shippingCents,
+      },
+      quantity: 1,
+    });
+  }
 
   const sessionResult = await requireSession();
   const userId = "error" in sessionResult ? undefined : sessionResult.user.id;
@@ -117,16 +137,27 @@ export async function POST(request: Request) {
   const order = await Order.create({
     userId,
     orderNumber: generateOrderNumber(),
-    items: orderItems,
+    items: orderItems.map(({ bookId, title, quantity, priceCents }) => ({
+      bookId,
+      title,
+      quantity,
+      priceCents,
+    })),
     subtotalCents,
     taxCents,
     shippingCents,
+    donationCents: 0,
     totalCents,
     paymentStatus: "pending",
     shippingAddress: parsed.data.shippingAddress,
     customerEmail: parsed.data.customerEmail,
     customerName: parsed.data.customerName,
   });
+
+  if (totalCents === 0) {
+    await fulfillBookOrder(order._id.toString());
+    return jsonOk({ orderNumber: order.orderNumber, free: true });
+  }
 
   const appUrl = getAppUrl();
   const session = await createCheckoutSession({

@@ -9,6 +9,8 @@ import type { CertificateTemplateListItem } from "@/lib/resources/certificate-te
 import { getBuiltinCertificateTemplateList } from "@/lib/resources/certificate-templates";
 import { MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE } from "@/lib/constants";
 
+type BuiltinDesign = CertificateTemplateListItem & { isActive: boolean; isBuiltin: true };
+
 interface CertificateDesign {
   _id: string;
   name: string;
@@ -40,8 +42,12 @@ function DesignThumbnail({
 }
 
 export default function CertificateDesignsPage() {
-  const [builtin, setBuiltin] = useState<CertificateTemplateListItem[]>(
-    getBuiltinCertificateTemplateList()
+  const [builtin, setBuiltin] = useState<BuiltinDesign[]>(
+    getBuiltinCertificateTemplateList().map((template) => ({
+      ...template,
+      isBuiltin: true,
+      isActive: true,
+    }))
   );
   const [custom, setCustom] = useState<CertificateDesign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,8 +62,14 @@ export default function CertificateDesignsPage() {
       const res = await fetch("/api/admin/certificate-designs");
       const json = await res.json();
       if (json.success && json.data) {
-        if (Array.isArray(json.data.builtin) && json.data.builtin.length > 0) {
-          setBuiltin(json.data.builtin);
+        if (Array.isArray(json.data.builtin)) {
+          setBuiltin(
+            json.data.builtin.map((template: BuiltinDesign) => ({
+              ...template,
+              isBuiltin: true,
+              isActive: template.isActive ?? true,
+            }))
+          );
         }
         if (Array.isArray(json.data.custom)) {
           setCustom(json.data.custom);
@@ -130,6 +142,22 @@ export default function CertificateDesignsPage() {
     }
   }
 
+  async function toggleBuiltinActive(design: BuiltinDesign) {
+    const res = await fetch(`/api/admin/certificate-designs/builtin/${design.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hidden: design.isActive }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      setBuiltin((prev) =>
+        prev.map((item) =>
+          item.id === design.id ? { ...item, isActive: !design.isActive } : item
+        )
+      );
+    }
+  }
+
   async function toggleActive(design: CertificateDesign) {
     const res = await fetch(`/api/admin/certificate-designs/${design._id}`, {
       method: "PATCH",
@@ -183,8 +211,8 @@ export default function CertificateDesignsPage() {
       <div className="rounded-lg border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-medium text-white">Built-in certificate styles</h2>
         <p className="mt-1 text-sm text-white/60">
-          These {builtin.length} designs ship with the site and are always available to parents.
-          Upload additional designs below to add more options.
+          Original designs included with the site. Hide any you don&apos;t want parents to see —
+          upload replacements below. Hidden designs can be shown again anytime.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {builtin.map((design) => (
@@ -192,11 +220,18 @@ export default function CertificateDesignsPage() {
               key={design.id}
               className="overflow-hidden rounded-lg border border-white/10 bg-white/5"
             >
-              <DesignThumbnail
-                src={design.previewPath}
-                alt={design.name}
-                isRemote={design.previewPath.startsWith("/api/")}
-              />
+              <div className="relative">
+                <DesignThumbnail
+                  src={design.previewPath}
+                  alt={design.name}
+                  isRemote={design.previewPath.startsWith("/api/")}
+                />
+                {!design.isActive && (
+                  <span className="absolute left-2 top-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white">
+                    Hidden
+                  </span>
+                )}
+              </div>
               <div className="p-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-medium text-white">{design.name}</p>
@@ -207,6 +242,23 @@ export default function CertificateDesignsPage() {
                 {design.description && (
                   <p className="mt-1 text-xs text-white/60 line-clamp-2">{design.description}</p>
                 )}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleBuiltinActive(design)}
+                    className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-xs text-white/80 hover:bg-white/10"
+                  >
+                    {design.isActive ? (
+                      <>
+                        <EyeOff className="h-3.5 w-3.5" /> Hide
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-3.5 w-3.5" /> Show
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

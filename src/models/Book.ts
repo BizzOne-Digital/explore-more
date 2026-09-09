@@ -100,6 +100,7 @@ export interface IOrder extends Document {
   subtotalCents: number;
   taxCents: number;
   shippingCents: number;
+  donationCents?: number;
   totalCents: number;
   paymentStatus: "pending" | "paid" | "failed" | "refunded" | "manual";
   stripeSessionId?: string;
@@ -134,6 +135,7 @@ const OrderSchema = new Schema<IOrder>(
     subtotalCents: { type: Number, required: true },
     taxCents: { type: Number, default: 0 },
     shippingCents: { type: Number, default: 0 },
+    donationCents: { type: Number, default: 0 },
     totalCents: { type: Number, required: true },
     paymentStatus: {
       type: String,

@@ -20,6 +20,7 @@ export interface BookCartItem {
   coverImage?: string;
   priceCents: number;
   quantity: number;
+  isDigital?: boolean;
 }
 
 export interface EventPackageCartItem {

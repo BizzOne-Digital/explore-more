@@ -98,6 +98,7 @@ export interface PublicBook {
   featured?: boolean;
   metaTitle?: string;
   metaDescription?: string;
+  isDigital?: boolean;
 }
 
 export interface PublicProgram {

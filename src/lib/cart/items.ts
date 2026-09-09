@@ -22,6 +22,7 @@ export function normalizeCartItem(raw: CartItem): CartItem {
     coverImage: raw.coverImage,
     priceCents: raw.priceCents,
     quantity: raw.quantity,
+    isDigital: raw.isDigital,
   };
 }
 

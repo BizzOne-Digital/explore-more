@@ -15,6 +15,7 @@ interface AddToCartButtonProps {
     priceCents: number;
     salePriceCents?: number;
     stockStatus?: string;
+    isDigital?: boolean;
   };
   variant?: "default" | "storefront";
   className?: string;
@@ -35,6 +36,7 @@ export function AddToCartButton({ book, variant = "default", className }: AddToC
       title: book.title,
       coverImage: book.coverImage,
       priceCents: price,
+      isDigital: book.isDigital === true,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);

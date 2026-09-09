@@ -12,9 +12,13 @@ import {
   type CertificateTemplateDefinition,
 } from "@/lib/resources/certificate-templates";
 import { getStoredUpload, parseStoredUploadUrl } from "@/lib/services/stored-upload";
+import { getHiddenBuiltinCertificateIds } from "@/lib/resources/certificate-template-settings";
 
-export function isValidCertificateTemplateId(value: string): boolean {
-  if (isCertificateTemplateId(value)) return true;
+export async function isValidCertificateTemplateId(value: string): Promise<boolean> {
+  if (isCertificateTemplateId(value)) {
+    const hidden = await getHiddenBuiltinCertificateIds();
+    return !hidden.includes(value);
+  }
   const designId = parseCustomCertificateTemplateId(value);
   return designId !== null && mongoose.Types.ObjectId.isValid(designId);
 }

@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     return jsonError(parsed.error.errors[0]?.message ?? "Invalid input");
   }
 
-  if (parsed.data.templateId && !isValidCertificateTemplateId(parsed.data.templateId)) {
+  if (parsed.data.templateId && !(await isValidCertificateTemplateId(parsed.data.templateId))) {
     return jsonError("Invalid certificate template selected.");
   }
 

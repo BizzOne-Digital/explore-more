@@ -41,3 +41,4 @@ export { AccountNote } from "./Note";
 export { SubscriptionPlan, ParentSubscription, PendingMembership } from "./Billing";
 export { StoredUpload } from "./StoredUpload";
 export { CertificateDesign } from "./CertificateDesign";
+export { CertificateTemplateSettings } from "./CertificateTemplateSettings";

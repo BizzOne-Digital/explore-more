@@ -20,6 +20,10 @@ export function cartIsFreeOnly(items: BookShippingLine[]): boolean {
 }
 
 export function calculateBookShippingCents(items: BookShippingLine[]): number {
+  if (items.length === 0) return 0;
+  if (items.every((item) => item.priceCents === 0)) return 0;
+  if (items.every((item) => isDigitalBookLine(item))) return 0;
+
   const subtotalCents = items.reduce((sum, item) => sum + item.priceCents * item.quantity, 0);
 
   const needsShipping = items.some(

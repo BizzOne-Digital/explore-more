@@ -12,6 +12,7 @@ import {
   calculateBookShippingCents,
   cartRequiresShippingAddress,
 } from "@/lib/orders/book-shipping";
+import { isBookDigital } from "@/lib/books/is-digital";
 
 const addressSchema = z.object({
   name: z.string(),
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
         title: book.title,
         quantity: item.quantity,
         priceCents: getBookPriceCents(book),
-        isDigital: book.digitalFile?.enabled === true,
+        isDigital: isBookDigital(book),
       });
     }
 

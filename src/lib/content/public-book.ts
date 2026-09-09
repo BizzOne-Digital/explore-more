@@ -1,5 +1,6 @@
 import { dollarsToCents } from "@/lib/utils";
 import { getEffectiveBookSaleAmount } from "@/lib/pricing";
+import { isBookDigital } from "@/lib/books/is-digital";
 import type { PublicBook } from "@/types/public";
 
 /** Matches admin publish state and `isBookPublished()` in pricing.ts */
@@ -37,10 +38,10 @@ export function mapPublicBook(raw: Record<string, unknown>): PublicBook {
     featured: raw.featured as boolean | undefined,
     metaTitle: raw.metaTitle as string | undefined,
     metaDescription: raw.metaDescription as string | undefined,
-    isDigital:
-      typeof raw.digitalFile === "object" &&
-      raw.digitalFile !== null &&
-      (raw.digitalFile as { enabled?: boolean }).enabled === true,
+    isDigital: isBookDigital({
+      digitalFile: raw.digitalFile as { enabled?: boolean } | null | undefined,
+      format: raw.format as string | undefined,
+    }),
   };
 }
 

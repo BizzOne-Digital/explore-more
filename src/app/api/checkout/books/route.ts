@@ -9,6 +9,7 @@ import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
 import { stripeProductData } from "@/lib/stripe/tax-codes";
 import { calculateBookShippingCents } from "@/lib/orders/book-shipping";
 import { fulfillBookOrder } from "@/lib/orders/fulfill-book-order";
+import { isBookDigital } from "@/lib/books/is-digital";
 
 const itemSchema = z.object({
   bookId: z.string(),
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
       title: book.title,
       quantity: item.quantity,
       priceCents,
-      isDigital: book.digitalFile?.enabled === true,
+      isDigital: isBookDigital(book),
     });
 
     if (priceCents > 0) {

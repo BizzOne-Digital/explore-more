@@ -33,11 +33,11 @@ const DEFAULT_PARCEL = { length: 9, width: 6, height: 2 };
 function getShipFromAddress() {
   return {
     name: process.env.SHIPPING_FROM_NAME || "Explore More Academy",
-    street1: process.env.SHIPPING_FROM_LINE1 || "123 Main Street",
+    street1: process.env.SHIPPING_FROM_LINE1 || "3890 Smallwood Church Rd",
     street2: process.env.SHIPPING_FROM_LINE2 || "",
-    city: process.env.SHIPPING_FROM_CITY || "Waldorf",
+    city: process.env.SHIPPING_FROM_CITY || "Indian Head",
     state: process.env.SHIPPING_FROM_STATE || "MD",
-    zip: process.env.SHIPPING_FROM_ZIP || "20602",
+    zip: process.env.SHIPPING_FROM_ZIP || "20640",
     country: process.env.SHIPPING_FROM_COUNTRY || "US",
     phone: process.env.SHIPPING_FROM_PHONE || "",
   };

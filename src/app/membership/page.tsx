@@ -25,8 +25,9 @@ export default function MembershipPage() {
           <MemberPortalBanner />
           <MembershipPlans />
           <p className="mt-10 text-center text-sm text-explore-charcoal/60">
-            After checkout, you&apos;ll be guided to create your parent account and access your
-            member dashboard.
+            Choose a <strong>free account</strong> to buy books and courses only, or select a paid
+            membership for the full homeschool portal. After paid checkout, you&apos;ll create your
+            parent account and access your member dashboard.
           </p>
         </div>
       </section>

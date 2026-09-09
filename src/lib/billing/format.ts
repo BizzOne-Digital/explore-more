@@ -32,7 +32,7 @@ export function formatSubscriptionStatus(status: string): string {
     past_due: "Past Due",
     canceled: "Canceled",
     paused: "Paused",
-    none: "No Subscription",
+    none: "Free Account",
   };
   return labels[status] ?? status;
 }

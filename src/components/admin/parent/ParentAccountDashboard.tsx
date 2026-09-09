@@ -806,51 +806,72 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
           <div className="mt-6 rounded-lg border border-white/10 bg-black/20 p-4">
             <h4 className="text-sm font-semibold text-white">Portal access preview</h4>
             <p className="mt-1 text-xs text-white/50">
-              What the parent (and linked students) will see after saving with status Active or
-              Trialing.
+              What this parent will see after you save. Set status to{" "}
+              <strong>Free Account</strong> (none) to downgrade, or <strong>Active</strong> /{" "}
+              <strong>Trialing</strong> for a paid membership.
             </p>
-            {portalPreview.hasPortalAccess ? (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-explore-lime">
-                    Parent portal
-                  </p>
-                  <p className="mt-1 text-sm text-white/80">{portalPreview.tierName}</p>
-                  <ul className="mt-2 space-y-1 text-sm text-white/70">
-                    {portalPreview.parentNavLabels.map((label) => (
-                      <li key={label}>• {label}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-explore-lime">
-                    Student portal
-                  </p>
-                  <p className="mt-1 text-sm text-white/60">Via linked guardian accounts</p>
-                  <ul className="mt-2 space-y-1 text-sm text-white/70">
-                    {portalPreview.studentNavLabels.map((label) => (
-                      <li key={label}>• {label}</li>
-                    ))}
-                  </ul>
-                </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-explore-lime">
+                  Parent portal
+                </p>
+                <p className="mt-1 text-sm text-white/80">{portalPreview.tierName}</p>
+                <ul className="mt-2 space-y-1 text-sm text-white/70">
+                  {portalPreview.parentNavLabels.map((label) => (
+                    <li key={label}>• {label}</li>
+                  ))}
+                </ul>
               </div>
-            ) : (
-              <p className="mt-3 text-sm text-amber-300/90">
-                Select a plan and set status to <strong>Active</strong> or <strong>Trialing</strong>{" "}
-                to unlock portal features for this family.
-              </p>
-            )}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-explore-lime">
+                  Student portal
+                </p>
+                {portalPreview.isFreeAccount ? (
+                  <p className="mt-2 text-sm text-amber-300/90">
+                    Not included on the free plan. Upgrade to a membership for student dashboard
+                    access.
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-white/60">Via linked guardian accounts</p>
+                    <ul className="mt-2 space-y-1 text-sm text-white/70">
+                      {portalPreview.studentNavLabels.map((label) => (
+                        <li key={label}>• {label}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={saveSubscription}
-            disabled={saving}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            <Save className="h-4 w-4" />
-            {saving ? "Saving…" : "Save subscription"}
-          </button>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setSubForm({
+                  planId: "",
+                  status: "none",
+                  discountPercent: 0,
+                  creditDollars: subForm.creditDollars,
+                  currentPeriodEnd: "",
+                  cancelAtPeriodEnd: false,
+                })
+              }
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-100 hover:bg-amber-500/20"
+            >
+              Downgrade to Free Account
+            </button>
+            <button
+              type="button"
+              onClick={saveSubscription}
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving…" : "Save subscription"}
+            </button>
+          </div>
         </div>
         ) : (
           <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/60">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Check, Loader, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { formatCents } from "@/lib/utils";
@@ -11,6 +12,7 @@ import {
   membershipPlanSlug,
   type BillingInterval,
 } from "@/lib/membership/plans";
+import { FREE_ACCOUNT_PLAN } from "@/lib/membership/free-account";
 
 export function MembershipPlans() {
   const [interval, setInterval] = useState<BillingInterval>("month");
@@ -93,6 +95,60 @@ export function MembershipPlans() {
           {error}
         </p>
       )}
+
+      <article className="relative flex flex-col rounded-2xl border-2 border-explore-teal/30 bg-gradient-to-br from-white to-explore-teal/5 p-6 shadow-sm lg:flex-row lg:items-stretch lg:gap-8">
+        <div className="flex-1">
+          <p className="text-3xl">{FREE_ACCOUNT_PLAN.emoji}</p>
+          <h3 className="mt-2 font-display text-2xl font-bold text-explore-charcoal">
+            {FREE_ACCOUNT_PLAN.name}
+          </h3>
+          <p className="mt-1 text-sm text-explore-charcoal/70">{FREE_ACCOUNT_PLAN.tagline}</p>
+          <p className="mt-4 font-display text-3xl font-bold text-explore-teal">
+            $0
+            <span className="text-base font-medium text-explore-charcoal/60"> / forever</span>
+          </p>
+          <p className="mt-4 rounded-lg bg-explore-sand/50 px-3 py-2 text-xs text-explore-charcoal/70">
+            <strong>Best for:</strong> {FREE_ACCOUNT_PLAN.bestFor}
+          </p>
+        </div>
+        <div className="mt-6 flex-1 lg:mt-0">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-explore-charcoal/50">
+            Includes
+          </p>
+          <ul className="space-y-2">
+            {FREE_ACCOUNT_PLAN.features.map((feature) => (
+              <li key={feature} className="flex gap-2 text-sm text-explore-charcoal/80">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-explore-teal" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-explore-charcoal/55">
+            Does not include portfolio tracking, student accounts, tutoring, resource library, or
+            other full membership benefits.
+          </p>
+        </div>
+        <div className="mt-6 flex flex-col justify-center gap-3 lg:mt-0 lg:w-48">
+          <Button href={FREE_ACCOUNT_PLAN.signupHref} size="lg" className="w-full">
+            Create Free Account
+          </Button>
+          <Link
+            href={FREE_ACCOUNT_PLAN.loginHref}
+            className="text-center text-sm font-medium text-explore-teal hover:underline"
+          >
+            Already have an account? Sign in
+          </Link>
+        </div>
+      </article>
+
+      <div className="text-center">
+        <h3 className="font-display text-xl font-bold text-explore-charcoal">
+          Full homeschool memberships
+        </h3>
+        <p className="mt-1 text-sm text-explore-charcoal/65">
+          Unlock portfolio tools, student dashboards, tutoring, resources, and member events.
+        </p>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {MEMBERSHIP_TIERS.map((tier) => {

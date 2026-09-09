@@ -20,6 +20,11 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 
 export type ReportMetaRow = { label: string; value: string };
 
+export type AcademyReportOptions = {
+  /** Replaces the default company name in the teal banner (line 1). */
+  bannerSchoolName?: string;
+};
+
 export type TableColumn = {
   header: string;
   width: number;
@@ -35,16 +40,23 @@ export class AcademyReport {
   private pageNumber = 0;
   private readonly reportTitle: string;
   private readonly reportSubtitle?: string;
+  private readonly bannerSchoolName?: string;
 
-  private constructor(doc: PDFDocument, reportTitle: string, reportSubtitle?: string) {
+  private constructor(
+    doc: PDFDocument,
+    reportTitle: string,
+    reportSubtitle?: string,
+    options?: AcademyReportOptions
+  ) {
     this.doc = doc;
     this.reportTitle = reportTitle;
     this.reportSubtitle = reportSubtitle;
+    this.bannerSchoolName = options?.bannerSchoolName;
   }
 
-  static async create(reportTitle: string, reportSubtitle?: string) {
+  static async create(reportTitle: string, reportSubtitle?: string, options?: AcademyReportOptions) {
     const doc = await PDFDocument.create();
-    const report = new AcademyReport(doc, reportTitle, reportSubtitle);
+    const report = new AcademyReport(doc, reportTitle, reportSubtitle, options);
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
     report.font = font;
@@ -66,7 +78,13 @@ export class AcademyReport {
       color: BRAND.teal,
     });
 
-    this.page.drawText(COMPANY.name, {
+    const bannerName = truncateText(
+      this.bannerSchoolName?.trim() || COMPANY.name,
+      CONTENT_WIDTH,
+      this.fontBold,
+      16
+    );
+    this.page.drawText(bannerName, {
       x: MARGIN,
       y: PAGE_HEIGHT - 30,
       size: 16,
@@ -311,6 +329,19 @@ export class AcademyReport {
     this.drawFooter();
     return this.doc.save();
   }
+}
+
+export function truncateText(text: string, maxWidth: number, font: PDFFont, fontSize: number): string {
+  const sanitized = text.replace(/\s+/g, " ").trim();
+  if (!sanitized) return "";
+  if (font.widthOfTextAtSize(sanitized, fontSize) <= maxWidth) return sanitized;
+
+  const ellipsis = "…";
+  let truncated = sanitized;
+  while (truncated.length > 1 && font.widthOfTextAtSize(`${truncated}${ellipsis}`, fontSize) > maxWidth) {
+    truncated = truncated.slice(0, -1);
+  }
+  return `${truncated}${ellipsis}`;
 }
 
 export function wrapText(text: string, maxWidth: number, font: PDFFont, fontSize: number): string[] {

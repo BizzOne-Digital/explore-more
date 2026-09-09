@@ -6,6 +6,7 @@ export type TranscriptStudentInfo = {
   gradeLevel: string;
   homeschoolName: string;
   schoolYear: string;
+  reportQuarter: string;
   curriculumSite: string;
   streetAddress: string;
   cityStateZip: string;

@@ -1,7 +1,9 @@
 import { AcademyReport, formatReportDate } from "@/lib/pdf/academy-report";
+import { COMPANY } from "@/lib/constants";
 import {
   computeTranscriptTotals,
   durationDisplayLabel,
+  formatReportQuarter,
   normalizeTranscriptCourse,
   percentToLetter,
   type DocumentType,
@@ -33,23 +35,44 @@ export async function generateTranscriptPdf(
   const validCourses = courses.filter((c) => c.courseName.trim()).map(normalizeTranscriptCourse);
   const { totalCredits, cumulativeGpa } = computeTranscriptTotals(validCourses);
   const isReportCard = documentType === "report_card";
+  const quarterLabel = formatReportQuarter(student.reportQuarter);
+  const headerSubtitle = isReportCard
+    ? [student.schoolYear, quarterLabel !== "—" ? quarterLabel : ""].filter(Boolean).join(" • ")
+    : student.schoolYear
+      ? `School Year ${student.schoolYear}`
+      : undefined;
 
   const report = await AcademyReport.create(
-    documentTitle(documentType),
-    student.schoolYear ? `School Year ${student.schoolYear}` : undefined
+    isReportCard ? "Report Card" : documentTitle(documentType),
+    headerSubtitle || undefined,
+    isReportCard
+      ? { bannerSchoolName: student.homeschoolName.trim() || COMPANY.name }
+      : undefined
   );
 
   const address = [student.streetAddress, student.cityStateZip].filter(Boolean).join(", ");
 
-  report.drawMetaBlock([
-    { label: "Student", value: student.studentName || "—" },
-    { label: "Date of Birth", value: student.dateOfBirth || "—" },
-    { label: "Grade Level", value: student.gradeLevel || "—" },
-    { label: "Homeschool", value: student.homeschoolName || "—" },
-    { label: "School Year", value: student.schoolYear || "—" },
-    { label: "Curriculum", value: student.curriculumSite || "—" },
-    ...(address ? [{ label: "Address", value: address }] : []),
-  ]);
+  report.drawMetaBlock(
+    isReportCard
+      ? [
+          { label: "Student", value: student.studentName || "—" },
+          { label: "Date of Birth", value: student.dateOfBirth || "—" },
+          { label: "Grade Level", value: student.gradeLevel || "—" },
+          { label: "School Year", value: student.schoolYear || "—" },
+          { label: "Quarter", value: quarterLabel },
+          { label: "Curriculum", value: student.curriculumSite || "—" },
+          ...(address ? [{ label: "Address", value: address }] : []),
+        ]
+      : [
+          { label: "Student", value: student.studentName || "—" },
+          { label: "Date of Birth", value: student.dateOfBirth || "—" },
+          { label: "Grade Level", value: student.gradeLevel || "—" },
+          { label: "Homeschool", value: student.homeschoolName || "—" },
+          { label: "School Year", value: student.schoolYear || "—" },
+          { label: "Curriculum", value: student.curriculumSite || "—" },
+          ...(address ? [{ label: "Address", value: address }] : []),
+        ]
+  );
 
   report.drawSummaryCards([
     { label: "Total Credits", value: totalCredits.toFixed(1) },

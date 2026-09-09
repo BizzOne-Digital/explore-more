@@ -41,6 +41,22 @@ export const DOCUMENT_TYPE_OPTIONS: Array<{ value: DocumentType; label: string }
   { value: "report_card", label: "Report Card" },
 ];
 
+export const REPORT_QUARTER_OPTIONS = [
+  { value: "1", label: "1st Quarter" },
+  { value: "2", label: "2nd Quarter" },
+  { value: "3", label: "3rd Quarter" },
+  { value: "4", label: "4th Quarter" },
+] as const;
+
+export type ReportQuarter = (typeof REPORT_QUARTER_OPTIONS)[number]["value"];
+
+export function formatReportQuarter(quarter: string | undefined): string {
+  const trimmed = quarter?.trim() ?? "";
+  if (!trimmed) return "—";
+  const match = REPORT_QUARTER_OPTIONS.find((opt) => opt.value === trimmed);
+  return match?.label ?? trimmed;
+}
+
 export const DURATION_OPTIONS = [
   { value: "full_year", label: "Full Year", credits: "1.0", displayLabel: "Full Year (1.0)" },
   { value: "half_year", label: "Half Year", credits: "0.5", displayLabel: "Half Year (0.5)" },

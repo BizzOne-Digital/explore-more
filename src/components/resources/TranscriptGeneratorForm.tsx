@@ -11,6 +11,7 @@ import {
   DOCUMENT_TYPE_OPTIONS,
   DURATION_OPTIONS,
   GRADE_LEVELS,
+  REPORT_QUARTER_OPTIONS,
   computeCourseDuration,
   computeTranscriptTotals,
   creditsForDurationValue,
@@ -48,6 +49,7 @@ const DEFAULT_STUDENT: TranscriptStudentInfo = {
   gradeLevel: "",
   homeschoolName: "",
   schoolYear: "",
+  reportQuarter: "",
   curriculumSite: COMPANY.name,
   streetAddress: "",
   cityStateZip: "",
@@ -123,6 +125,10 @@ export function TranscriptGeneratorForm({
     setError("");
     if (!student.studentName.trim()) {
       setError("Please enter the student's name.");
+      return;
+    }
+    if (isReportCard && !student.reportQuarter) {
+      setError("Please select the reporting quarter.");
       return;
     }
 
@@ -210,6 +216,17 @@ export function TranscriptGeneratorForm({
             onChange={(e) => updateStudent("schoolYear", e.target.value)}
             placeholder="2025–2026"
           />
+          {isReportCard && (
+            <Select
+              label="Reporting Quarter"
+              value={student.reportQuarter}
+              onChange={(e) => updateStudent("reportQuarter", e.target.value)}
+              options={[
+                { value: "", label: "Select quarter" },
+                ...REPORT_QUARTER_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
+              ]}
+            />
+          )}
           <Input
             label="Homeschool Name"
             value={student.homeschoolName}

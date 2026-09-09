@@ -1,18 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCart } from "@/components/providers/CartProvider";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { formatCents } from "@/lib/utils";
 import { isBookCartItem } from "@/lib/cart/items";
-import {
-  calculateBookShippingCents,
-  cartIsFreeOnly,
-  cartRequiresShippingAddress,
-} from "@/lib/orders/book-shipping";
+import { cartRequiresShippingAddress } from "@/lib/orders/book-shipping";
 
 type ShippingInfoMap = Record<string, { isDigital: boolean }>;
+
+type ShippingOption = {
+  id: string;
+  carrier: string;
+  service: string;
+  rateCents: number;
+  estimatedDays: number | null;
+};
+
+type CheckoutQuote = {
+  subtotalCents: number;
+  shippingCents: number;
+  taxCents: number;
+  taxRatePercent: number;
+  taxJurisdiction: string;
+  shippingOptions: ShippingOption[];
+  selectedShippingOptionId: string | null;
+  needsAddress: boolean;
+  isFreeCart: boolean;
+  totalCents: number;
+  liveShippingRates: boolean;
+};
 
 export function CheckoutForm() {
   const { items, subtotalCents, clearCart } = useCart();
@@ -22,6 +40,16 @@ export function CheckoutForm() {
   const [error, setError] = useState("");
   const [donationDollars, setDonationDollars] = useState("");
   const [shippingInfo, setShippingInfo] = useState<ShippingInfoMap>({});
+  const [address, setAddress] = useState({
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+  });
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [selectedShippingId, setSelectedShippingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!bookIdsKey) {
@@ -55,10 +83,70 @@ export function CheckoutForm() {
   );
 
   const needsAddress = cartRequiresShippingAddress(shippingLines);
-  const isFreeCart = cartIsFreeOnly(shippingLines);
-  const shippingCents = calculateBookShippingCents(shippingLines);
+  const isFreeCart = quote?.isFreeCart ?? shippingLines.every((item) => item.priceCents === 0);
   const donationCents = Math.round(parseFloat(donationDollars || "0") * 100) || 0;
-  const totalCents = subtotalCents + shippingCents + (isFreeCart ? donationCents : 0);
+
+  const fetchQuote = useCallback(async () => {
+    if (bookItems.length === 0) return;
+
+    const hasAddress =
+      !needsAddress ||
+      (address.line1 && address.city && address.state && address.postalCode.length >= 5);
+
+    if (needsAddress && !hasAddress) {
+      setQuote(null);
+      return;
+    }
+
+    setQuoteLoading(true);
+    try {
+      const res = await fetch("/api/checkout/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: bookItems.map((item) => ({
+            bookId: item.bookId,
+            quantity: item.quantity,
+          })),
+          shippingAddress: needsAddress
+            ? {
+                line1: address.line1,
+                line2: address.line2,
+                city: address.city,
+                state: address.state,
+                postalCode: address.postalCode,
+                country: "US",
+              }
+            : undefined,
+          shippingOptionId: selectedShippingId ?? undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to load quote");
+
+      setQuote(json);
+      if (json.selectedShippingOptionId && json.selectedShippingOptionId !== selectedShippingId) {
+        setSelectedShippingId(json.selectedShippingOptionId);
+      }
+    } catch {
+      setQuote(null);
+    } finally {
+      setQuoteLoading(false);
+    }
+  }, [address, bookItems, needsAddress, selectedShippingId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchQuote();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [fetchQuote]);
+
+  const shippingCents = quote?.shippingCents ?? 0;
+  const taxCents = quote?.taxCents ?? 0;
+  const displaySubtotal = quote?.subtotalCents ?? subtotalCents;
+  const totalCents =
+    displaySubtotal + shippingCents + taxCents + (isFreeCart ? donationCents : 0);
 
   if (bookItems.length === 0) {
     return null;
@@ -78,11 +166,18 @@ export function CheckoutForm() {
       return;
     }
 
+    if (needsAddress && (!address.line1 || !address.city || !address.state || !address.postalCode)) {
+      setError("Please enter your full shipping address.");
+      setStatus("error");
+      return;
+    }
+
     try {
       const payload: Record<string, unknown> = {
         items: bookItems,
         customerName: data.name,
         customerEmail: data.email,
+        shippingOptionId: selectedShippingId ?? quote?.selectedShippingOptionId,
       };
 
       if (isFreeCart && donationCents > 0) {
@@ -92,11 +187,11 @@ export function CheckoutForm() {
       if (needsAddress) {
         payload.shippingAddress = {
           name: data.name,
-          line1: data.line1,
-          line2: data.line2 || "",
-          city: data.city,
-          state: data.state,
-          postalCode: data.postalCode,
+          line1: address.line1,
+          line2: address.line2 || "",
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
           country: "US",
         };
       }
@@ -134,6 +229,8 @@ export function CheckoutForm() {
         ? "Processing..."
         : `Pay ${formatCents(totalCents)}`;
 
+  const shippingOptions = quote?.shippingOptions ?? [];
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-5 sm:grid-cols-2">
@@ -141,11 +238,42 @@ export function CheckoutForm() {
         <Input name="email" type="email" label="Email" required />
         {needsAddress && (
           <>
-            <Input name="line1" label="Address Line 1" required className="sm:col-span-2" />
-            <Input name="line2" label="Address Line 2" className="sm:col-span-2" />
-            <Input name="city" label="City" required />
-            <Input name="state" label="State" required />
-            <Input name="postalCode" label="ZIP Code" required />
+            <Input
+              name="line1"
+              label="Address Line 1"
+              required
+              className="sm:col-span-2"
+              value={address.line1}
+              onChange={(e) => setAddress((prev) => ({ ...prev, line1: e.target.value }))}
+            />
+            <Input
+              name="line2"
+              label="Address Line 2"
+              className="sm:col-span-2"
+              value={address.line2}
+              onChange={(e) => setAddress((prev) => ({ ...prev, line2: e.target.value }))}
+            />
+            <Input
+              name="city"
+              label="City"
+              required
+              value={address.city}
+              onChange={(e) => setAddress((prev) => ({ ...prev, city: e.target.value }))}
+            />
+            <Input
+              name="state"
+              label="State"
+              required
+              value={address.state}
+              onChange={(e) => setAddress((prev) => ({ ...prev, state: e.target.value }))}
+            />
+            <Input
+              name="postalCode"
+              label="ZIP Code"
+              required
+              value={address.postalCode}
+              onChange={(e) => setAddress((prev) => ({ ...prev, postalCode: e.target.value }))}
+            />
           </>
         )}
       </div>
@@ -154,6 +282,40 @@ export function CheckoutForm() {
         <p className="rounded-xl bg-explore-teal/10 px-4 py-3 text-sm text-explore-charcoal/80">
           Digital books are delivered by email — no shipping address needed.
         </p>
+      )}
+
+      {needsAddress && shippingOptions.length > 1 && (
+        <div className="rounded-xl border border-explore-charcoal/10 bg-explore-sand/40 p-4 space-y-3">
+          <p className="text-sm font-medium text-explore-charcoal">Shipping method</p>
+          {quote?.liveShippingRates && (
+            <p className="text-xs text-explore-charcoal/60">Live carrier rates for your address</p>
+          )}
+          {shippingOptions.map((option) => (
+            <label
+              key={option.id}
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-explore-charcoal/10 bg-white px-3 py-2.5"
+            >
+              <span className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="shippingOption"
+                  checked={(selectedShippingId ?? quote?.selectedShippingOptionId) === option.id}
+                  onChange={() => setSelectedShippingId(option.id)}
+                />
+                <span>
+                  {option.carrier} — {option.service}
+                  {option.estimatedDays != null && (
+                    <span className="text-explore-charcoal/60">
+                      {" "}
+                      (~{option.estimatedDays} days)
+                    </span>
+                  )}
+                </span>
+              </span>
+              <span className="text-sm font-medium">{formatCents(option.rateCents)}</span>
+            </label>
+          ))}
+        </div>
       )}
 
       {isFreeCart && (
@@ -185,12 +347,34 @@ export function CheckoutForm() {
       <div className="rounded-xl bg-explore-sand/50 p-4 space-y-2 text-sm">
         <div className="flex justify-between">
           <span>Subtotal</span>
-          <span>{formatCents(subtotalCents)}</span>
+          <span>{formatCents(displaySubtotal)}</span>
         </div>
         <div className="flex justify-between">
           <span>Shipping</span>
-          <span>{shippingCents === 0 ? "Free" : formatCents(shippingCents)}</span>
+          <span>
+            {quoteLoading && needsAddress
+              ? "Calculating..."
+              : shippingCents === 0
+                ? "Free"
+                : formatCents(shippingCents)}
+          </span>
         </div>
+        {taxCents > 0 && (
+          <div className="flex justify-between">
+            <span>
+              Sales tax
+              {quote?.taxJurisdiction ? ` (${quote.taxJurisdiction})` : ""}
+              {quote?.taxRatePercent ? ` — ${quote.taxRatePercent}%` : ""}
+            </span>
+            <span>{formatCents(taxCents)}</span>
+          </div>
+        )}
+        {needsAddress && taxCents === 0 && !quoteLoading && quote && displaySubtotal > 0 && (
+          <div className="flex justify-between text-explore-charcoal/60">
+            <span>Sales tax</span>
+            <span>No tax for this order</span>
+          </div>
+        )}
         {isFreeCart && donationCents > 0 && (
           <div className="flex justify-between">
             <span>Donation</span>
@@ -204,7 +388,7 @@ export function CheckoutForm() {
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" size="lg" disabled={status === "loading"} className="w-full">
+      <Button type="submit" size="lg" disabled={status === "loading" || quoteLoading} className="w-full">
         {submitLabel}
       </Button>
     </form>

@@ -19,10 +19,27 @@ export function cartIsFreeOnly(items: BookShippingLine[]): boolean {
   return items.length > 0 && items.every((item) => item.priceCents === 0);
 }
 
-export function calculateBookShippingCents(items: BookShippingLine[]): number {
+export type BookShippingSettings = {
+  flatCents?: number;
+  freeThresholdCents?: number;
+};
+
+export function calculateBookShippingCents(
+  items: BookShippingLine[],
+  settings?: BookShippingSettings
+): number {
   if (items.length === 0) return 0;
   if (items.every((item) => item.priceCents === 0)) return 0;
   if (items.every((item) => isDigitalBookLine(item))) return 0;
+
+  const flatCents =
+    settings?.flatCents && settings.flatCents > 0
+      ? settings.flatCents
+      : BOOK_FLAT_SHIPPING_CENTS;
+  const freeThresholdCents =
+    settings?.freeThresholdCents && settings.freeThresholdCents > 0
+      ? settings.freeThresholdCents
+      : BOOK_FREE_SHIPPING_THRESHOLD_CENTS;
 
   const subtotalCents = items.reduce((sum, item) => sum + item.priceCents * item.quantity, 0);
 
@@ -31,5 +48,5 @@ export function calculateBookShippingCents(items: BookShippingLine[]): number {
   );
 
   if (!needsShipping) return 0;
-  return subtotalCents >= BOOK_FREE_SHIPPING_THRESHOLD_CENTS ? 0 : BOOK_FLAT_SHIPPING_CENTS;
+  return subtotalCents >= freeThresholdCents ? 0 : flatCents;
 }

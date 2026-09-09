@@ -7,9 +7,9 @@ import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
 import { stripeProductData } from "@/lib/stripe/tax-codes";
-import { calculateBookShippingCents } from "@/lib/orders/book-shipping";
 import { fulfillBookOrder } from "@/lib/orders/fulfill-book-order";
 import { isBookDigital } from "@/lib/books/is-digital";
+import { buildCheckoutQuote } from "@/lib/orders/checkout-quote";
 
 const itemSchema = z.object({
   bookId: z.string(),
@@ -29,6 +29,7 @@ const checkoutSchema = z.object({
   }),
   customerEmail: z.string().email(),
   customerName: z.string().min(1),
+  shippingOptionId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -59,7 +60,6 @@ export async function POST(request: Request) {
   await connectDB();
 
   const settings = await SiteSettings.findOne();
-  const taxRate = settings?.taxRatePercent ?? 0;
 
   const orderItems: {
     bookId: typeof Book.prototype._id;
@@ -111,14 +111,32 @@ export async function POST(request: Request) {
     }
   }
 
-  const taxCents = Math.round(subtotalCents * (taxRate / 100));
-  const shippingCents = calculateBookShippingCents(
-    orderItems.map((item) => ({
+  const quote = await buildCheckoutQuote({
+    items: orderItems.map((item) => ({
       priceCents: item.priceCents,
       quantity: item.quantity,
       isDigital: item.isDigital,
-    }))
-  );
+    })),
+    shippingAddress: {
+      line1: parsed.data.shippingAddress.line1,
+      line2: parsed.data.shippingAddress.line2,
+      city: parsed.data.shippingAddress.city,
+      state: parsed.data.shippingAddress.state,
+      postalCode: parsed.data.shippingAddress.postalCode,
+      country: parsed.data.shippingAddress.country,
+    },
+    shippingOptionId: parsed.data.shippingOptionId,
+    siteSettings: settings
+      ? {
+          taxRatePercent: settings.taxRatePercent,
+          shippingFlatCents: settings.shippingFlatCents,
+          freeShippingThresholdCents: settings.freeShippingThresholdCents,
+        }
+      : undefined,
+  });
+
+  const taxCents = quote.taxCents;
+  const shippingCents = quote.shippingCents;
   const totalCents = subtotalCents + taxCents + shippingCents;
 
   if (shippingCents > 0) {
@@ -127,6 +145,17 @@ export async function POST(request: Request) {
         currency: "usd",
         product_data: stripeProductData({ name: "Shipping" }, "books"),
         unit_amount: shippingCents,
+      },
+      quantity: 1,
+    });
+  }
+
+  if (taxCents > 0) {
+    lineItems.push({
+      price_data: {
+        currency: "usd",
+        product_data: stripeProductData({ name: "Sales tax" }, "books"),
+        unit_amount: taxCents,
       },
       quantity: 1,
     });

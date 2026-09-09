@@ -72,7 +72,7 @@ export const parentNavGroups: ParentNavGroup[] = [
         requiredAnyFeatures: ["purchasedBooks", "monthlyBook"],
       },
       { label: "Portfolio", href: "/parent/portfolio", icon: NotebookPen, requiredFeature: "parentDashboard" },
-      { label: "Transcript Generator", href: "/parent/tools/transcript", icon: FileText, requiredFeature: "parentDashboard" },
+      { label: "Transcript & Report Card Generator", href: "/parent/tools/transcript", icon: FileText, requiredFeature: "parentDashboard" },
       { label: "Certificate Generator", href: "/parent/tools/certificate", icon: ScrollText, requiredFeature: "parentDashboard" },
     ],
   },

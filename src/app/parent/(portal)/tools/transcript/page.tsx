@@ -13,8 +13,8 @@ export default async function ParentTranscriptGeneratorPage() {
   return (
     <div className="space-y-6">
       <ParentToolsHeader
-        title="Transcript Generator"
-        description="Build a homeschool transcript PDF for your child. Grades, credits, and GPA calculate automatically."
+        title="Transcript & Report Card Generator"
+        description="Build a homeschool transcript or report card PDF for your child. Grades, credits, and GPA calculate automatically."
       />
       <TranscriptGeneratorForm
         linkedStudents={linkedStudents}

@@ -5,7 +5,7 @@ import { ResourceToolNav } from "@/components/resources/ResourceToolNav";
 export const metadata: Metadata = {
   title: "Free Homeschool Tools",
   description:
-    "Free homeschool transcript and certificate generators from Explore More Academy. Download PDFs — no account needed.",
+    "Free homeschool transcript, report card, and certificate generators from Explore More Academy. Download PDFs — no account needed.",
 };
 
 export default function ResourcesLayout({ children }: { children: React.ReactNode }) {

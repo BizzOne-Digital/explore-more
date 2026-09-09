@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { FileText, Award } from "lucide-react";
 
 const PUBLIC_TOOLS = [
-  { slug: "transcript", label: "Transcript Generator", icon: FileText },
+  { slug: "transcript", label: "Transcript & Report Card Generator", icon: FileText },
   { slug: "certificate", label: "Certificate Generator", icon: Award },
 ] as const;
 

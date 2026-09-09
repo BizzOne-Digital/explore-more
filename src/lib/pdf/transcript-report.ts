@@ -1,21 +1,41 @@
 import { AcademyReport, formatReportDate } from "@/lib/pdf/academy-report";
 import {
   computeTranscriptTotals,
+  durationDisplayLabel,
   normalizeTranscriptCourse,
   percentToLetter,
+  type DocumentType,
   type TranscriptCourseInput,
 } from "@/lib/resources/grades";
 import type { TranscriptStudentInfo } from "@/lib/resources/types";
 
+function documentTitle(documentType: DocumentType): string {
+  return documentType === "report_card" ? "Homeschool Report Card" : "Official Homeschool Transcript";
+}
+
+function downloadLabel(documentType: DocumentType): string {
+  return documentType === "report_card" ? "report-card" : "transcript";
+}
+
+export function getTranscriptPdfFilename(
+  studentName: string,
+  documentType: DocumentType = "transcript"
+): string {
+  const safeName = studentName.replace(/[^\w.-]+/g, "_").slice(0, 40);
+  return `${downloadLabel(documentType)}-${safeName || "student"}.pdf`;
+}
+
 export async function generateTranscriptPdf(
   student: TranscriptStudentInfo,
-  courses: TranscriptCourseInput[]
+  courses: TranscriptCourseInput[],
+  documentType: DocumentType = "transcript"
 ): Promise<Uint8Array> {
   const validCourses = courses.filter((c) => c.courseName.trim()).map(normalizeTranscriptCourse);
   const { totalCredits, cumulativeGpa } = computeTranscriptTotals(validCourses);
+  const isReportCard = documentType === "report_card";
 
   const report = await AcademyReport.create(
-    "Official Homeschool Transcript",
+    documentTitle(documentType),
     student.schoolYear ? `School Year ${student.schoolYear}` : undefined
   );
 
@@ -37,7 +57,7 @@ export async function generateTranscriptPdf(
     { label: "Courses Listed", value: String(validCourses.length) },
   ]);
 
-  report.drawSectionTitle("Course Record");
+  report.drawSectionTitle(isReportCard ? "Quarterly Grades" : "Course Record");
 
   const tableRows = validCourses.map((course, index) => {
     const percent = parseFloat(course.gradePercent);
@@ -46,6 +66,20 @@ export async function generateTranscriptPdf(
       (Number.isNaN(percent) ? "—" : percentToLetter(percent));
     const percentDisplay = Number.isNaN(percent) ? "—" : `${Math.round(percent)}%`;
 
+    if (isReportCard) {
+      return [
+        String(index + 1),
+        course.courseName,
+        percentDisplay,
+        letter,
+        course.q1?.trim() || "—",
+        course.q2?.trim() || "—",
+        course.q3?.trim() || "—",
+        course.q4?.trim() || "—",
+        course.credits || "—",
+      ];
+    }
+
     return [
       String(index + 1),
       course.courseName,
@@ -53,27 +87,46 @@ export async function generateTranscriptPdf(
       letter,
       course.startDate || "—",
       course.endDate || "—",
-      course.duration || "—",
+      durationDisplayLabel(course.duration) || "—",
       course.credits || "—",
     ];
   });
 
-  report.drawTable(
-    [
-      { header: "#", width: 22 },
-      { header: "Course", width: 130 },
-      { header: "Grade %", width: 44 },
-      { header: "Letter", width: 38 },
-      { header: "Start", width: 58 },
-      { header: "End", width: 58 },
-      { header: "Duration", width: 58 },
-      { header: "Credits", width: 44 },
-    ],
-    tableRows
-  );
+  if (isReportCard) {
+    report.drawTable(
+      [
+        { header: "#", width: 22 },
+        { header: "Course", width: 110 },
+        { header: "Grade %", width: 40 },
+        { header: "Letter", width: 36 },
+        { header: "1st Qtr", width: 44 },
+        { header: "2nd Qtr", width: 44 },
+        { header: "3rd Qtr", width: 44 },
+        { header: "4th Qtr", width: 44 },
+        { header: "Credits", width: 40 },
+      ],
+      tableRows
+    );
+  } else {
+    report.drawTable(
+      [
+        { header: "#", width: 22 },
+        { header: "Course", width: 130 },
+        { header: "Grade %", width: 44 },
+        { header: "Letter", width: 38 },
+        { header: "Start", width: 58 },
+        { header: "End", width: 58 },
+        { header: "Duration", width: 72 },
+        { header: "Credits", width: 44 },
+      ],
+      tableRows
+    );
+  }
 
   report.drawParagraph(
-    "1 credit = full-year course · 0.5 credits = half-year course. GPA is calculated on an unweighted 4.0 scale. Parents and guardians are responsible for verifying state homeschool requirements.",
+    isReportCard
+      ? "Quarterly grades reflect progress for each marking period. Credits and GPA use the overall course grade when provided."
+      : "1 credit = full-year course · 0.5 credits = half-year course. GPA is calculated on an unweighted 4.0 scale. Parents and guardians are responsible for verifying state homeschool requirements.",
     { size: 8, muted: true }
   );
 

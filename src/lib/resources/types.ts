@@ -1,4 +1,4 @@
-import type { TranscriptCourseInput } from "@/lib/resources/grades";
+import type { DocumentType, TranscriptCourseInput } from "@/lib/resources/grades";
 
 export type TranscriptStudentInfo = {
   studentName: string;
@@ -12,6 +12,7 @@ export type TranscriptStudentInfo = {
 };
 
 export type TranscriptPayload = {
+  documentType?: DocumentType;
   student: TranscriptStudentInfo;
   courses: TranscriptCourseInput[];
 };

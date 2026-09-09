@@ -8,12 +8,16 @@ import { Button } from "@/components/ui/Button";
 import { COMPANY } from "@/lib/constants";
 import {
   COMMON_COURSES,
+  DOCUMENT_TYPE_OPTIONS,
+  DURATION_OPTIONS,
   GRADE_LEVELS,
   computeCourseDuration,
   computeTranscriptTotals,
+  creditsForDurationValue,
   normalizeTranscriptCourse,
   percentToLetter,
   suggestCredits,
+  type DocumentType,
   type TranscriptCourseInput,
 } from "@/lib/resources/grades";
 import type { TranscriptStudentInfo } from "@/lib/resources/types";
@@ -31,6 +35,10 @@ function emptyCourse(): TranscriptCourseInput {
     endDate: "",
     duration: "",
     credits: "",
+    q1: "",
+    q2: "",
+    q3: "",
+    q4: "",
   };
 }
 
@@ -59,9 +67,11 @@ export function TranscriptGeneratorForm({
     homeschoolName: defaultHomeschoolName,
   });
   const [courses, setCourses] = useState<TranscriptCourseInput[]>([emptyCourse(), emptyCourse(), emptyCourse()]);
+  const [documentType, setDocumentType] = useState<DocumentType>("transcript");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isReportCard = documentType === "report_card";
   const totals = useMemo(() => computeTranscriptTotals(courses), [courses]);
 
   function updateStudent<K extends keyof TranscriptStudentInfo>(key: K, value: TranscriptStudentInfo[K]) {
@@ -91,7 +101,8 @@ export function TranscriptGeneratorForm({
         }
 
         if ("duration" in patch && patch.duration !== undefined) {
-          const suggested = suggestCredits(patch.duration);
+          const fromOption = creditsForDurationValue(patch.duration);
+          const suggested = fromOption || suggestCredits(patch.duration);
           if (suggested) next.credits = suggested;
         }
 
@@ -128,7 +139,7 @@ export function TranscriptGeneratorForm({
       const res = await fetch("/api/public/transcript/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ student, courses: namedCourses }),
+        body: JSON.stringify({ documentType, student, courses: namedCourses }),
       });
 
       if (!res.ok) {
@@ -140,7 +151,8 @@ export function TranscriptGeneratorForm({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `transcript-${student.studentName.replace(/[^\w.-]+/g, "_") || "student"}.pdf`;
+      const prefix = isReportCard ? "report-card" : "transcript";
+      a.download = `${prefix}-${student.studentName.replace(/[^\w.-]+/g, "_") || "student"}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -230,9 +242,24 @@ export function TranscriptGeneratorForm({
         <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">Step 2</p>
         <h2 className="mt-1 font-display text-2xl font-bold text-explore-charcoal">Enter Courses</h2>
         <p className="mt-2 text-sm text-explore-charcoal/70">
-          Add each course with the grade, dates, and credits. Letter grades update automatically from the
-          percentage — you can edit them if needed.
+          {isReportCard
+            ? "Add each course with quarterly grades (1st–4th quarter). Use the overall grade % for GPA and credits."
+            : "Add each course with the grade, dates, duration, and credits. Letter grades update automatically from the percentage."}
         </p>
+
+        <div className="mt-5 max-w-md">
+          <Select
+            label="Document type"
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value as DocumentType)}
+            options={DOCUMENT_TYPE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+          />
+          <p className="mt-1.5 text-xs text-explore-charcoal/60">
+            {isReportCard
+              ? "Report Card shows 1st–4th quarter columns on the PDF."
+              : "Transcript shows duration and date ranges for each course."}
+          </p>
+        </div>
 
         <div className="mt-6 overflow-x-auto">
           <table className="w-full min-w-[760px] border-collapse text-sm">
@@ -242,9 +269,21 @@ export function TranscriptGeneratorForm({
                 <th className="px-2 py-2">Course Name</th>
                 <th className="px-2 py-2 w-20">Grade %</th>
                 <th className="px-2 py-2 w-16">Letter</th>
-                <th className="px-2 py-2 w-32">Start</th>
-                <th className="px-2 py-2 w-32">End</th>
-                <th className="px-2 py-2 w-28">Duration</th>
+                {!isReportCard && (
+                  <>
+                    <th className="px-2 py-2 w-32">Start</th>
+                    <th className="px-2 py-2 w-32">End</th>
+                    <th className="px-2 py-2 w-36">Duration</th>
+                  </>
+                )}
+                {isReportCard && (
+                  <>
+                    <th className="px-2 py-2 w-20">1st Qtr</th>
+                    <th className="px-2 py-2 w-20">2nd Qtr</th>
+                    <th className="px-2 py-2 w-20">3rd Qtr</th>
+                    <th className="px-2 py-2 w-20">4th Qtr</th>
+                  </>
+                )}
                 <th className="px-2 py-2 w-20">Credits</th>
                 <th className="px-2 py-2 w-10" />
               </tr>
@@ -279,30 +318,54 @@ export function TranscriptGeneratorForm({
                       className="w-full rounded-lg border border-explore-charcoal/15 px-2 py-1.5 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
                     />
                   </td>
-                  <td className="px-2 py-2">
-                    <input
-                      type="date"
-                      value={course.startDate}
-                      onChange={(e) => updateCourse(index, { startDate: e.target.value })}
-                      className="w-full rounded-lg border border-explore-charcoal/15 px-2 py-1.5 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
-                    />
-                  </td>
-                  <td className="px-2 py-2">
-                    <input
-                      type="date"
-                      value={course.endDate}
-                      onChange={(e) => updateCourse(index, { endDate: e.target.value })}
-                      className="w-full rounded-lg border border-explore-charcoal/15 px-2 py-1.5 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
-                    />
-                  </td>
-                  <td className="px-2 py-2">
-                    <input
-                      value={course.duration}
-                      onChange={(e) => updateCourse(index, { duration: e.target.value })}
-                      placeholder="Semester"
-                      className="w-full rounded-lg border border-explore-charcoal/15 px-2 py-1.5 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
-                    />
-                  </td>
+                  {!isReportCard && (
+                    <>
+                      <td className="px-2 py-2">
+                        <input
+                          type="date"
+                          value={course.startDate}
+                          onChange={(e) => updateCourse(index, { startDate: e.target.value })}
+                          className="w-full rounded-lg border border-explore-charcoal/15 px-2 py-1.5 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="date"
+                          value={course.endDate}
+                          onChange={(e) => updateCourse(index, { endDate: e.target.value })}
+                          className="w-full rounded-lg border border-explore-charcoal/15 px-2 py-1.5 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
+                        />
+                      </td>
+                      <td className="px-2 py-2">
+                        <select
+                          value={course.duration}
+                          onChange={(e) => updateCourse(index, { duration: e.target.value })}
+                          className="w-full rounded-lg border border-explore-charcoal/15 px-2 py-1.5 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
+                        >
+                          <option value="">Select duration…</option>
+                          {DURATION_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.displayLabel}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </>
+                  )}
+                  {isReportCard && (
+                    <>
+                      {(["q1", "q2", "q3", "q4"] as const).map((quarter) => (
+                        <td key={quarter} className="px-2 py-2">
+                          <input
+                            value={course[quarter] ?? ""}
+                            onChange={(e) => updateCourse(index, { [quarter]: e.target.value })}
+                            placeholder="A"
+                            className="w-full rounded-lg border border-explore-charcoal/15 px-2 py-1.5 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
+                          />
+                        </td>
+                      ))}
+                    </>
+                  )}
                   <td className="px-2 py-2">
                     <input
                       value={course.credits}
@@ -370,7 +433,11 @@ export function TranscriptGeneratorForm({
           className="min-w-[240px]"
         >
           <Download className="h-5 w-5" />
-          {loading ? "Generating PDF…" : "Download Transcript PDF"}
+          {loading
+            ? "Generating PDF…"
+            : isReportCard
+              ? "Download Report Card PDF"
+              : "Download Transcript PDF"}
         </Button>
       </div>
     </div>

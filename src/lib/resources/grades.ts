@@ -34,6 +34,20 @@ export function letterToGpa(letter: string): number {
   return 0.0;
 }
 
+export type DocumentType = "transcript" | "report_card";
+
+export const DOCUMENT_TYPE_OPTIONS: Array<{ value: DocumentType; label: string }> = [
+  { value: "transcript", label: "Transcript" },
+  { value: "report_card", label: "Report Card" },
+];
+
+export const DURATION_OPTIONS = [
+  { value: "full_year", label: "Full Year", credits: "1.0", displayLabel: "Full Year (1.0)" },
+  { value: "half_year", label: "Half Year", credits: "0.5", displayLabel: "Half Year (0.5)" },
+  { value: "alt_full_year", label: "Alt - Full Year", credits: "10", displayLabel: "Alt - Full Year (10)" },
+  { value: "alt_half_year", label: "Alt - Half Year", credits: "5", displayLabel: "Alt - Half Year (5)" },
+] as const;
+
 export type TranscriptCourseInput = {
   courseName: string;
   gradePercent: string;
@@ -42,7 +56,34 @@ export type TranscriptCourseInput = {
   endDate: string;
   duration: string;
   credits: string;
+  q1?: string;
+  q2?: string;
+  q3?: string;
+  q4?: string;
 };
+
+export function creditsForDurationValue(duration: string): string {
+  const trimmed = duration.trim();
+  if (!trimmed) return "";
+
+  const byValue = DURATION_OPTIONS.find((opt) => opt.value === trimmed);
+  if (byValue) return byValue.credits;
+
+  const byLabel = DURATION_OPTIONS.find(
+    (opt) => opt.displayLabel === trimmed || opt.label === trimmed
+  );
+  if (byLabel) return byLabel.credits;
+
+  return suggestCredits(trimmed);
+}
+
+export function durationDisplayLabel(duration: string): string {
+  const trimmed = duration.trim();
+  const match = DURATION_OPTIONS.find(
+    (opt) => opt.value === trimmed || opt.displayLabel === trimmed || opt.label === trimmed
+  );
+  return match?.displayLabel ?? trimmed;
+}
 
 export function computeCourseDuration(startDate: string, endDate: string): string {
   if (!startDate || !endDate) return "";
@@ -81,6 +122,12 @@ export function suggestCredits(duration: string): string {
 export function resolveCourseCredits(course: TranscriptCourseInput): number {
   const explicit = parseFloat(course.credits.trim());
   if (!Number.isNaN(explicit) && explicit > 0) return explicit;
+
+  const fromOption = creditsForDurationValue(course.duration);
+  if (fromOption) {
+    const inferred = parseFloat(fromOption);
+    if (!Number.isNaN(inferred) && inferred > 0) return inferred;
+  }
 
   const suggested = suggestCredits(course.duration);
   if (suggested) {

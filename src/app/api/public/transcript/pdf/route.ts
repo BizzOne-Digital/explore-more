@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { jsonError } from "@/lib/api/response";
 import { rateLimit } from "@/lib/api/rate-limit";
-import { generateTranscriptPdf } from "@/lib/pdf/transcript-report";
+import {
+  generateTranscriptPdf,
+  getTranscriptPdfFilename,
+} from "@/lib/pdf/transcript-report";
 
 const courseSchema = z.object({
   courseName: z.string().max(120),
@@ -11,9 +14,14 @@ const courseSchema = z.object({
   endDate: z.string().max(20).optional().default(""),
   duration: z.string().max(40).optional().default(""),
   credits: z.string().max(10).optional().default(""),
+  q1: z.string().max(10).optional().default(""),
+  q2: z.string().max(10).optional().default(""),
+  q3: z.string().max(10).optional().default(""),
+  q4: z.string().max(10).optional().default(""),
 });
 
 const transcriptSchema = z.object({
+  documentType: z.enum(["transcript", "report_card"]).optional().default("transcript"),
   student: z.object({
     studentName: z.string().min(1).max(120),
     dateOfBirth: z.string().max(30).optional().default(""),
@@ -52,9 +60,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const pdf = await generateTranscriptPdf(parsed.data.student, parsed.data.courses);
-    const safeName = parsed.data.student.studentName.replace(/[^\w.-]+/g, "_").slice(0, 40);
-    const filename = `transcript-${safeName || "student"}.pdf`;
+    const documentType = parsed.data.documentType;
+    const pdf = await generateTranscriptPdf(
+      parsed.data.student,
+      parsed.data.courses,
+      documentType
+    );
+    const filename = getTranscriptPdfFilename(parsed.data.student.studentName, documentType);
 
     return new Response(Buffer.from(pdf), {
       headers: {

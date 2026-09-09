@@ -4,7 +4,12 @@ import {
   isStripeConfigured,
   retrieveCheckoutSession,
 } from "@/lib/services/stripe";
-import { getDigitalDownloadsForOrder } from "@/lib/orders/digital-downloads";
+import {
+  filterPendingDigitalItems,
+  filterPhysicalItems,
+  getDigitalDownloadsForOrder,
+  getOrderBookDeliveryInfo,
+} from "@/lib/orders/digital-downloads";
 import { fulfillBookOrder } from "@/lib/orders/fulfill-book-order";
 import { jsonOk, jsonError } from "@/lib/api/response";
 
@@ -51,10 +56,11 @@ export async function GET(request: Request) {
       return jsonError("Order not found", 404);
     }
 
-    const digitalDownloads =
-      order.paymentStatus === "paid"
-        ? await getDigitalDownloadsForOrder(order)
-        : [];
+    const isPaid = order.paymentStatus === "paid" || order.paymentStatus === "manual";
+    const deliveryInfo = isPaid ? await getOrderBookDeliveryInfo(order) : [];
+    const digitalDownloads = isPaid ? await getDigitalDownloadsForOrder(order) : [];
+    const pendingDigital = filterPendingDigitalItems(deliveryInfo);
+    const physicalItems = filterPhysicalItems(deliveryInfo);
 
     return jsonOk({
       orderNumber: order.orderNumber,
@@ -71,6 +77,14 @@ export async function GET(request: Request) {
       digitalDownloads: digitalDownloads.map((item) => ({
         ...item,
         orderId: order!._id.toString(),
+      })),
+      pendingDigital: pendingDigital.map((item) => ({
+        bookId: item.bookId,
+        title: item.title,
+      })),
+      physicalItems: physicalItems.map((item) => ({
+        bookId: item.bookId,
+        title: item.title,
       })),
     });
   } catch (error) {

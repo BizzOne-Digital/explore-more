@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { Book, Order } from "@/models";
+import { hasDownloadableDigitalFile } from "@/lib/books/digital-file";
 import { getR2DownloadUrl } from "@/lib/services/r2-storage";
 
 export async function GET(
@@ -24,10 +25,11 @@ export async function GET(
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    // Check if digital file exists
-    if (!book.digitalFile || !book.digitalFile.enabled) {
+    if (!hasDownloadableDigitalFile(book) || !book.digitalFile) {
       return NextResponse.json({ error: "Digital download not available for this book" }, { status: 404 });
     }
+
+    const digitalFile = book.digitalFile;
 
     // Verify purchase
     if (!orderId) {
@@ -53,19 +55,22 @@ export async function GET(
       return NextResponse.json({ error: "Book not found in order" }, { status: 403 });
     }
 
-    // Optional: Check if user owns the order (if logged in)
-    if (session?.user?.id && order.userId?.toString() !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session?.user?.id) {
+      const ownsOrder =
+        order.userId?.toString() === session.user.id ||
+        order.customerEmail?.toLowerCase() === session.user.email?.toLowerCase();
+      if (!ownsOrder) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
-    // Generate signed download URL or serve local file
     if (
-      (book.digitalFile.storage === "local" || book.digitalFile.storage === "mongo") &&
-      book.digitalFile.localPath
+      (digitalFile.storage === "local" || digitalFile.storage === "mongo") &&
+      digitalFile.localPath
     ) {
       const { readBookDigitalFile } = await import("@/lib/services/book-digital-storage");
-      const { buffer, mimeType } = await readBookDigitalFile(book.digitalFile);
-      const filename = book.digitalFile.fileName || "book.pdf";
+      const { buffer, mimeType } = await readBookDigitalFile(digitalFile);
+      const filename = digitalFile.fileName || "book.pdf";
 
       return new Response(new Uint8Array(buffer), {
         headers: {
@@ -76,11 +81,11 @@ export async function GET(
       });
     }
 
-    if (!book.digitalFile.r2Key) {
+    if (!digitalFile.r2Key) {
       return NextResponse.json({ error: "Digital file not available" }, { status: 404 });
     }
 
-    const downloadUrl = await getR2DownloadUrl(book.digitalFile.r2Key, 900);
+    const downloadUrl = await getR2DownloadUrl(digitalFile.r2Key, 900);
 
     // Log the download (optional)
     console.log(`Download requested: Book ${bookId}, Order ${orderId}, User ${session?.user?.email || "Guest"}`);
@@ -89,8 +94,8 @@ export async function GET(
     return NextResponse.json({
       success: true,
       downloadUrl,
-      fileName: book.digitalFile.fileName,
-      fileSize: book.digitalFile.fileSizeBytes,
+      fileName: digitalFile.fileName,
+      fileSize: digitalFile.fileSizeBytes,
       expiresIn: 900, // seconds
     });
   } catch (error) {

@@ -7,15 +7,16 @@ import { format } from "date-fns";
 import { Download, BookOpen, Package } from "lucide-react";
 import Link from "next/link";
 import { DownloadButton } from "@/components/books/DownloadButton";
+import { hasDownloadableDigitalFile } from "@/lib/books/digital-file";
+import { isBookDigital } from "@/lib/books/is-digital";
 
 export const dynamic = "force-dynamic";
 
-async function getPurchasedBooks(userId: string) {
+async function getPurchasedBooks(userId: string, email: string) {
   await connectDB();
-  
-  // Find all paid orders for this user
+
   const orders = await Order.find({
-    userId,
+    $or: [{ userId }, { customerEmail: email }],
     paymentStatus: "paid",
   })
     .sort({ createdAt: -1 })
@@ -50,11 +51,12 @@ export default async function ParentBooksPage() {
   const session = await auth();
   if (!session?.user) redirect("/parent/login?callbackUrl=/parent/books");
 
-  const purchasedBooks = await getPurchasedBooks(session.user.id);
+  const purchasedBooks = await getPurchasedBooks(session.user.id, session.user.email ?? "");
 
-  // Separate physical and digital books
-  const digitalBooks = purchasedBooks.filter((book) => book.digitalFile?.enabled);
-  const physicalBooks = purchasedBooks.filter((book) => !book.digitalFile?.enabled);
+  const digitalBooks = purchasedBooks.filter((book) => hasDownloadableDigitalFile(book));
+  const physicalBooks = purchasedBooks.filter(
+    (book) => !hasDownloadableDigitalFile(book) && !isBookDigital(book)
+  );
 
   return (
     <div className="space-y-6">

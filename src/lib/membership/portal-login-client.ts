@@ -85,7 +85,7 @@ export async function completePortalSignIn(portal: PortalLoginKind): Promise<{
     const error =
       portal === "student"
         ? data.detail ?? STUDENT_ACCESS_MESSAGES[reason] ?? STUDENT_ACCESS_MESSAGES.subscription_required
-        : "Please subscribe to a membership to access the parent portal, or contact the academy for a trial.";
+        : "Could not access the parent portal. Create a free account or sign in with the email you used at checkout.";
     return { ok: false, error, reason };
   }
 

@@ -37,7 +37,14 @@ export interface ParentNavGroup {
 export const parentNavGroups: ParentNavGroup[] = [
   {
     title: "Overview",
-    items: [{ label: "Dashboard", href: "/parent", icon: LayoutDashboard, requiredFeature: "parentDashboard" }],
+    items: [
+      {
+        label: "Dashboard",
+        href: "/parent",
+        icon: LayoutDashboard,
+        requiredAnyFeatures: ["parentDashboard", "freeDashboard"],
+      },
+    ],
   },
   {
     title: "Family",
@@ -51,18 +58,34 @@ export const parentNavGroups: ParentNavGroup[] = [
   {
     title: "Learning",
     items: [
-      { label: "My Courses", href: "/parent/courses", icon: Library, requiredFeature: "parentDashboard" },
+      {
+        label: "My Courses",
+        href: "/parent/courses",
+        icon: Library,
+        requiredAnyFeatures: ["purchasedCourses", "parentDashboard"],
+      },
       { label: "My Resources", href: "/parent/resources", icon: FolderOpen, requiredFeature: "digitalResourceLibrary" },
-      { label: "My Books", href: "/parent/books", icon: BookOpen, requiredFeature: "monthlyBook" },
+      {
+        label: "My Books",
+        href: "/parent/books",
+        icon: BookOpen,
+        requiredAnyFeatures: ["purchasedBooks", "monthlyBook"],
+      },
       { label: "Portfolio", href: "/parent/portfolio", icon: NotebookPen, requiredFeature: "parentDashboard" },
-      { label: "Transcript Generator", href: "/parent/tools/transcript", icon: FileText },
-      { label: "Certificate Generator", href: "/parent/tools/certificate", icon: ScrollText },
+      { label: "Transcript Generator", href: "/parent/tools/transcript", icon: FileText, requiredFeature: "parentDashboard" },
+      { label: "Certificate Generator", href: "/parent/tools/certificate", icon: ScrollText, requiredFeature: "parentDashboard" },
     ],
   },
   {
     title: "Communication",
     items: [
-      { label: "Messages", href: "/parent/messages", icon: MessagesSquare, badgeKey: "messages", requiredFeature: "parentDashboard" },
+      {
+        label: "Messages",
+        href: "/parent/messages",
+        icon: MessagesSquare,
+        badgeKey: "messages",
+        requiredAnyFeatures: ["parentMessaging", "parentDashboard"],
+      },
       {
         label: "Tutors & Staff",
         href: "/parent/tutors",
@@ -75,9 +98,19 @@ export const parentNavGroups: ParentNavGroup[] = [
   {
     title: "Account",
     items: [
-      { label: "Payments & Receipts", href: "/parent/receipts", icon: Receipt, requiredFeature: "parentDashboard" },
+      {
+        label: "Payments & Receipts",
+        href: "/parent/receipts",
+        icon: Receipt,
+        requiredAnyFeatures: ["orderReceipts", "parentDashboard"],
+      },
       { label: "Billing & Subscription", href: "/parent/billing", icon: CreditCard },
-      { label: "My Profile", href: "/parent/account", icon: UserCircle, requiredFeature: "parentDashboard" },
+      {
+        label: "My Profile",
+        href: "/parent/account",
+        icon: UserCircle,
+        requiredAnyFeatures: ["parentProfile", "parentDashboard"],
+      },
     ],
   },
 ];

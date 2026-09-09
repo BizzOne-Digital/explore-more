@@ -7,7 +7,7 @@ import { Conversation } from "@/models";
 import { ParentShell } from "@/components/parent/ParentShell";
 import { ensureGuardianId } from "@/lib/parent/guardian-id";
 import { getParentMembershipAccess } from "@/lib/membership/access";
-import { getRequiredFeatureForParentPath } from "@/lib/membership/route-features";
+import { isParentPathAllowed } from "@/lib/membership/route-features";
 import { parentSignOut } from "@/app/parent/(portal)/actions";
 
 export const dynamic = "force-dynamic";
@@ -49,20 +49,8 @@ export default async function ParentPortalLayout({ children }: { children: React
 
   const isAdmin = session.user.role === "administrator";
 
-  if (!isAdmin) {
-    if (session.user.role !== "parent") {
-      redirect("/membership?reason=subscription-required");
-    }
-
-    try {
-      const access = await getParentMembershipAccess(session.user.id);
-      if (!access.hasActiveMembership) {
-        redirect("/membership?reason=subscription-required");
-      }
-    } catch (error) {
-      console.error("Parent membership access check failed:", error);
-      redirect("/membership?reason=subscription-required");
-    }
+  if (!isAdmin && session.user.role !== "parent") {
+    redirect("/parent-portal");
   }
 
   const pathname = (await headers()).get("x-pathname") ?? "/parent";
@@ -70,6 +58,8 @@ export default async function ParentPortalLayout({ children }: { children: React
   if (isAdmin) {
     access = {
       hasActiveMembership: true,
+      hasPortalAccess: true,
+      isFreeAccount: false,
       tierId: "legacy" as const,
       planName: "Administrator",
       planSlug: null,
@@ -80,11 +70,8 @@ export default async function ParentPortalLayout({ children }: { children: React
     access = await getParentMembershipAccess(session.user.id);
   }
 
-  if (!isAdmin && access.hasActiveMembership) {
-    const required = getRequiredFeatureForParentPath(pathname);
-    if (required && !access.hasFeature(required)) {
-      redirect("/parent?upgrade=1");
-    }
+  if (!isAdmin && access.hasPortalAccess && !isParentPathAllowed(pathname, access.hasFeature)) {
+    redirect("/parent?upgrade=1");
   }
 
   let guardianId: string | undefined;

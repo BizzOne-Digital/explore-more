@@ -1,7 +1,12 @@
 import { Book, Order } from "@/models";
 import type { IOrder } from "@/models/Book";
 import { sendBookOrderEmails } from "@/lib/email/order-notifications";
-import { getDigitalDownloadsForOrder } from "@/lib/orders/digital-downloads";
+import {
+  filterPendingDigitalItems,
+  filterPhysicalItems,
+  getDigitalDownloadsForOrder,
+  getOrderBookDeliveryInfo,
+} from "@/lib/orders/digital-downloads";
 
 export async function fulfillBookOrder(
   orderId: string,
@@ -36,7 +41,10 @@ export async function fulfillBookOrder(
     });
   }
 
+  const deliveryInfo = await getOrderBookDeliveryInfo(order);
   const digitalDownloads = await getDigitalDownloadsForOrder(order);
+  const pendingDigital = filterPendingDigitalItems(deliveryInfo);
+  const physicalItems = filterPhysicalItems(deliveryInfo);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.exploremoreacademy.com";
 
   try {
@@ -55,6 +63,8 @@ export async function fulfillBookOrder(
       })),
       shippingAddress: order.shippingAddress,
       digitalDownloads,
+      pendingDigital,
+      physicalItems,
       downloadPageUrl: `${appUrl}/order-success?order=${order.orderNumber}`,
     });
   } catch (err) {

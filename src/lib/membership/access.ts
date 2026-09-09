@@ -2,6 +2,7 @@ import connectDB from "@/lib/db";
 import { GuardianStudentLink, ParentSubscription, SubscriptionPlan } from "@/models";
 import { getTierBySlug, type MembershipTierId } from "@/lib/membership/plans";
 import {
+  FREE_ACCOUNT_FEATURES,
   getTierFeatures,
   type MembershipFeature,
   tierHasFeature,
@@ -9,7 +10,9 @@ import {
 
 export interface MembershipAccess {
   hasActiveMembership: boolean;
-  tierId: MembershipTierId | null;
+  hasPortalAccess: boolean;
+  isFreeAccount: boolean;
+  tierId: MembershipTierId | "free" | null;
   planName: string | null;
   planSlug: string | null;
   features: MembershipFeature[];
@@ -18,11 +21,24 @@ export interface MembershipAccess {
 
 const NO_ACCESS: MembershipAccess = {
   hasActiveMembership: false,
+  hasPortalAccess: false,
+  isFreeAccount: false,
   tierId: null,
   planName: null,
   planSlug: null,
   features: [],
   hasFeature: () => false,
+};
+
+const FREE_ACCESS: MembershipAccess = {
+  hasActiveMembership: false,
+  hasPortalAccess: true,
+  isFreeAccount: true,
+  tierId: "free",
+  planName: "Free Account",
+  planSlug: null,
+  features: FREE_ACCOUNT_FEATURES,
+  hasFeature: (feature) => FREE_ACCOUNT_FEATURES.includes(feature),
 };
 
 function buildAccess(params: {
@@ -33,6 +49,8 @@ function buildAccess(params: {
   const features = getTierFeatures(params.tierId);
   return {
     hasActiveMembership: true,
+    hasPortalAccess: true,
+    isFreeAccount: false,
     tierId: params.tierId,
     planName: params.planName,
     planSlug: params.planSlug,
@@ -46,14 +64,14 @@ export async function getParentMembershipAccess(userId: string): Promise<Members
 
   const subscription = await ParentSubscription.findOne({ userId }).populate("planId").lean();
   if (!subscription || !["active", "trialing"].includes(subscription.status)) {
-    return NO_ACCESS;
+    return FREE_ACCESS;
   }
 
   const plan = subscription.planId as { name?: string; slug?: string } | null;
-  if (!plan?.slug) return NO_ACCESS;
+  if (!plan?.slug) return FREE_ACCESS;
 
   const tier = getTierBySlug(plan.slug);
-  if (!tier) return NO_ACCESS;
+  if (!tier) return FREE_ACCESS;
 
   return buildAccess({
     tierId: tier.id,
@@ -76,11 +94,11 @@ export async function getStudentMembershipAccess(studentUserId: string): Promise
 
   for (const link of links) {
     const parentAccess = await getParentMembershipAccess(link.guardianId.toString());
-    if (!parentAccess.hasActiveMembership || !parentAccess.hasFeature("studentDashboard")) {
+    if (!parentAccess.hasFeature("studentDashboard")) {
       continue;
     }
     if (
-      !best.hasActiveMembership ||
+      !best.hasPortalAccess ||
       (parentAccess.tierId &&
         best.tierId &&
         parentAccess.features.length > best.features.length)

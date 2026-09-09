@@ -26,6 +26,8 @@ interface OrderConfirmation {
   totalCents: number;
   items: Array<{ title: string; quantity: number; priceCents: number }>;
   digitalDownloads: DigitalDownload[];
+  pendingDigital?: Array<{ bookId: string; title: string }>;
+  physicalItems?: Array<{ bookId: string; title: string }>;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -98,7 +100,10 @@ export function OrderSuccessClient() {
   }, [orderNumber, sessionId, clearCart]);
 
   const hasDigital = (order?.digitalDownloads.length ?? 0) > 0;
+  const hasPendingDigital = (order?.pendingDigital?.length ?? 0) > 0;
+  const hasPhysical = (order?.physicalItems?.length ?? 0) > 0;
   const isPaid = order?.paymentStatus === "paid" || order?.paymentStatus === "manual";
+  const isFreeOrder = (order?.totalCents ?? 0) === 0;
 
   return (
     <section className="flex min-h-[70vh] w-full items-center justify-center overflow-x-clip bg-explore-cream pt-28 pb-16">
@@ -115,16 +120,23 @@ export function OrderSuccessClient() {
             </div>
 
             <h1 className="font-display text-3xl font-bold text-explore-charcoal">
-              Thank you for your purchase!
+              {isFreeOrder ? "Thank you for your order!" : "Thank you for your purchase!"}
             </h1>
 
             <p className="mt-3 text-explore-charcoal/70">
               {order
-                ? `Order #${order.orderNumber} is confirmed. A receipt has been sent to ${order.customerEmail}.`
+                ? `Order #${order.orderNumber} is confirmed. A confirmation has been sent to ${order.customerEmail}.`
                 : orderNumber
                   ? `Your order #${orderNumber} was received. You'll receive an email shortly.`
                   : "Your order was received. You'll receive an email shortly."}
             </p>
+
+            {order && isPaid && hasDigital && (
+              <p className="mt-2 text-sm text-explore-teal font-medium">
+                Your digital book{order.digitalDownloads.length === 1 ? "" : "s"} are ready below.
+                Bookmark this page or use the link in your email to download again anytime.
+              </p>
+            )}
 
             {error && <p className="mt-3 text-sm text-amber-700">{error}</p>}
 
@@ -134,7 +146,7 @@ export function OrderSuccessClient() {
               </p>
             )}
 
-            {order && isPaid && (
+            {order && isPaid && !isFreeOrder && (
               <p className="mt-2 text-sm font-medium text-explore-charcoal">
                 Total paid: {formatCents(order.totalCents)}
               </p>
@@ -146,7 +158,7 @@ export function OrderSuccessClient() {
                   Download your books
                 </h2>
                 <p className="mt-1 text-sm text-explore-charcoal/70">
-                  Click the button below to download each digital book you purchased.
+                  Click the button below to download each digital book in your order.
                 </p>
                 <div className="mt-4 space-y-3">
                   {order!.digitalDownloads.map((item) => (
@@ -166,6 +178,44 @@ export function OrderSuccessClient() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {hasPendingDigital && isPaid && (
+              <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-5 text-left">
+                <h2 className="font-display text-lg font-semibold text-explore-charcoal">
+                  Digital download not ready yet
+                </h2>
+                <p className="mt-1 text-sm text-explore-charcoal/70">
+                  These digital books are in your order, but the download file has not been
+                  attached yet:
+                </p>
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-explore-charcoal/80">
+                  {order!.pendingDigital!.map((item) => (
+                    <li key={item.bookId}>{item.title}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-sm text-explore-charcoal/70">
+                  Please{" "}
+                  <Link href="/contact" className="text-explore-teal font-medium hover:underline">
+                    contact us
+                  </Link>{" "}
+                  with your order number and we will send your download link.
+                </p>
+              </div>
+            )}
+
+            {hasPhysical && isPaid && !hasDigital && (
+              <div className="mt-8 rounded-xl border border-explore-charcoal/10 bg-explore-sand/40 p-5 text-left">
+                <h2 className="font-display text-lg font-semibold text-explore-charcoal">
+                  Physical book shipping
+                </h2>
+                <p className="mt-1 text-sm text-explore-charcoal/70">
+                  {hasPhysical && order!.physicalItems!.length === 1
+                    ? `"${order!.physicalItems![0].title}" will be shipped to the address you provided.`
+                    : "Your physical books will be shipped to the address you provided."}
+                  {" "}We will email you when your order ships.
+                </p>
               </div>
             )}
 

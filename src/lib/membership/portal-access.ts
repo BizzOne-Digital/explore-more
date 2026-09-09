@@ -114,9 +114,9 @@ export async function getPortalAccessForUser(
     }
     const access = await getParentMembershipAccess(userId);
     return {
-      hasAccess: access.hasActiveMembership,
-      redirectUrl: access.hasActiveMembership ? "/parent" : null,
-      reason: access.hasActiveMembership ? undefined : "subscription_required",
+      hasAccess: access.hasPortalAccess,
+      redirectUrl: access.hasPortalAccess ? "/parent" : null,
+      reason: access.hasPortalAccess ? undefined : "subscription_required",
     };
   }
 

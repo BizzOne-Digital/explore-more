@@ -1,26 +1,59 @@
 import type { MembershipFeature } from "@/lib/membership/entitlements";
 
-/** Parent portal routes that require a specific membership feature. */
-export const PARENT_ROUTE_FEATURES: Array<{
+type ParentRouteRule = {
   prefix: string;
-  feature: MembershipFeature;
   exact?: boolean;
-}> = [
-  { prefix: "/parent/assessments", feature: "midTermAssessment" },
-  { prefix: "/parent/portfolio", feature: "parentDashboard" },
-  { prefix: "/parent/courses", feature: "parentDashboard" },
-  { prefix: "/parent/resources", feature: "digitalResourceLibrary" },
-  { prefix: "/parent/books", feature: "monthlyBook" },
-  { prefix: "/parent/tutors", feature: "parentDashboard" },
-  { prefix: "/parent/notifications", feature: "communityAnnouncements" },
+  anyOf: MembershipFeature[];
+};
+
+/** Parent portal routes and the membership features that unlock them. */
+export const PARENT_ROUTE_RULES: ParentRouteRule[] = [
+  { prefix: "/parent/assessments", anyOf: ["midTermAssessment", "parentDashboard"] },
+  { prefix: "/parent/portfolio", anyOf: ["parentDashboard"] },
+  { prefix: "/parent/courses", anyOf: ["purchasedCourses", "parentDashboard"] },
+  { prefix: "/parent/resources", anyOf: ["digitalResourceLibrary", "parentDashboard"] },
+  { prefix: "/parent/books", anyOf: ["purchasedBooks", "monthlyBook", "parentDashboard"] },
+  { prefix: "/parent/tutors", anyOf: ["parentDashboard"] },
+  { prefix: "/parent/notifications", anyOf: ["communityAnnouncements", "parentDashboard"] },
+  { prefix: "/parent/messages", anyOf: ["parentMessaging", "parentDashboard"] },
+  { prefix: "/parent/account", anyOf: ["parentProfile", "parentDashboard"] },
+  { prefix: "/parent/receipts", anyOf: ["orderReceipts", "parentDashboard"] },
+  { prefix: "/parent/tools", anyOf: ["parentDashboard"] },
+  { prefix: "/parent/students", anyOf: ["parentDashboard"] },
+  { prefix: "/parent/attendance", anyOf: ["parentDashboard"] },
+  { prefix: "/parent/certificates", anyOf: ["parentDashboard"] },
+  { prefix: "/parent", exact: true, anyOf: ["freeDashboard", "parentDashboard"] },
 ];
 
-export function getRequiredFeatureForParentPath(pathname: string): MembershipFeature | null {
-  for (const route of PARENT_ROUTE_FEATURES) {
-    if (route.exact && pathname === route.prefix) return route.feature;
-    if (!route.exact && pathname.startsWith(route.prefix)) return route.feature;
+export function isParentPathAllowed(
+  pathname: string,
+  hasFeature: (feature: MembershipFeature) => boolean
+): boolean {
+  if (pathname === "/parent/billing" || pathname.startsWith("/parent/billing/")) {
+    return true;
   }
 
+  for (const rule of PARENT_ROUTE_RULES) {
+    const matches = rule.exact ? pathname === rule.prefix : pathname.startsWith(rule.prefix);
+    if (matches) {
+      return rule.anyOf.some(hasFeature);
+    }
+  }
+
+  if (pathname.startsWith("/parent")) {
+    return hasFeature("parentDashboard");
+  }
+
+  return true;
+}
+
+/** @deprecated Use isParentPathAllowed */
+export function getRequiredFeatureForParentPath(pathname: string): MembershipFeature | null {
+  if (pathname === "/parent/billing") return null;
+  for (const rule of PARENT_ROUTE_RULES) {
+    const matches = rule.exact ? pathname === rule.prefix : pathname.startsWith(rule.prefix);
+    if (matches) return rule.anyOf[0];
+  }
   if (pathname.startsWith("/parent")) return "parentDashboard";
   return null;
 }

@@ -15,10 +15,10 @@ export async function requireParentMembershipFeature(
   }
 
   const access = await getParentMembershipAccess(userId);
-  if (!access.hasActiveMembership) {
+  if (!access.hasPortalAccess) {
     return {
       ok: false as const,
-      response: apiError(new Error("An active membership is required. Please subscribe at /membership."), 403),
+      response: apiError(new Error("Parent portal access is required. Please sign in or create an account."), 403),
     };
   }
 

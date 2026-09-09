@@ -1,6 +1,12 @@
 import type { MembershipTierId } from "@/lib/membership/plans";
 
 export type MembershipFeature =
+  | "freeDashboard"
+  | "parentMessaging"
+  | "purchasedBooks"
+  | "purchasedCourses"
+  | "parentProfile"
+  | "orderReceipts"
   | "parentDashboard"
   | "studentDashboard"
   | "newsletter"
@@ -32,9 +38,24 @@ export const TIER_RANK: Record<MembershipTierId, number> = {
   legacy: 6,
 };
 
+/** Free parent accounts — books/courses buyers without a membership. */
+export const FREE_ACCOUNT_FEATURES: MembershipFeature[] = [
+  "freeDashboard",
+  "parentMessaging",
+  "purchasedBooks",
+  "purchasedCourses",
+  "parentProfile",
+  "orderReceipts",
+];
+
 const EXPLORER_FEATURES: MembershipFeature[] = [
   "parentDashboard",
   "studentDashboard",
+  "parentMessaging",
+  "purchasedBooks",
+  "purchasedCourses",
+  "parentProfile",
+  "orderReceipts",
   "newsletter",
   "activityPack",
   "memberEventPricing",

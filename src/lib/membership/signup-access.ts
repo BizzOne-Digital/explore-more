@@ -15,25 +15,9 @@ async function hasPendingMembershipForEmail(email: string): Promise<boolean> {
   return !!pending;
 }
 
-export async function canOpenParentSignup(email?: string | null, userId?: string | null): Promise<boolean> {
-  await connectDB();
-
-  if (userId) {
-    const access = await getParentMembershipAccess(userId);
-    if (access.hasActiveMembership) return true;
-    if (await hasActiveSubscriptionForUserId(userId)) return true;
-  }
-
-  if (email) {
-    if (await hasPendingMembershipForEmail(email)) return true;
-
-    const user = await User.findOne({ email: email.toLowerCase().trim(), role: "parent" }).lean();
-    if (user && (await hasActiveSubscriptionForUserId(user._id.toString()))) {
-      return true;
-    }
-  }
-
-  return false;
+/** Parent signup is open for free accounts; paid members can also register after checkout. */
+export async function canOpenParentSignup(_email?: string | null, _userId?: string | null): Promise<boolean> {
+  return true;
 }
 
 export async function canOpenStudentSignup(options?: {

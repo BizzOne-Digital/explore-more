@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
 import connectDB from "@/lib/db";
+import { getParentMembershipAccess } from "@/lib/membership/access";
+import { FreeParentDashboard } from "@/components/parent/FreeParentDashboard";
 import { getLinkedStudents, getPendingLinkRequests } from "@/lib/parent/students";
 import { resolveParentContext } from "@/lib/parent/context";
 import {
@@ -20,12 +22,38 @@ import { startOfMonth, endOfMonth } from "date-fns";
 export default async function ParentDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ student?: string; year?: string }>;
+  searchParams: Promise<{ student?: string; year?: string; upgrade?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/parent/login?callbackUrl=/parent");
 
   const params = await searchParams;
+  const access = await getParentMembershipAccess(session.user.id);
+  const firstName = (session.user.name ?? "Parent").split(" ")[0];
+
+  if (access.isFreeAccount) {
+    await connectDB();
+    const [orderCount, unreadMessages] = await Promise.all([
+      Order.countDocuments({
+        $or: [{ userId: session.user.id }, { customerEmail: session.user.email }],
+        paymentStatus: "paid",
+      }),
+      Conversation.countDocuments({
+        parentId: session.user.id,
+        parentUnread: { $gt: 0 },
+      }),
+    ]);
+
+    return (
+      <FreeParentDashboard
+        firstName={firstName}
+        orderCount={orderCount}
+        unreadMessages={unreadMessages}
+        showUpgradePrompt={params.upgrade === "1"}
+      />
+    );
+  }
+
   const ctx = await resolveParentContext(session.user.id, params);
   const { students, studentId, schoolYear, portfolio, stats, readiness, canSubmit } = ctx;
   const pendingLinks = await getPendingLinkRequests(session.user.id);

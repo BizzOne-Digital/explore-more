@@ -29,8 +29,8 @@ export default async function ParentSignupPage({
       <div className="mb-6 text-center">
         <h1 className="font-display text-xl font-bold text-explore-charcoal">Parent Registration</h1>
         <p className="mt-2 text-sm text-explore-charcoal/60">
-          Create your parent account to manage your child&apos;s courses, track progress, and stay
-          connected.
+          Create a free account to access purchased books and courses, message staff, and manage your
+          profile. Upgrade to a membership anytime for the full homeschool portal.
         </p>
       </div>
       <Suspense fallback={<p className="text-center text-sm text-explore-charcoal/50">Loading...</p>}>

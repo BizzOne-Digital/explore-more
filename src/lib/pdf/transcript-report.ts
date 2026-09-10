@@ -146,6 +146,11 @@ export async function generateTranscriptPdf(
     );
   }
 
+  if (isReportCard && student.reportCardNotes?.trim()) {
+    report.drawSectionTitle("Notes & Comments");
+    report.drawParagraph(student.reportCardNotes.trim(), { size: 9 });
+  }
+
   report.drawParagraph(
     isReportCard
       ? "Quarterly grades reflect progress for each marking period. Credits and GPA use the overall course grade when provided."

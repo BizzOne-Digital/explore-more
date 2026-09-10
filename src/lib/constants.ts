@@ -85,6 +85,10 @@ export const STORED_IMAGE_MIME_TYPES = [
 
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
 export const MAX_PORTFOLIO_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
+/** MongoDB BSON document limit — keep a safe margin for metadata. */
+export const MAX_MONGO_PRIVATE_UPLOAD_SIZE = 15 * 1024 * 1024; // 15MB
+/** Vercel serverless request body limit — larger files must use direct-to-cloud upload. */
+export const VERCEL_SAFE_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB
 /** Campaign attachments/images — no practical cap for admin uploads (server memory still applies). */
 export const MAX_CAMPAIGN_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1GB
 /** Notification attachments stored in MongoDB (16MB BSON document limit). */

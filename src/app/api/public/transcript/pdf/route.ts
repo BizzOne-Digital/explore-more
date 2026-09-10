@@ -29,6 +29,7 @@ const transcriptSchema = z.object({
     homeschoolName: z.string().max(120).optional().default(""),
     schoolYear: z.string().max(30).optional().default(""),
     reportQuarter: z.enum(["", "1", "2", "3", "4"]).optional().default(""),
+    reportCardNotes: z.string().max(2000).optional().default(""),
     curriculumSite: z.string().max(120).optional().default(""),
     streetAddress: z.string().max(200).optional().default(""),
     cityStateZip: z.string().max(120).optional().default(""),

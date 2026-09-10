@@ -8,7 +8,9 @@ export interface IStoredUpload extends Document {
   filename: string;
   mimeType: string;
   size: number;
-  data: Buffer;
+  data?: Buffer;
+  storage?: "mongo" | "r2";
+  r2Key?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,7 +21,9 @@ const StoredUploadSchema = new Schema<IStoredUpload>(
     filename: { type: String, required: true },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
-    data: { type: Buffer, required: true },
+    data: { type: Buffer },
+    storage: { type: String, enum: ["mongo", "r2"], default: "mongo" },
+    r2Key: { type: String },
   },
   { timestamps: true }
 );

@@ -42,19 +42,66 @@ export function UserAccountDocuments({ userId }: { userId: string }) {
     setUploading(true);
     setError("");
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (label.trim()) formData.append("label", label.trim());
-
-      const res = await fetch(`/api/admin/users/${userId}/documents`, {
+      const presignRes = await fetch(`/api/admin/users/${userId}/documents/presign`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type || "application/octet-stream",
+        }),
       });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error || "Upload failed");
+      const presignJson = await presignRes.json();
+      if (!presignRes.ok) {
+        setError(presignJson.error || "Upload failed");
         return;
       }
+
+      if (!presignJson.data?.direct) {
+        const putRes = await fetch(presignJson.data.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": presignJson.data.contentType },
+          body: file,
+        });
+        if (!putRes.ok) {
+          setError("Cloud upload failed. Please try again.");
+          return;
+        }
+
+        const confirmRes = await fetch(`/api/admin/users/${userId}/documents/confirm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: presignJson.data.path,
+            filename: presignJson.data.filename,
+            r2Key: presignJson.data.r2Key,
+            originalName: file.name,
+            mimeType: presignJson.data.contentType,
+            size: file.size,
+            label: label.trim() || undefined,
+          }),
+        });
+        const confirmJson = await confirmRes.json();
+        if (!confirmRes.ok) {
+          setError(confirmJson.error || "Upload failed");
+          return;
+        }
+      } else {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (label.trim()) formData.append("label", label.trim());
+
+        const res = await fetch(`/api/admin/users/${userId}/documents`, {
+          method: "POST",
+          body: formData,
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setError(json.error || "Upload failed");
+          return;
+        }
+      }
+
       setLabel("");
       await load();
     } catch {
@@ -125,7 +172,9 @@ export function UserAccountDocuments({ userId }: { userId: string }) {
                 ? "Uploading..."
                 : "Drag & drop a document here or click to browse"}
             </p>
-            <p className="mt-1 text-xs text-white/40">PDF, Word, Excel, images, zip — up to 50MB</p>
+            <p className="mt-1 text-xs text-white/40">
+              PDF, Word, Excel, images, zip — up to 50 MB (large files upload directly to cloud storage)
+            </p>
           </div>
         )}
       </DragDropZone>

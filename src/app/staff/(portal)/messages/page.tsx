@@ -38,7 +38,7 @@ export default async function StaffMessagesPage() {
       <div>
         <h2 className="font-display text-2xl font-bold">Parent Messages</h2>
         <p className="mt-1 text-sm text-explore-charcoal/70">
-          Reply to parent inquiries and messages from calls or the portal.
+          Reply to parent messages or start a new conversation with any parent.
         </p>
       </div>
       <StaffMessagesClient conversations={items} />

@@ -50,6 +50,7 @@ const DEFAULT_STUDENT: TranscriptStudentInfo = {
   homeschoolName: "",
   schoolYear: "",
   reportQuarter: "",
+  reportCardNotes: "",
   curriculumSite: COMPANY.name,
   streetAddress: "",
   cityStateZip: "",
@@ -431,6 +432,24 @@ export function TranscriptGeneratorForm({
             <p className="font-display text-2xl font-bold text-explore-teal">{totals.cumulativeGpa.toFixed(2)}</p>
           </div>
         </div>
+
+        {isReportCard && (
+          <div className="mt-8">
+            <label className="mb-1 block text-sm font-medium text-explore-charcoal">
+              Notes &amp; Comments
+            </label>
+            <textarea
+              value={student.reportCardNotes}
+              onChange={(e) => updateStudent("reportCardNotes", e.target.value)}
+              rows={5}
+              placeholder="Add comments about progress, habits, strengths, or learning needs…"
+              className="w-full rounded-lg border border-explore-charcoal/15 px-3 py-2 text-sm focus:border-explore-teal focus:outline-none focus:ring-2 focus:ring-explore-teal/20"
+            />
+            <p className="mt-1.5 text-xs text-explore-charcoal/55">
+              Optional. Appears on the report card PDF below the grades table.
+            </p>
+          </div>
+        )}
 
         <p className="mt-4 text-xs text-explore-charcoal/55">
           1 credit = full-year course · 0.5 credits = half-year course. GPA is calculated on an unweighted 4.0

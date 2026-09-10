@@ -1,15 +1,26 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// R2 client configuration
-const r2Client = new S3Client({
+export function isR2Configured(): boolean {
+  return Boolean(
+    process.env.R2_ACCESS_KEY_ID &&
+      process.env.R2_SECRET_ACCESS_KEY &&
+      process.env.R2_BUCKET_NAME &&
+      !process.env.R2_ACCESS_KEY_ID.includes("your_") &&
+      !process.env.R2_ACCOUNT_ID?.includes("your_")
+  );
+}
+
+function getR2Client(): S3Client {
+  return new S3Client({
   region: "auto",
   endpoint: process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
-  },
-});
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
+    },
+  });
+}
 
 const BUCKET_NAME = process.env.R2_BUCKET_NAME || "explore-more-books";
 
@@ -21,7 +32,8 @@ const BUCKET_NAME = process.env.R2_BUCKET_NAME || "explore-more-books";
 export async function uploadToR2(file: File, key: string): Promise<{ success: boolean; key: string; size: number }> {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    
+    const r2Client = getR2Client();
+
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
@@ -48,8 +60,43 @@ export async function uploadToR2(file: File, key: string): Promise<{ success: bo
  * @param key - Storage key of the file
  * @param expiresIn - Expiry time in seconds (default: 900 = 15 minutes)
  */
+export async function readFromR2(key: string): Promise<{ buffer: Buffer; mimeType: string }> {
+  const r2Client = getR2Client();
+  const response = await r2Client.send(
+    new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    })
+  );
+
+  if (!response.Body) {
+    throw new Error("File not found in cloud storage");
+  }
+
+  const bytes = await response.Body.transformToByteArray();
+  return {
+    buffer: Buffer.from(bytes),
+    mimeType: response.ContentType ?? "application/octet-stream",
+  };
+}
+
+export async function createR2PresignedPutUrl(
+  key: string,
+  contentType: string,
+  expiresIn = 900
+): Promise<string> {
+  const r2Client = getR2Client();
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    ContentType: contentType,
+  });
+  return getSignedUrl(r2Client, command, { expiresIn });
+}
+
 export async function getR2DownloadUrl(key: string, expiresIn: number = 900): Promise<string> {
   try {
+    const r2Client = getR2Client();
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
@@ -69,6 +116,7 @@ export async function getR2DownloadUrl(key: string, expiresIn: number = 900): Pr
  */
 export async function deleteFromR2(key: string): Promise<boolean> {
   try {
+    const r2Client = getR2Client();
     const command = new DeleteObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,

@@ -1,7 +1,12 @@
 import crypto from "crypto";
 import connectDB from "@/lib/db";
 import { StoredUpload } from "@/models";
-import { PRIVATE_STORED_FOLDERS, type PrivateStoredFolder } from "@/lib/constants";
+import {
+  MAX_MONGO_PRIVATE_UPLOAD_SIZE,
+  PRIVATE_STORED_FOLDERS,
+  type PrivateStoredFolder,
+} from "@/lib/constants";
+import { isR2Configured, readFromR2, uploadToR2 } from "@/lib/services/r2-storage";
 
 const MAX_CERTIFICATE_SIZE = 50 * 1024 * 1024;
 
@@ -109,17 +114,11 @@ export function isPrivateStoredFolder(value: string): value is PrivateStoredFold
   return (PRIVATE_STORED_FOLDERS as readonly string[]).includes(value);
 }
 
-export async function storePrivateUpload(
+export function validatePrivateUploadFile(
   file: File,
   folder: PrivateStoredFolder,
   maxSize = MAX_CERTIFICATE_SIZE
-): Promise<{
-  path: string;
-  filename: string;
-  originalName: string;
-  mimeType: string;
-  size: number;
-}> {
+): { filename: string; mimeType: string } {
   if (!isPrivateStoredFolder(folder)) {
     throw new Error(`Invalid private upload folder: ${folder}`);
   }
@@ -142,16 +141,60 @@ export async function storePrivateUpload(
   }
 
   const filename = generatePrivateFilename(ext);
-  const buffer = Buffer.from(await file.arrayBuffer());
   const mimeType = file.type || (ext === "pdf" ? "application/pdf" : `image/${ext === "jpg" ? "jpeg" : ext}`);
+  return { filename, mimeType };
+}
+
+export async function storePrivateUpload(
+  file: File,
+  folder: PrivateStoredFolder,
+  maxSize = MAX_CERTIFICATE_SIZE
+): Promise<{
+  path: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+}> {
+  const { filename, mimeType } = validatePrivateUploadFile(file, folder, maxSize);
 
   await connectDB();
+
+  if (file.size > MAX_MONGO_PRIVATE_UPLOAD_SIZE) {
+    if (!isR2Configured()) {
+      throw new Error(
+        "This file is too large for database storage (max 15 MB). Configure Cloudflare R2 for files up to 50 MB, or compress the file."
+      );
+    }
+
+    const r2Key = `private/${folder}/${filename}`;
+    await uploadToR2(file, r2Key);
+    await StoredUpload.create({
+      folder,
+      filename,
+      mimeType,
+      size: file.size,
+      storage: "r2",
+      r2Key,
+    });
+
+    return {
+      path: `${folder}/${filename}`,
+      filename,
+      originalName: file.name,
+      mimeType,
+      size: file.size,
+    };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
   await StoredUpload.create({
     folder,
     filename,
     mimeType,
     size: file.size,
     data: buffer,
+    storage: "mongo",
   });
 
   return {
@@ -160,6 +203,43 @@ export async function storePrivateUpload(
     originalName: file.name,
     mimeType,
     size: file.size,
+  };
+}
+
+export async function registerPrivateR2Upload(input: {
+  folder: PrivateStoredFolder;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  r2Key: string;
+}): Promise<{
+  path: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+}> {
+  if (!isPrivateStoredFolder(input.folder)) {
+    throw new Error(`Invalid private upload folder: ${input.folder}`);
+  }
+
+  await connectDB();
+  await StoredUpload.create({
+    folder: input.folder,
+    filename: input.filename,
+    mimeType: input.mimeType,
+    size: input.size,
+    storage: "r2",
+    r2Key: input.r2Key,
+  });
+
+  return {
+    path: `${input.folder}/${input.filename}`,
+    filename: input.filename,
+    originalName: input.originalName,
+    mimeType: input.mimeType,
+    size: input.size,
   };
 }
 
@@ -181,7 +261,18 @@ export async function readPrivateStoredFile(relativePath: string): Promise<{
 
   await connectDB();
   const doc = await StoredUpload.findOne({ folder, filename }).lean();
-  if (!doc?.data) return null;
+  if (!doc) return null;
+
+  if (doc.storage === "r2" && doc.r2Key) {
+    const r2File = await readFromR2(doc.r2Key);
+    return {
+      buffer: r2File.buffer,
+      mimeType: r2File.mimeType || doc.mimeType,
+      size: doc.size,
+    };
+  }
+
+  if (!doc.data) return null;
 
   return {
     buffer: bufferFromStoredData(doc.data as Buffer | { buffer: ArrayBuffer } | Uint8Array),

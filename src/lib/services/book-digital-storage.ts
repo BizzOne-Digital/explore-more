@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import connectDB from "@/lib/db";
 import { StoredUpload } from "@/models";
-import { uploadToR2 } from "@/lib/services/r2-storage";
+import { isR2Configured, uploadToR2 } from "@/lib/services/r2-storage";
 import { readPrivateStoredFile } from "@/lib/services/private-stored-upload";
 
 const LOCAL_BOOKS_DIR = path.join(process.cwd(), "storage", "private", "books");
@@ -12,16 +12,6 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const MAX_MONGO_BOOK_SIZE = 15 * 1024 * 1024;
 
 export type BookDigitalStorage = "r2" | "local" | "mongo";
-
-export function isR2Configured(): boolean {
-  return Boolean(
-    process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET_NAME &&
-      !process.env.R2_ACCESS_KEY_ID.includes("your_") &&
-      !process.env.R2_ACCOUNT_ID?.includes("your_")
-  );
-}
 
 function isServerlessEnvironment(): boolean {
   return process.env.VERCEL === "1" || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);

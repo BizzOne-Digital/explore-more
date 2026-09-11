@@ -23,19 +23,21 @@ const addressSchema = z.object({
 });
 
 const checkoutSchema = z.object({
-  items: z.array(
-    z.object({
-      bookId: z.string(),
-      title: z.string(),
-      quantity: z.number().min(1),
-      priceCents: z.number(),
-    })
-  ),
-  customerName: z.string().min(2),
-  customerEmail: z.string().email(),
-  donationCents: z.number().int().min(0).max(500_000).optional(),
+  items: z
+    .array(
+      z.object({
+        bookId: z.string().min(1),
+        title: z.string().min(1),
+        quantity: z.coerce.number().int().min(1),
+        priceCents: z.coerce.number().min(0),
+      })
+    )
+    .min(1),
+  customerName: z.string().trim().min(2),
+  customerEmail: z.string().trim().email(),
+  donationCents: z.coerce.number().int().min(0).max(500_000).optional(),
   shippingAddress: addressSchema.optional(),
-  shippingOptionId: z.string().optional(),
+  shippingOptionId: z.string().nullish(),
 });
 
 const STRIPE_MIN_CENTS = 50;
@@ -104,7 +106,7 @@ export async function POST(request: Request) {
             country: data.shippingAddress.country,
           }
         : undefined,
-      shippingOptionId: data.shippingOptionId,
+      shippingOptionId: data.shippingOptionId ?? undefined,
       siteSettings: settings
         ? {
             taxRatePercent: settings.taxRatePercent,
@@ -236,7 +238,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ checkoutUrl: checkoutSession.url, orderNumber });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid checkout data" }, { status: 400 });
+      const message =
+        error.errors[0]?.message === "Required"
+          ? "Please complete all required checkout fields."
+          : error.errors[0]?.message ?? "Invalid checkout data";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
     console.error("Checkout error:", error);
     return NextResponse.json({ error: "Checkout failed" }, { status: 500 });

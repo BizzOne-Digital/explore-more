@@ -173,12 +173,22 @@ export function CheckoutForm() {
     }
 
     try {
+      const shippingOptionId = selectedShippingId ?? quote?.selectedShippingOptionId ?? undefined;
+
       const payload: Record<string, unknown> = {
-        items: bookItems,
-        customerName: data.name,
-        customerEmail: data.email,
-        shippingOptionId: selectedShippingId ?? quote?.selectedShippingOptionId,
+        items: bookItems.map((item) => ({
+          bookId: item.bookId,
+          title: item.title,
+          quantity: item.quantity,
+          priceCents: item.priceCents,
+        })),
+        customerName: String(data.name ?? "").trim(),
+        customerEmail: String(data.email ?? "").trim(),
       };
+
+      if (shippingOptionId) {
+        payload.shippingOptionId = shippingOptionId;
+      }
 
       if (isFreeCart && donationCents > 0) {
         payload.donationCents = donationCents;
@@ -186,12 +196,12 @@ export function CheckoutForm() {
 
       if (needsAddress) {
         payload.shippingAddress = {
-          name: data.name,
-          line1: address.line1,
-          line2: address.line2 || "",
-          city: address.city,
-          state: address.state,
-          postalCode: address.postalCode,
+          name: String(data.name ?? "").trim(),
+          line1: address.line1.trim(),
+          line2: address.line2.trim(),
+          city: address.city.trim(),
+          state: address.state.trim(),
+          postalCode: address.postalCode.trim(),
           country: "US",
         };
       }

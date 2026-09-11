@@ -93,8 +93,8 @@ export const VERCEL_SAFE_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB
 export const MAX_CAMPAIGN_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1GB
 /** Notification attachments stored in MongoDB (16MB BSON document limit). */
 export const MAX_NOTIFICATION_UPLOAD_SIZE = 15 * 1024 * 1024; // 15MB
-/** Tutor worksheets/resources — Vercel serverless request body limit is ~4.5 MB. */
-export const MAX_TUTOR_RESOURCE_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB
+/** Tutor worksheets/resources — large files use direct-to-cloud upload when configured. */
+export const MAX_TUTOR_RESOURCE_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 export const ALLOWED_CAMPAIGN_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg",
   ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",

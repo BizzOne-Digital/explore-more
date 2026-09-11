@@ -11,7 +11,7 @@ export async function readJsonResponse<T extends JsonRecord>(
       return {
         ok: false,
         data: null,
-        error: "File is too large. Please use a file under 4 MB.",
+        error: "File is too large for a direct upload. Try again or use a smaller file.",
       };
     }
     return {
@@ -36,14 +36,14 @@ export async function readJsonResponse<T extends JsonRecord>(
       return {
         ok: false,
         data: null,
-        error: "File is too large. Please use a file under 4 MB.",
+        error: "File is too large for a direct upload. Try again or use a smaller file.",
       };
     }
     return {
       ok: false,
       data: null,
       error:
-        "Upload failed — the server returned an unexpected response. Try a smaller file (under 4 MB) or a PDF.",
+        "Upload failed — the server returned an unexpected response. Please try again or use a PDF.",
     };
   }
 }

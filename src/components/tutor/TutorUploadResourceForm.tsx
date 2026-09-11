@@ -7,7 +7,7 @@ import {
   TUTOR_RESOURCE_TYPES,
   TUTOR_RESOURCE_TYPE_LABELS,
 } from "@/lib/tutor/constants";
-import { MAX_TUTOR_RESOURCE_UPLOAD_SIZE } from "@/lib/constants";
+import { MAX_TUTOR_RESOURCE_UPLOAD_SIZE, VERCEL_SAFE_UPLOAD_SIZE } from "@/lib/constants";
 import { readJsonResponse } from "@/lib/api/read-json-response";
 import {
   TutorSearchableSelect,
@@ -82,21 +82,90 @@ export function TutorUploadResourceForm() {
     }
 
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/tutor/resources/upload", { method: "POST", body: fd });
-      const { ok, data, error: message } = await readJsonResponse<{
-        error?: string;
-        filePath?: string;
-        originalName?: string;
-      }>(res, "Upload failed");
+      let filePath: string | undefined;
+      let originalName = file.name;
 
-      if (!ok || !data?.filePath) {
-        throw new Error(message || "Upload failed");
+      if (file.size > VERCEL_SAFE_UPLOAD_SIZE) {
+        const presignRes = await fetch("/api/tutor/resources/upload/presign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.type || "application/octet-stream",
+          }),
+        });
+        const { ok: presignOk, data: presignData, error: presignError } = await readJsonResponse<{
+          error?: string;
+          direct?: boolean;
+          uploadUrl?: string;
+          path?: string;
+          filename?: string;
+          r2Key?: string;
+          contentType?: string;
+        }>(presignRes, "Upload failed");
+
+        if (!presignOk || !presignData) {
+          throw new Error(presignError || "Upload failed");
+        }
+
+        if (!presignData.direct) {
+          const putRes = await fetch(presignData.uploadUrl!, {
+            method: "PUT",
+            headers: { "Content-Type": presignData.contentType! },
+            body: file,
+          });
+          if (!putRes.ok) {
+            throw new Error("Cloud upload failed. Please try again.");
+          }
+
+          const confirmRes = await fetch("/api/tutor/resources/upload/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              path: presignData.path,
+              filename: presignData.filename,
+              r2Key: presignData.r2Key,
+              originalName: file.name,
+              mimeType: presignData.contentType,
+              size: file.size,
+            }),
+          });
+          const { ok: confirmOk, data: confirmData, error: confirmError } = await readJsonResponse<{
+            error?: string;
+            filePath?: string;
+            originalName?: string;
+          }>(confirmRes, "Upload failed");
+
+          if (!confirmOk || !confirmData?.filePath) {
+            throw new Error(confirmError || "Upload failed");
+          }
+
+          filePath = confirmData.filePath;
+          originalName = confirmData.originalName || file.name;
+        }
       }
 
-      setForm((f) => ({ ...f, filePath: data.filePath! }));
-      setUploadedFileName(data.originalName || file.name);
+      if (!filePath) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/tutor/resources/upload", { method: "POST", body: fd });
+        const { ok, data, error: message } = await readJsonResponse<{
+          error?: string;
+          filePath?: string;
+          originalName?: string;
+        }>(res, "Upload failed");
+
+        if (!ok || !data?.filePath) {
+          throw new Error(message || "Upload failed");
+        }
+
+        filePath = data.filePath;
+        originalName = data.originalName || file.name;
+      }
+
+      setForm((f) => ({ ...f, filePath: filePath! }));
+      setUploadedFileName(originalName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -333,8 +402,8 @@ export function TutorUploadResourceForm() {
               </p>
               {!form.filePath && !uploading && (
                 <p className="text-xs text-gray-500">
-                  PDF, Word, Excel, images, zip, or video — up to{" "}
-                  {MAX_TUTOR_RESOURCE_UPLOAD_SIZE / 1024 / 1024} MB
+                  PDF, Word, Excel, images, zip, or video — up to 50 MB (large files upload
+                  directly to cloud storage)
                 </p>
               )}
             </div>

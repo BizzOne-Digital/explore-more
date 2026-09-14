@@ -45,7 +45,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!isR2Configured()) {
       return apiError(
         new Error(
-          "Files over 4 MB must upload through cloud storage. Configure Cloudflare R2 in production, or use a file under 4 MB."
+          "This file is over 4 MB. Add Cloudflare R2 credentials in Vercel to allow uploads up to 50 MB, or use a file under 4 MB."
         ),
         400
       );

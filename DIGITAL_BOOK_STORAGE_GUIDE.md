@@ -44,15 +44,29 @@ MongoDB has a **16MB document limit**, making it impossible to store large digit
    - Permissions: Object Read & Write
    - Copy: `Access Key ID`, `Secret Access Key`, `Endpoint URL`
 
-4. **Add to `.env.local`**:
+4. **Add to `.env.local` and Vercel → Project → Settings → Environment Variables (Production)**:
 ```env
 # Cloudflare R2 Configuration
 R2_ACCOUNT_ID=your_account_id
 R2_ACCESS_KEY_ID=your_access_key_id
 R2_SECRET_ACCESS_KEY=your_secret_access_key
 R2_BUCKET_NAME=explore-more-books
-R2_PUBLIC_URL=https://your-bucket.r2.cloudflarestorage.com
+R2_ENDPOINT=https://<account_id>.r2.cloudflarestorage.com
 ```
+
+5. **R2 CORS (required for browser uploads over 4 MB)** — R2 bucket → Settings → CORS policy:
+```json
+[
+  {
+    "AllowedOrigins": ["https://exploremoreacademy.com", "http://localhost:3004"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+Redeploy Vercel after adding env vars. Admin → Site Settings shows whether R2 is active.
 
 ### Step 2: Install AWS SDK (R2 is S3-compatible)
 

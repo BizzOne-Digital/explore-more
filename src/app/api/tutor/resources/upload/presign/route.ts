@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
     if (!isR2Configured()) {
       return jsonError(
-        "Files over 4 MB must upload through cloud storage. Configure Cloudflare R2 in production, or use a file under 4 MB.",
+        "This file is over 4 MB. Large uploads need Cloudflare R2 enabled on the live site (Vercel environment variables). Until that is set up, please compress the PDF to under 4 MB or ask an administrator to enable cloud storage.",
         400
       );
     }

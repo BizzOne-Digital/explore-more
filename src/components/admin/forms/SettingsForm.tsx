@@ -40,6 +40,7 @@ export function SettingsForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [largeUploadsEnabled, setLargeUploadsEnabled] = useState<boolean | null>(null);
 
   const {
     register,
@@ -88,6 +89,14 @@ export function SettingsForm() {
         }
         setLoading(false);
       });
+    fetch("/api/upload/capabilities")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.largeUploadsEnabled != null) {
+          setLargeUploadsEnabled(Boolean(json.largeUploadsEnabled));
+        }
+      })
+      .catch(() => setLargeUploadsEnabled(null));
   }, [reset]);
 
   async function onSubmit(data: FormData) {
@@ -131,6 +140,21 @@ export function SettingsForm() {
   return (
     <div>
       <PageHeader title="Site Settings" description="Configure global site settings" />
+      {largeUploadsEnabled === false && (
+        <div className="mb-4 rounded-lg border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <strong className="font-semibold">Large file uploads are off.</strong> Add{" "}
+          <code className="text-amber-50/90">R2_ACCOUNT_ID</code>,{" "}
+          <code className="text-amber-50/90">R2_ACCESS_KEY_ID</code>,{" "}
+          <code className="text-amber-50/90">R2_SECRET_ACCESS_KEY</code>, and{" "}
+          <code className="text-amber-50/90">R2_BUCKET_NAME</code> in Vercel (Production) so staff
+          can upload PDFs up to 50 MB. Until then, uploads are limited to 4 MB.
+        </div>
+      )}
+      {largeUploadsEnabled === true && (
+        <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          Cloud storage (R2) is configured — large uploads up to 50 MB are enabled.
+        </div>
+      )}
       {error && (
         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}

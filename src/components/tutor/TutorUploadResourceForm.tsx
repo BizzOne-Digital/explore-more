@@ -32,6 +32,8 @@ export function TutorUploadResourceForm() {
   const [success, setSuccess] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [audience, setAudience] = useState<PublishAudience>("single");
+  const [largeUploadsEnabled, setLargeUploadsEnabled] = useState<boolean | null>(null);
+
   const [form, setForm] = useState({
     studentId: "",
     type: "worksheet",
@@ -40,6 +42,17 @@ export function TutorUploadResourceForm() {
     url: "",
     filePath: "",
   });
+
+  useEffect(() => {
+    fetch("/api/upload/capabilities")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.largeUploadsEnabled != null) {
+          setLargeUploadsEnabled(Boolean(json.largeUploadsEnabled));
+        }
+      })
+      .catch(() => setLargeUploadsEnabled(null));
+  }, []);
 
   useEffect(() => {
     setStudentsLoading(true);
@@ -244,6 +257,14 @@ export function TutorUploadResourceForm() {
 
   return (
     <form onSubmit={submit} className="space-y-5 rounded-2xl bg-white p-6 shadow-sm">
+      {largeUploadsEnabled === false && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Large file uploads (over 4 MB) are not enabled on the live site yet. An administrator must
+          add Cloudflare R2 keys in Vercel. Until then, compress PDFs to under 4 MB or split the
+          file.
+        </p>
+      )}
+
       {error && <p className="text-sm text-red-600">{error}</p>}
       {success && <p className="text-sm text-green-600">{success}</p>}
 
@@ -402,8 +423,9 @@ export function TutorUploadResourceForm() {
               </p>
               {!form.filePath && !uploading && (
                 <p className="text-xs text-gray-500">
-                  PDF, Word, Excel, images, zip, or video — up to 50 MB (large files upload
-                  directly to cloud storage)
+                  {largeUploadsEnabled
+                    ? "PDF, Word, Excel, images, zip, or video — up to 50 MB"
+                    : "PDF, Word, Excel, images, zip, or video — up to 4 MB until cloud storage is enabled (50 MB after R2 is configured)"}
                 </p>
               )}
             </div>

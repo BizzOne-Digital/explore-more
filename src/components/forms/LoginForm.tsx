@@ -32,7 +32,7 @@ export function LoginForm() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Invalid email or password. Please try again.");
+      setError("Invalid email, ID, or password. Please try again.");
       return;
     }
 
@@ -42,7 +42,14 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <Input name="email" type="email" label="Email" required autoComplete="email" />
+      <Input
+        name="email"
+        type="text"
+        label="Email or account ID"
+        required
+        autoComplete="username"
+        placeholder="Email or Student / Guardian / Staff ID"
+      />
       <Input name="password" type="password" label="Password" required autoComplete="current-password" />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center justify-between text-sm">

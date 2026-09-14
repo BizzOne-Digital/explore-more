@@ -10,7 +10,7 @@ import { FormField, TextInput, FormActions } from "@/components/admin/forms";
 import { COMPANY } from "@/lib/constants";
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email"),
+  email: z.string().min(1, "Enter your email or Admin ID"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password.");
+      setError("Invalid email, Admin ID, or password.");
       return;
     }
 
@@ -74,13 +74,13 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          <FormField label="Email" error={errors.email} required>
+          <FormField label="Email or Admin ID" error={errors.email} required>
             <TextInput
               registration={register("email")}
               error={errors.email}
-              type="email"
-              autoComplete="email"
-              placeholder="chris@exploremoreacademy.com"
+              type="text"
+              autoComplete="username"
+              placeholder="chris@exploremoreacademy.com or ADM-…"
             />
           </FormField>
 

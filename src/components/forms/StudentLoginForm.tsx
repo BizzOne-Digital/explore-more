@@ -31,7 +31,7 @@ export function StudentLoginForm() {
 
     if (result?.error) {
       setLoading(false);
-      setError("Invalid email or password. Please try again.");
+      setError("Invalid email, Student ID, or password. Please try again.");
       return;
     }
 
@@ -56,7 +56,14 @@ export function StudentLoginForm() {
         </p>
       </div>
 
-      <Input name="email" type="email" label="Email" required autoComplete="email" />
+      <Input
+        name="email"
+        type="text"
+        label="Email or Student ID"
+        required
+        autoComplete="username"
+        placeholder="student@email.com or 6-digit ID"
+      />
       <Input
         name="password"
         type="password"

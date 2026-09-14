@@ -1,13 +1,12 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
-import connectDB from "@/lib/db";
-import { User } from "@/models";
 import type { Role } from "@/lib/constants";
 import { authConfig } from "./config";
+import { findUserByLoginIdentifier } from "@/lib/auth/find-user-by-login-identifier";
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().min(1),
   password: z.string().min(8),
 });
 
@@ -17,7 +16,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email or ID", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -26,8 +25,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const { verifyPassword, isAccountLocked, getLockUntil } = await import("@/lib/password");
 
-        await connectDB();
-        const user = await User.findOne({ email: parsed.data.email.toLowerCase() });
+        const user = await findUserByLoginIdentifier(parsed.data.email);
 
         if (!user || !user.isActive) return null;
 

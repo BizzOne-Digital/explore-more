@@ -20,7 +20,7 @@ export default function TutorPortalEntryPage() {
           </p>
           <p className="mt-2 text-sm text-explore-charcoal/70">
             Staff accounts are created by Explore More Academy administration. You will receive
-            your email login and unique 6-digit Staff ID.
+            your email login and unique Staff ID (for example STF-… or INS-…).
           </p>
         </div>
         <Button href="/tutor/login" size="lg" className="w-full">

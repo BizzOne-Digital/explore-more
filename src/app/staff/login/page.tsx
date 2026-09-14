@@ -11,7 +11,7 @@ import { COMPANY } from "@/lib/constants";
 import { STAFF_PORTAL_ROLES } from "@/lib/constants";
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email"),
+  email: z.string().min(1, "Enter your email or Staff ID"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
@@ -38,7 +38,7 @@ export default function StaffLoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password.");
+      setError("Invalid email, Staff ID, or password.");
       return;
     }
 
@@ -73,8 +73,14 @@ export default function StaffLoginPage() {
             </div>
           )}
 
-          <FormField label="Email" error={errors.email} required>
-            <TextInput registration={register("email")} error={errors.email} type="email" />
+          <FormField label="Email or Staff ID" error={errors.email} required>
+            <TextInput
+              registration={register("email")}
+              error={errors.email}
+              type="text"
+              autoComplete="username"
+              placeholder="you@email.com or STF-…"
+            />
           </FormField>
 
           <FormField label="Password" error={errors.password} required>

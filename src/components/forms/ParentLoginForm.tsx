@@ -31,7 +31,7 @@ export function ParentLoginForm() {
 
     if (result?.error) {
       setLoading(false);
-      setError("Invalid email or password. Please try again.");
+      setError("Invalid email, Guardian ID, or password. Please try again.");
       return;
     }
 
@@ -58,10 +58,11 @@ export function ParentLoginForm() {
 
       <Input
         name="email"
-        type="email"
-        label="Email"
+        type="text"
+        label="Email or Guardian ID"
         required
-        autoComplete="email"
+        autoComplete="username"
+        placeholder="parent@email.com or PG-…"
         defaultValue={searchParams.get("email") || ""}
       />
       <Input

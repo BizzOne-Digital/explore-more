@@ -41,7 +41,7 @@ async function getOrder(id: string): Promise<SerializedOrder | null> {
   await connectDB();
   const item = await Order.findById(id).lean();
   if (!item) return null;
-  return serialize(item) as SerializedOrder;
+  return serialize(item) as unknown as SerializedOrder;
 }
 
 function formatShippingAddress(addr: SerializedOrder["shippingAddress"]): string[] {

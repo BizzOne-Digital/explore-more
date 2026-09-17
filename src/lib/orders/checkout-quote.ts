@@ -16,7 +16,6 @@ export type CheckoutQuoteInput = {
   items: BookShippingLine[];
   shippingAddress?: ShippingAddress;
   shippingOptionId?: string;
-  donationCents?: number;
   siteSettings?: {
     taxRatePercent?: number;
     shippingFlatCents?: number;
@@ -62,13 +61,7 @@ export async function buildCheckoutQuote(input: CheckoutQuoteInput): Promise<Che
     shippingAddress?.state ??
     (needsAddress ? "" : "");
 
-  const tax = calculateBookTaxCents(
-    items,
-    shippingCents,
-    taxState,
-    fallbackTaxRate,
-    input.donationCents ?? 0
-  );
+  const tax = calculateBookTaxCents(items, shippingCents, taxState, fallbackTaxRate);
 
   const totalCents = subtotalCents + shippingCents + tax.taxCents;
 

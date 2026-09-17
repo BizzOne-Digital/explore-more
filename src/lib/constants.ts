@@ -85,7 +85,7 @@ export const STORED_IMAGE_MIME_TYPES = [
 
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
 /** Standard cap for PDF uploads (books, certificates, assessments, tutor resources, etc.). */
-export const MAX_PDF_UPLOAD_MB = 30;
+export const MAX_PDF_UPLOAD_MB = 50;
 export const MAX_PDF_UPLOAD_SIZE = MAX_PDF_UPLOAD_MB * 1024 * 1024;
 export const MAX_PORTFOLIO_UPLOAD_SIZE = MAX_PDF_UPLOAD_SIZE;
 /** MongoDB BSON document limit — keep a safe margin for metadata. */

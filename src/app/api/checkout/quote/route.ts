@@ -24,7 +24,6 @@ const quoteSchema = z.object({
   items: z.array(itemSchema).min(1),
   shippingAddress: addressSchema.optional(),
   shippingOptionId: z.string().optional(),
-  donationCents: z.coerce.number().int().min(0).max(500_000).optional(),
 });
 
 export async function POST(request: Request) {
@@ -57,7 +56,6 @@ export async function POST(request: Request) {
       items: shippingLines,
       shippingAddress: data.shippingAddress,
       shippingOptionId: data.shippingOptionId,
-      donationCents: data.donationCents ?? 0,
       siteSettings: settings
         ? {
             taxRatePercent: settings.taxRatePercent,

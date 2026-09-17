@@ -7,7 +7,11 @@ import {
   TUTOR_RESOURCE_TYPES,
   TUTOR_RESOURCE_TYPE_LABELS,
 } from "@/lib/tutor/constants";
-import { MAX_TUTOR_RESOURCE_UPLOAD_SIZE, VERCEL_SAFE_UPLOAD_SIZE } from "@/lib/constants";
+import {
+  MAX_PDF_UPLOAD_MB,
+  MAX_TUTOR_RESOURCE_UPLOAD_SIZE,
+  VERCEL_SAFE_UPLOAD_SIZE,
+} from "@/lib/constants";
 import { readJsonResponse } from "@/lib/api/read-json-response";
 import {
   TutorSearchableSelect,
@@ -424,8 +428,8 @@ export function TutorUploadResourceForm() {
               {!form.filePath && !uploading && (
                 <p className="text-xs text-gray-500">
                   {largeUploadsEnabled
-                    ? "PDF, Word, Excel, images, zip, or video — up to 50 MB"
-                    : "PDF, Word, Excel, images, zip, or video — up to 4 MB until cloud storage is enabled (50 MB after R2 is configured)"}
+                    ? `PDF, Word, Excel, images, zip, or video — up to ${MAX_PDF_UPLOAD_MB} MB`
+                    : `PDF, Word, Excel, images, zip, or video — up to 4 MB until cloud storage is enabled (${MAX_PDF_UPLOAD_MB} MB after R2 is configured)`}
                 </p>
               )}
             </div>

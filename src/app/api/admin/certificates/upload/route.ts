@@ -1,10 +1,11 @@
 import { readPrivateStoredFile, storePrivateUpload } from "@/lib/services/private-stored-upload";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { requireRole } from "@/lib/api/auth-helpers";
+import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
-const MAX_SIZE = 50 * 1024 * 1024;
+const MAX_SIZE = MAX_PDF_UPLOAD_SIZE;
 
 function isPdfFile(file: File): boolean {
   if (file.type === "application/pdf") return true;
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     if (file.size > MAX_SIZE) {
-      return apiError(new Error("PDF upload failed. Maximum file size is 50 MB."), 400);
+      return apiError(new Error(`PDF upload failed. Maximum file size is ${MAX_PDF_UPLOAD_MB} MB.`), 400);
     }
 
     if (fileType === "pdf" && !isPdfFile(file)) {

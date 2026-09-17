@@ -83,17 +83,19 @@ export function CheckoutForm() {
   );
 
   const needsAddress = cartRequiresShippingAddress(shippingLines);
-  const isFreeCart = quote?.isFreeCart ?? shippingLines.every((item) => item.priceCents === 0);
+  const isFreeCartLocal = shippingLines.every((item) => item.priceCents === 0);
+  const isFreeCart = quote?.isFreeCart ?? isFreeCartLocal;
   const donationCents = Math.round(parseFloat(donationDollars || "0") * 100) || 0;
+  const collectAddress = needsAddress || (isFreeCartLocal && donationCents > 0);
 
   const fetchQuote = useCallback(async () => {
     if (bookItems.length === 0) return;
 
     const hasAddress =
-      !needsAddress ||
+      !collectAddress ||
       (address.line1 && address.city && address.state && address.postalCode.length >= 5);
 
-    if (needsAddress && !hasAddress) {
+    if (collectAddress && !hasAddress) {
       setQuote(null);
       return;
     }
@@ -108,7 +110,7 @@ export function CheckoutForm() {
             bookId: item.bookId,
             quantity: item.quantity,
           })),
-          shippingAddress: needsAddress
+          shippingAddress: collectAddress
             ? {
                 line1: address.line1,
                 line2: address.line2,
@@ -119,6 +121,7 @@ export function CheckoutForm() {
               }
             : undefined,
           shippingOptionId: selectedShippingId ?? undefined,
+          donationCents: isFreeCartLocal ? donationCents : 0,
         }),
       });
       const json = await res.json();
@@ -133,7 +136,7 @@ export function CheckoutForm() {
     } finally {
       setQuoteLoading(false);
     }
-  }, [address, bookItems, needsAddress, selectedShippingId]);
+  }, [address, bookItems, collectAddress, donationCents, isFreeCartLocal, selectedShippingId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -166,8 +169,15 @@ export function CheckoutForm() {
       return;
     }
 
-    if (needsAddress && (!address.line1 || !address.city || !address.state || !address.postalCode)) {
-      setError("Please enter your full shipping address.");
+    if (
+      collectAddress &&
+      (!address.line1 || !address.city || !address.state || !address.postalCode)
+    ) {
+      setError(
+        needsAddress
+          ? "Please enter your full shipping address."
+          : "Please enter your billing address for sales tax."
+      );
       setStatus("error");
       return;
     }
@@ -194,7 +204,7 @@ export function CheckoutForm() {
         payload.donationCents = donationCents;
       }
 
-      if (needsAddress) {
+      if (collectAddress) {
         payload.shippingAddress = {
           name: String(data.name ?? "").trim(),
           line1: address.line1.trim(),
@@ -246,11 +256,11 @@ export function CheckoutForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <Input name="name" label="Full Name" required />
         <Input name="email" type="email" label="Email" required />
-        {needsAddress && (
+        {collectAddress && (
           <>
             <Input
               name="line1"
-              label="Address Line 1"
+              label={needsAddress ? "Address Line 1" : "Billing address line 1"}
               required
               className="sm:col-span-2"
               value={address.line1}
@@ -288,9 +298,14 @@ export function CheckoutForm() {
         )}
       </div>
 
-      {!needsAddress && (
+      {!collectAddress && (
         <p className="rounded-xl bg-explore-teal/10 px-4 py-3 text-sm text-explore-charcoal/80">
           Digital books are delivered by email — no shipping address needed.
+        </p>
+      )}
+      {!needsAddress && collectAddress && (
+        <p className="rounded-xl bg-explore-teal/10 px-4 py-3 text-sm text-explore-charcoal/80">
+          We need your billing address to calculate sales tax when you add an optional donation.
         </p>
       )}
 

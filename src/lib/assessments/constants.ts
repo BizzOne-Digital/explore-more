@@ -12,7 +12,9 @@ export const LETTER_GRADES = [
 
 export type LetterGrade = (typeof LETTER_GRADES)[number];
 
-export const MAX_ASSESSMENT_PDF_SIZE = 30 * 1024 * 1024;
+import { MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
+
+export const MAX_ASSESSMENT_PDF_SIZE = MAX_PDF_UPLOAD_SIZE;
 
 export function isLetterGrade(value: string): value is LetterGrade {
   return (LETTER_GRADES as readonly string[]).includes(value);

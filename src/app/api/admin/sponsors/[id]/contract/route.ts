@@ -6,10 +6,11 @@ import {
   deletePrivateStoredFile,
   storePrivateUpload,
 } from "@/lib/services/private-stored-upload";
+import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
-const MAX_SIZE = 50 * 1024 * 1024;
+const MAX_SIZE = MAX_PDF_UPLOAD_SIZE;
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     if (file.size > MAX_SIZE) {
-      return apiError(new Error("File too large. Maximum size is 50 MB."), 400);
+      return apiError(new Error(`File too large. Maximum size is ${MAX_PDF_UPLOAD_MB} MB.`), 400);
     }
 
     await connectDB();

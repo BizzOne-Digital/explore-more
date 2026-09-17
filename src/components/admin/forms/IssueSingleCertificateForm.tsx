@@ -10,6 +10,7 @@ import {
 } from "@/components/admin/AdminSearchableSelect";
 import { DragDropZone } from "@/components/admin/DragDropZone";
 import { getCertificateFileUrl } from "@/lib/certificates/display";
+import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
 
 interface StudentOption {
   _id: string;
@@ -85,8 +86,8 @@ export function IssueSingleCertificateForm({ students }: { students: StudentOpti
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      setError("File exceeds the maximum upload size (50MB).");
+    if (file.size > MAX_PDF_UPLOAD_SIZE) {
+      setError(`File exceeds the maximum upload size (${MAX_PDF_UPLOAD_MB} MB).`);
       return;
     }
 

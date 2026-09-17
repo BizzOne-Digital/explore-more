@@ -8,6 +8,7 @@ import { FormField, FormSection } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { DragDropZone } from "@/components/admin/DragDropZone";
 import { formatGradeLabel } from "@/lib/grades";
+import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
 
 export function AssessmentForm({ grade }: { grade: string }) {
   const router = useRouter();
@@ -24,8 +25,8 @@ export function AssessmentForm({ grade }: { grade: string }) {
       setError("Please upload a PDF file.");
       return;
     }
-    if (file.size > 30 * 1024 * 1024) {
-      setError("PDF must be 30 MB or smaller.");
+    if (file.size > MAX_PDF_UPLOAD_SIZE) {
+      setError(`PDF must be ${MAX_PDF_UPLOAD_MB} MB or smaller.`);
       return;
     }
 
@@ -129,7 +130,7 @@ export function AssessmentForm({ grade }: { grade: string }) {
             />
           </FormField>
 
-          <FormField label="PDF (max 30 MB)" required className="sm:col-span-2">
+          <FormField label={`PDF (max ${MAX_PDF_UPLOAD_MB} MB)`} required className="sm:col-span-2">
             {filePath ? (
               <div className="flex items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-4 py-3">
                 <FileText className="h-5 w-5 text-explore-teal" />
@@ -159,7 +160,7 @@ export function AssessmentForm({ grade }: { grade: string }) {
                     <span className="text-sm font-medium text-white/80">
                       {uploading ? "Uploading…" : dragOver ? "Drop PDF here" : "Drag & drop PDF here"}
                     </span>
-                    <span className="mt-1 text-xs text-white/50">or click to browse (max 30 MB)</span>
+                    <span className="mt-1 text-xs text-white/50">or click to browse (max {MAX_PDF_UPLOAD_MB} MB)</span>
                   </>
                 )}
               </DragDropZone>

@@ -3,7 +3,11 @@ import { auth } from "@/lib/auth";
 import { User } from "@/models";
 import connectDB from "@/lib/db";
 import { apiSuccess, apiError, isValidObjectId } from "@/lib/admin/api";
-import { MAX_PORTFOLIO_UPLOAD_SIZE, VERCEL_SAFE_UPLOAD_SIZE } from "@/lib/constants";
+import {
+  MAX_PDF_UPLOAD_MB,
+  MAX_PORTFOLIO_UPLOAD_SIZE,
+  VERCEL_SAFE_UPLOAD_SIZE,
+} from "@/lib/constants";
 import { validatePrivateUploadFile } from "@/lib/services/private-stored-upload";
 import { createR2PresignedPutUrl, isR2Configured } from "@/lib/services/r2-storage";
 
@@ -45,7 +49,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!isR2Configured()) {
       return apiError(
         new Error(
-          "This file is over 4 MB. Add Cloudflare R2 credentials in Vercel to allow uploads up to 50 MB, or use a file under 4 MB."
+          `This file is over 4 MB. Add Cloudflare R2 credentials in Vercel to allow uploads up to ${MAX_PDF_UPLOAD_MB} MB, or use a file under 4 MB.`
         ),
         400
       );

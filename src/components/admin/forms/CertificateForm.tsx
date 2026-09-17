@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
+import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
 import {
   FormField,
   TextInput,
@@ -141,8 +142,8 @@ export function CertificateForm({
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      setError("PDF upload failed. Maximum file size is 50 MB.");
+    if (file.size > MAX_PDF_UPLOAD_SIZE) {
+      setError(`PDF upload failed. Maximum file size is ${MAX_PDF_UPLOAD_MB} MB.`);
       return;
     }
 
@@ -475,7 +476,7 @@ export function CertificateForm({
                         ? "Drop file here"
                         : `Drag & drop ${fileType === "image" ? "image" : "PDF"} here`}
                     </p>
-                    <p className="mt-1 text-xs text-white/50">or click to browse · PDF up to 50 MB</p>
+                    <p className="mt-1 text-xs text-white/50">or click to browse · PDF up to {MAX_PDF_UPLOAD_MB} MB</p>
                   </div>
                 )
               }

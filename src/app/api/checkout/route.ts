@@ -8,7 +8,7 @@ import { auth } from "@/lib/auth";
 import { getBookPriceCents, isBookPublished } from "@/lib/pricing";
 import { stripeProductData } from "@/lib/stripe/tax-codes";
 import { fulfillBookOrder } from "@/lib/orders/fulfill-book-order";
-import { cartRequiresShippingAddress } from "@/lib/orders/book-shipping";
+import { cartIsFreeOnly, cartRequiresShippingAddress } from "@/lib/orders/book-shipping";
 import { isBookDigital } from "@/lib/books/is-digital";
 import { buildCheckoutQuote } from "@/lib/orders/checkout-quote";
 
@@ -86,6 +86,10 @@ export async function POST(request: Request) {
     }));
 
     const needsAddress = cartRequiresShippingAddress(shippingLines);
+    const donationCents = data.donationCents ?? 0;
+    const needsBillingAddressForTax =
+      donationCents > 0 && cartIsFreeOnly(shippingLines) && !needsAddress;
+
     if (needsAddress && !data.shippingAddress) {
       return NextResponse.json(
         { error: "Please enter a shipping address for physical books." },
@@ -93,9 +97,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (needsBillingAddressForTax && !data.shippingAddress) {
+      return NextResponse.json(
+        { error: "Please enter your billing address so we can calculate sales tax on your donation." },
+        { status: 400 }
+      );
+    }
+
     const settings = await SiteSettings.findOne().lean();
     const quote = await buildCheckoutQuote({
       items: shippingLines,
+      donationCents,
       shippingAddress: data.shippingAddress
         ? {
             line1: data.shippingAddress.line1,
@@ -119,8 +131,6 @@ export async function POST(request: Request) {
     const subtotalCents = quote.subtotalCents;
     const shippingCents = quote.shippingCents;
     const taxCents = quote.taxCents;
-    const donationCents = data.donationCents ?? 0;
-
     if (donationCents > 0 && donationCents < STRIPE_MIN_CENTS) {
       return NextResponse.json(
         { error: "Donations must be at least $0.50, or leave blank." },

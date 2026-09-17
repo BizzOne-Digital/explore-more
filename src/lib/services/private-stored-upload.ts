@@ -3,12 +3,14 @@ import connectDB from "@/lib/db";
 import { StoredUpload } from "@/models";
 import {
   MAX_MONGO_PRIVATE_UPLOAD_SIZE,
+  MAX_PDF_UPLOAD_MB,
+  MAX_PDF_UPLOAD_SIZE,
   PRIVATE_STORED_FOLDERS,
   type PrivateStoredFolder,
 } from "@/lib/constants";
 import { isR2Configured, readFromR2, uploadToR2 } from "@/lib/services/r2-storage";
 
-const MAX_CERTIFICATE_SIZE = 50 * 1024 * 1024;
+const MAX_CERTIFICATE_SIZE = MAX_PDF_UPLOAD_SIZE;
 
 const PRIVATE_MIME_TO_EXT: Record<string, string> = {
   "application/pdf": "pdf",
@@ -163,7 +165,7 @@ export async function storePrivateUpload(
   if (file.size > MAX_MONGO_PRIVATE_UPLOAD_SIZE) {
     if (!isR2Configured()) {
       throw new Error(
-        "This file is too large for database storage (max 15 MB). Configure Cloudflare R2 for files up to 50 MB, or compress the file."
+        `This file is too large for database storage (max 15 MB). Configure Cloudflare R2 for files up to ${MAX_PDF_UPLOAD_MB} MB, or compress the file.`
       );
     }
 

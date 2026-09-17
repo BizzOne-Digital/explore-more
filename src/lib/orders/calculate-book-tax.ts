@@ -19,9 +19,13 @@ export function calculateBookTaxCents(
   items: BookShippingLine[],
   shippingCents: number,
   state: string,
-  fallbackTaxRatePercent = 0
+  fallbackTaxRatePercent = 0,
+  donationCents = 0
 ): BookTaxResult {
-  const taxableSubtotalCents = getTaxableSubtotalCents(items);
+  let taxableSubtotalCents = getTaxableSubtotalCents(items);
+  if (taxableSubtotalCents <= 0 && donationCents > 0) {
+    taxableSubtotalCents = donationCents;
+  }
   const jurisdiction = state.trim().toUpperCase().slice(0, 2);
 
   if (taxableSubtotalCents <= 0) {

@@ -84,7 +84,10 @@ export const STORED_IMAGE_MIME_TYPES = [
 ] as const;
 
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
-export const MAX_PORTFOLIO_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
+/** Standard cap for PDF uploads (books, certificates, assessments, tutor resources, etc.). */
+export const MAX_PDF_UPLOAD_MB = 30;
+export const MAX_PDF_UPLOAD_SIZE = MAX_PDF_UPLOAD_MB * 1024 * 1024;
+export const MAX_PORTFOLIO_UPLOAD_SIZE = MAX_PDF_UPLOAD_SIZE;
 /** MongoDB BSON document limit — keep a safe margin for metadata. */
 export const MAX_MONGO_PRIVATE_UPLOAD_SIZE = 15 * 1024 * 1024; // 15MB
 /** Vercel serverless request body limit — larger files must use direct-to-cloud upload. */
@@ -94,7 +97,7 @@ export const MAX_CAMPAIGN_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1GB
 /** Notification attachments stored in MongoDB (16MB BSON document limit). */
 export const MAX_NOTIFICATION_UPLOAD_SIZE = 15 * 1024 * 1024; // 15MB
 /** Tutor worksheets/resources — large files use direct-to-cloud upload when configured. */
-export const MAX_TUTOR_RESOURCE_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
+export const MAX_TUTOR_RESOURCE_UPLOAD_SIZE = MAX_PDF_UPLOAD_SIZE;
 export const ALLOWED_CAMPAIGN_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg",
   ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",

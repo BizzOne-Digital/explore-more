@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Upload, CheckCircle, XCircle, Loader } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
 
 interface DigitalFileUploadProps {
   bookId?: string;
@@ -17,7 +18,7 @@ interface DigitalFileUploadProps {
   onPendingFileChange?: (file: File | null) => void;
 }
 
-const MAX_BYTES = 50 * 1024 * 1024;
+const MAX_BYTES = MAX_PDF_UPLOAD_SIZE;
 const FILE_ACCEPT = "application/pdf,.pdf,.epub,.mobi,.zip";
 
 async function readJsonResponse(response: Response): Promise<Record<string, unknown>> {
@@ -63,7 +64,7 @@ function validateFile(file: File): string | null {
     return "Invalid file type. Allowed: PDF, EPUB, MOBI, ZIP";
   }
   if (file.size > MAX_BYTES) {
-    return "Maximum file size is 50 MB.";
+    return `Maximum file size is ${MAX_PDF_UPLOAD_MB} MB.`;
   }
   return null;
 }
@@ -286,7 +287,7 @@ export function DigitalFileUpload({
                 <p className="mt-3 text-sm font-medium text-white/80">
                   Drag & drop your PDF here
                 </p>
-                <p className="mt-1 text-xs text-white/50">or click to browse (max 50 MB)</p>
+                <p className="mt-1 text-xs text-white/50">or click to browse (max {MAX_PDF_UPLOAD_MB} MB)</p>
                 <p className="mt-1 text-xs text-white/40">PDF, EPUB, MOBI, ZIP</p>
               </>
             )}

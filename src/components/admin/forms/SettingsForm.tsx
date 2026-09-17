@@ -13,7 +13,7 @@ import {
   FormSection,
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { COMPANY } from "@/lib/constants";
+import { COMPANY, MAX_PDF_UPLOAD_MB } from "@/lib/constants";
 import { centsToDollars, dollarsToCents } from "@/lib/utils";
 
 const schema = z.object({
@@ -147,12 +147,12 @@ export function SettingsForm() {
           <code className="text-amber-50/90">R2_ACCESS_KEY_ID</code>,{" "}
           <code className="text-amber-50/90">R2_SECRET_ACCESS_KEY</code>, and{" "}
           <code className="text-amber-50/90">R2_BUCKET_NAME</code> in Vercel (Production) so staff
-          can upload PDFs up to 50 MB. Until then, uploads are limited to 4 MB.
+          can upload PDFs up to {MAX_PDF_UPLOAD_MB} MB. Until then, uploads are limited to 4 MB.
         </div>
       )}
       {largeUploadsEnabled === true && (
         <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-          Cloud storage (R2) is configured — large uploads up to 50 MB are enabled.
+          Cloud storage (R2) is configured — large uploads up to {MAX_PDF_UPLOAD_MB} MB are enabled.
         </div>
       )}
       {error && (

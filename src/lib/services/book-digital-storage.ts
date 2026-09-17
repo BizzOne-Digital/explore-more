@@ -5,9 +5,10 @@ import connectDB from "@/lib/db";
 import { StoredUpload } from "@/models";
 import { isR2Configured, uploadToR2 } from "@/lib/services/r2-storage";
 import { readPrivateStoredFile } from "@/lib/services/private-stored-upload";
+import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
 
 const LOCAL_BOOKS_DIR = path.join(process.cwd(), "storage", "private", "books");
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = MAX_PDF_UPLOAD_SIZE;
 /** MongoDB documents are capped at 16 MB — keep a safe margin for metadata. */
 const MAX_MONGO_BOOK_SIZE = 15 * 1024 * 1024;
 
@@ -114,7 +115,7 @@ export async function uploadBookDigitalFile(
   fileType: string;
 }> {
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error("PDF upload failed. Maximum file size is 50 MB.");
+    throw new Error(`PDF upload failed. Maximum file size is ${MAX_PDF_UPLOAD_MB} MB.`);
   }
 
   if (!isAllowedBookFile(file)) {

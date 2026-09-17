@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Download, FileText, Loader, Trash2, Upload } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { DragDropZone } from "@/components/admin/DragDropZone";
+import { MAX_PDF_UPLOAD_MB } from "@/lib/constants";
 
 interface UserDocumentRow {
   _id: string;
@@ -173,7 +174,7 @@ export function UserAccountDocuments({ userId }: { userId: string }) {
                 : "Drag & drop a document here or click to browse"}
             </p>
             <p className="mt-1 text-xs text-white/40">
-              PDF, Word, Excel, images, zip — up to 50 MB (large files upload directly to cloud storage)
+              PDF, Word, Excel, images, zip — up to {MAX_PDF_UPLOAD_MB} MB (large files upload directly to cloud storage)
             </p>
           </div>
         )}

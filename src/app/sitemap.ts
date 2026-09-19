@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/dr-boom",
     "/dr-boom/book",
     "/sponsor-a-kid",
+    "/donate",
     "/gallery",
     "/testimonials",
     "/faqs",

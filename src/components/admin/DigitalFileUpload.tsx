@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Upload, CheckCircle, XCircle, Loader } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
+import { uploadBookDigitalFileClient } from "@/lib/books/upload-digital-client";
 
 interface DigitalFileUploadProps {
   bookId?: string;
@@ -99,20 +100,12 @@ export function DigitalFileUpload({
     setProgress(25);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("bookId", bookId);
-
-      const response = await fetch("/api/admin/books/upload-digital", {
-        method: "POST",
-        body: formData,
-      });
-
+      setProgress(50);
+      const result = await uploadBookDigitalFileClient(bookId, file);
       setProgress(75);
-      const data = await readJsonResponse(response);
 
-      if (!response.ok || !data.success) {
-        throw new Error(String(data.error ?? "Upload failed"));
+      if (!result.success) {
+        throw new Error(result.error ?? "Upload failed");
       }
 
       setSuccess(true);

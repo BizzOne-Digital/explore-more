@@ -105,18 +105,10 @@ export function BookForm({
   }, [isNew, title, setValue]);
 
   async function uploadDigitalFile(bookId: string, file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("bookId", bookId);
-
-    const response = await fetch("/api/admin/books/upload-digital", {
-      method: "POST",
-      body: formData,
-    });
-
-    const json = await response.json();
-    if (!response.ok || !json.success) {
-      throw new Error(json.error ?? "PDF upload failed");
+    const { uploadBookDigitalFileClient } = await import("@/lib/books/upload-digital-client");
+    const result = await uploadBookDigitalFileClient(bookId, file);
+    if (!result.success) {
+      throw new Error(result.error ?? "PDF upload failed");
     }
   }
 

@@ -17,6 +17,7 @@ import {
   getFeaturedGalleryImages,
   getFeaturedTestimonials,
   getFeaturedFAQs,
+  getPublishedCampaigns,
 } from "@/lib/queries/public";
 import { getCatalogBooksForHomepage } from "@/lib/content/books";
 import { createSectionChecker, getPageSectionVisibility } from "@/lib/queries/pages";
@@ -34,14 +35,19 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function HomePage() {
   const show = createSectionChecker(await getPageSectionVisibility("home"));
-  const [events, courses, dbBooks, gallery, testimonials, faqs] = await Promise.all([
+  const [events, courses, dbBooks, gallery, testimonials, faqs, campaigns] = await Promise.all([
     getUpcomingEvents(3).catch((): PublicEvent[] => []),
     getFeaturedCourses(4).catch((): PublicCourse[] => []),
     getHomepageBooks(4).catch((): PublicBook[] => []),
     getFeaturedGalleryImages(6).catch((): PublicGalleryImage[] => []),
     getFeaturedTestimonials(3).catch((): PublicTestimonial[] => []),
     getFeaturedFAQs(4).catch((): PublicFAQ[] => []),
+    getPublishedCampaigns().catch(() => [] as Awaited<ReturnType<typeof getPublishedCampaigns>>),
   ]);
+  const donateHref =
+    campaigns.length === 1
+      ? `/donate/${campaigns[0].slug}`
+      : "/donate";
   const books = dbBooks.length > 0 ? dbBooks : getCatalogBooksForHomepage(4);
 
   return (
@@ -370,7 +376,7 @@ export default async function HomePage() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Button href="/sponsor-a-kid" variant="dark">Learn About Sponsorship</Button>
-            <Button href="/donate/sponsor-a-kid" variant="lime">Donate Now</Button>
+            <Button href={donateHref} variant="lime">Donate Now</Button>
           </div>
         </div>
       </section>

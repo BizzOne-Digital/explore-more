@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { Book } from "@/models";
-import { uploadBookDigitalFile } from "@/lib/services/book-digital-storage";
+import { attachBookDigitalFile, uploadBookDigitalFile } from "@/lib/services/book-digital-storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,19 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const uploaded = await uploadBookDigitalFile(file, bookId);
-
-    book.digitalFile = {
-      enabled: true,
-      storage: uploaded.storage,
-      r2Key: uploaded.r2Key,
-      localPath: uploaded.localPath,
-      fileName: uploaded.fileName,
-      fileSizeBytes: uploaded.fileSizeBytes,
-      fileType: uploaded.fileType,
-      uploadedAt: new Date(),
-    };
-
-    await book.save();
+    const digitalFile = await attachBookDigitalFile(bookId, uploaded);
 
     return NextResponse.json({
       success: true,
@@ -55,7 +43,7 @@ export async function POST(request: NextRequest) {
           : uploaded.storage === "mongo"
             ? "Digital file saved to database storage"
             : "Digital file uploaded locally",
-      digitalFile: book.digitalFile,
+      digitalFile,
     });
   } catch (error) {
     console.error("Upload error:", error);

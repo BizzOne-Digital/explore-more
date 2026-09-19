@@ -36,6 +36,44 @@ const SCHOOL_STATUS_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+function formatTelHref(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+  return digits.length === 10 ? `tel:+1${digits}` : `tel:+${digits}`;
+}
+
+function ContactLine({ email, phone }: { email: string; phone?: string }) {
+  const telHref = phone ? formatTelHref(phone) : null;
+
+  return (
+    <p className="text-xs text-white/40">
+      <a
+        href={`mailto:${email}`}
+        onClick={(e) => e.stopPropagation()}
+        className="text-explore-lime/90 hover:underline"
+      >
+        {email}
+      </a>
+      {phone ? (
+        <>
+          {" · "}
+          {telHref ? (
+            <a
+              href={telHref}
+              onClick={(e) => e.stopPropagation()}
+              className="text-explore-lime/90 hover:underline"
+            >
+              {phone}
+            </a>
+          ) : (
+            phone
+          )}
+        </>
+      ) : null}
+    </p>
+  );
+}
+
 function DetailItem({ label, value }: { label: string; value?: string | null }) {
   if (!value?.trim()) return null;
   return (
@@ -112,10 +150,10 @@ function InquiryCard({ request }: { request: ServiceRequestInquiry }) {
             {request.programId?.title ?? "Program"} —{" "}
             {request.programId?.grade ? formatGradeLabel(request.programId.grade) : "—"}
           </p>
-          <p className="text-xs text-white/40">
-            {request.email}
-            {request.phone ? ` · ${request.phone}` : ""} · Submitted {formatDate(request.createdAt)}
-          </p>
+          <div className="text-xs text-white/40">
+            <ContactLine email={request.email} phone={request.phone} />
+            <p className="mt-0.5">Submitted {formatDate(request.createdAt)}</p>
+          </div>
           {!open && request.goals?.trim() && (
             <p className="line-clamp-2 text-sm text-white/50 pt-1">
               <span className="font-medium text-white/60">Interested in: </span>

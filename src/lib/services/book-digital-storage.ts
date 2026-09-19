@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import connectDB from "@/lib/db";
-import { StoredUpload } from "@/models";
+import { Book, StoredUpload } from "@/models";
 import { isR2Configured, uploadToR2 } from "@/lib/services/r2-storage";
 import { readPrivateStoredFile } from "@/lib/services/private-stored-upload";
 import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
@@ -55,7 +55,7 @@ export function detectBookFileType(file: File): string {
   return "pdf";
 }
 
-function bookMimeType(file: File, fileType: string): string {
+export function bookMimeType(file: File, fileType: string): string {
   if (file.type) return file.type;
   if (fileType === "epub") return "application/epub+zip";
   if (fileType === "mobi") return "application/x-mobipocket-ebook";
@@ -101,6 +101,38 @@ async function uploadBookToMongo(
     fileSizeBytes: buffer.length,
     fileType,
   };
+}
+
+export async function attachBookDigitalFile(
+  bookId: string,
+  uploaded: {
+    storage: BookDigitalStorage;
+    r2Key?: string;
+    localPath?: string;
+    fileName: string;
+    fileSizeBytes: number;
+    fileType: string;
+  }
+) {
+  await connectDB();
+  const book = await Book.findById(bookId);
+  if (!book) {
+    throw new Error("Book not found");
+  }
+
+  book.digitalFile = {
+    enabled: true,
+    storage: uploaded.storage,
+    r2Key: uploaded.r2Key,
+    localPath: uploaded.localPath,
+    fileName: uploaded.fileName,
+    fileSizeBytes: uploaded.fileSizeBytes,
+    fileType: uploaded.fileType,
+    uploadedAt: new Date(),
+  };
+
+  await book.save();
+  return book.digitalFile;
 }
 
 export async function uploadBookDigitalFile(

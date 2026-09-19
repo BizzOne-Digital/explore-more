@@ -3,18 +3,21 @@ import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { ParentNotification, ParentNotificationRead } from "@/models";
 import { enrichCertificateNotificationAttachments } from "@/lib/certificates/notification-attachments";
+import {
+  markAllParentNotificationsRead,
+  parentNotificationInboxFilter,
+} from "@/lib/notifications/parent-inbox";
 
 export async function GET() {
   try {
-    const sessionResult = await requireRole(["parent"]);
+    const sessionResult = await requireRole(["parent", "administrator"]);
     if ("error" in sessionResult) return sessionResult.error;
 
     await connectDB();
 
-    const notifications = await ParentNotification.find({
-      $or: [{ recipientIds: sessionResult.user.id }, { audience: "all_parents" }],
-      sentAt: { $ne: null },
-    })
+    const notifications = await ParentNotification.find(
+      parentNotificationInboxFilter(sessionResult.user.id)
+    )
       .populate("sentBy", "name")
       .sort({ sentAt: -1 })
       .limit(200);
@@ -58,20 +61,31 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const sessionResult = await requireRole(["parent"]);
+    const sessionResult = await requireRole(["parent", "administrator"]);
     if ("error" in sessionResult) return sessionResult.error;
 
-    const { notificationId, acknowledge } = await request.json();
-    if (!notificationId) return apiError(new Error("notificationId is required"), 400);
+    const body = await request.json();
+    const { notificationId, acknowledge, markAllRead } = body as {
+      notificationId?: string;
+      acknowledge?: boolean;
+      markAllRead?: boolean;
+    };
 
     await connectDB();
+
+    if (markAllRead) {
+      const marked = await markAllParentNotificationsRead(sessionResult.user.id);
+      return apiSuccess({ marked });
+    }
+
+    if (!notificationId) return apiError(new Error("notificationId is required"), 400);
 
     const update: { readAt: Date; acknowledgedAt?: Date } = { readAt: new Date() };
     if (acknowledge) update.acknowledgedAt = new Date();
 
     const record = await ParentNotificationRead.findOneAndUpdate(
       { notificationId, userId: sessionResult.user.id },
-      update,
+      { $set: update },
       { upsert: true, new: true }
     );
 
@@ -83,7 +97,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const sessionResult = await requireRole(["parent"]);
+    const sessionResult = await requireRole(["parent", "administrator"]);
     if ("error" in sessionResult) return sessionResult.error;
 
     const body = await request.json();
@@ -100,8 +114,7 @@ export async function DELETE(request: Request) {
 
     const notifications = await ParentNotification.find({
       _id: { $in: notificationIds },
-      $or: [{ recipientIds: sessionResult.user.id }, { audience: "all_parents" }],
-      sentAt: { $ne: null },
+      ...parentNotificationInboxFilter(sessionResult.user.id),
     }).select("_id");
 
     const allowedIds = notifications.map((n) => n._id.toString());
@@ -114,7 +127,7 @@ export async function DELETE(request: Request) {
       allowedIds.map((notificationId) =>
         ParentNotificationRead.findOneAndUpdate(
           { notificationId, userId: sessionResult.user.id },
-          { deletedAt: now },
+          { $set: { deletedAt: now } },
           { upsert: true, new: true }
         )
       )

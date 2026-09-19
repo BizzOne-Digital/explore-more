@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader } from "lucide-react";
 
 type Notification = {
@@ -14,15 +15,41 @@ type Notification = {
 };
 
 export default function TutorNotificationsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/tutor/notifications")
-      .then((r) => r.json())
-      .then((json) => setItems(json.notifications ?? []))
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch("/api/tutor/notifications");
+        const json = await r.json();
+        if (!cancelled) setItems(json.notifications ?? []);
+        const hasUnread = (json.notifications ?? []).some(
+          (n: Notification) => !n.readAt
+        );
+        if (hasUnread) {
+          await fetch("/api/tutor/notifications", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ markAllRead: true }),
+          });
+          if (!cancelled) {
+            setItems((prev) =>
+              prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() }))
+            );
+            router.refresh();
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function markAllRead() {
     await fetch("/api/tutor/notifications", {
@@ -31,6 +58,7 @@ export default function TutorNotificationsPage() {
       body: JSON.stringify({ markAllRead: true }),
     });
     setItems((prev) => prev.map((n) => ({ ...n, readAt: new Date().toISOString() })));
+    router.refresh();
   }
 
   if (loading) {

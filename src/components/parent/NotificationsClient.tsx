@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, ExternalLink, CheckCircle2, Trash2 } from "lucide-react";
 import {
@@ -37,6 +37,21 @@ export function NotificationsClient({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const markedOnViewRef = useRef(false);
+
+  useEffect(() => {
+    if (markedOnViewRef.current || unreadCount === 0) return;
+    void fetch("/api/parent/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markAllRead: true }),
+    }).then((res) => {
+      if (res.ok) {
+        markedOnViewRef.current = true;
+        router.refresh();
+      }
+    });
+  }, [unreadCount, router]);
 
   const allSelected = items.length > 0 && selectedIds.size === items.length;
   const someSelected = selectedIds.size > 0;
@@ -61,12 +76,12 @@ export function NotificationsClient({
   async function markRead(id: string, acknowledge = false) {
     setBusyId(id);
     try {
-      await fetch("/api/parent/notifications", {
+      const res = await fetch("/api/parent/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notificationId: id, acknowledge }),
       });
-      router.refresh();
+      if (res.ok) router.refresh();
     } finally {
       setBusyId(null);
     }

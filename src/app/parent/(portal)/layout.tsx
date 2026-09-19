@@ -9,6 +9,7 @@ import { ensureGuardianId } from "@/lib/parent/guardian-id";
 import { getParentMembershipAccess } from "@/lib/membership/access";
 import { isParentPathAllowed } from "@/lib/membership/route-features";
 import { parentSignOut } from "@/app/parent/(portal)/actions";
+import { markAllParentNotificationsRead } from "@/lib/notifications/parent-inbox";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,8 @@ async function getParentCounts(userId: string) {
     Conversation.countDocuments({ parentId: userId, parentUnread: { $gt: 0 } }),
     (async () => {
       const { ParentNotification, ParentNotificationRead } = await import("@/models");
-      const sent = await ParentNotification.find({
-        $or: [{ recipientIds: userId }, { audience: "all_parents" }],
-        sentAt: { $ne: null },
-      }).select("_id");
+      const { parentNotificationInboxFilter } = await import("@/lib/notifications/parent-inbox");
+      const sent = await ParentNotification.find(parentNotificationInboxFilter(userId)).select("_id");
       if (sent.length === 0) return 0;
       const reads = await ParentNotificationRead.find({
         userId,
@@ -77,6 +76,9 @@ export default async function ParentPortalLayout({ children }: { children: React
   let guardianId: string | undefined;
   let counts = { messages: 0, notifications: 0 };
   try {
+    if (pathname === "/parent/notifications" || pathname.startsWith("/parent/notifications/")) {
+      await markAllParentNotificationsRead(session.user.id);
+    }
     guardianId = (await ensureGuardianId(session.user.id)) ?? undefined;
     counts = await getParentCounts(session.user.id);
   } catch (error) {

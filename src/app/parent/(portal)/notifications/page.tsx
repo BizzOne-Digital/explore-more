@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ParentNotification, ParentNotificationRead } from "@/models";
 import { NotificationsClient } from "@/components/parent/NotificationsClient";
 import { enrichCertificateNotificationAttachments } from "@/lib/certificates/notification-attachments";
+import { parentNotificationInboxFilter } from "@/lib/notifications/parent-inbox";
 
 export default async function ParentNotificationsPage() {
   const session = await auth();
@@ -11,10 +12,7 @@ export default async function ParentNotificationsPage() {
 
   await connectDB();
 
-  const notifications = await ParentNotification.find({
-    $or: [{ recipientIds: session.user.id }, { audience: "all_parents" }],
-    sentAt: { $ne: null },
-  })
+  const notifications = await ParentNotification.find(parentNotificationInboxFilter(session.user.id))
     .populate("sentBy", "name")
     .sort({ sentAt: -1 })
     .limit(200)

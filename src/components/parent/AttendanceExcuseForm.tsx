@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Loader, Paperclip, X } from "lucide-react";
+import { FileText, Loader, Paperclip, Upload, X } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 export function AttendanceExcuseForm({ studentId }: { studentId: string }) {
   const router = useRouter();
@@ -12,6 +13,14 @@ export function AttendanceExcuseForm({ studentId }: { studentId: string }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputId = useId();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function pickFile(file: File | undefined) {
+    if (!file) return;
+    setAttachment(file);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,33 +100,77 @@ export function AttendanceExcuseForm({ studentId }: { studentId: string }) {
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-sm font-medium text-explore-charcoal/70">
+          <span className="mb-2 block text-sm font-medium text-explore-charcoal/70">
             Doctor&apos;s note or attachment <span className="font-normal text-explore-charcoal/50">(optional)</span>
-          </label>
+          </span>
           {attachment ? (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-explore-charcoal/20 px-4 py-2">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
               <div className="flex min-w-0 items-center gap-2 text-sm text-explore-charcoal">
                 <Paperclip className="h-4 w-4 shrink-0 text-explore-teal" />
-                <span className="truncate">{attachment.name}</span>
+                <span className="truncate font-medium">{attachment.name}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setAttachment(null)}
-                className="shrink-0 rounded p-1 text-explore-charcoal/50 hover:bg-explore-cream hover:text-explore-charcoal"
+                className="shrink-0 rounded p-1 text-explore-charcoal/50 hover:bg-white hover:text-explore-charcoal"
                 aria-label="Remove attachment"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,image/*,application/pdf"
-              onChange={(e) => setAttachment(e.target.files?.[0] ?? null)}
-              className="w-full text-sm"
-            />
+            <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                pickFile(e.dataTransfer.files?.[0]);
+              }}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors",
+                dragOver
+                  ? "border-explore-teal bg-explore-teal/5"
+                  : "border-explore-charcoal/25 bg-explore-cream/40 hover:border-explore-teal/50 hover:bg-explore-cream/70"
+              )}
+            >
+              <Upload className="h-8 w-8 text-explore-teal/70" aria-hidden />
+              <p className="mt-2 text-sm font-semibold text-explore-charcoal">
+                Upload doctor&apos;s note here
+              </p>
+              <p className="mt-1 text-xs text-explore-charcoal/60">
+                Drag & drop a file, or{" "}
+                <label
+                  htmlFor={fileInputId}
+                  onClick={(e) => e.stopPropagation()}
+                  className="cursor-pointer font-semibold text-explore-teal hover:underline"
+                >
+                  browse
+                </label>
+              </p>
+              <p className="mt-2 text-xs text-explore-charcoal/45">PDF or image · up to 10 MB</p>
+              <input
+                id={fileInputId}
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,image/*,application/pdf"
+                onChange={(e) => pickFile(e.target.files?.[0])}
+                className="hidden"
+              />
+            </div>
           )}
-          <p className="mt-1 text-xs text-explore-charcoal/50">PDF or image, up to 10 MB</p>
         </div>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}

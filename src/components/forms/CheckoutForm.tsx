@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/components/providers/CartProvider";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +34,7 @@ type CheckoutQuote = {
 };
 
 export function CheckoutForm() {
+  const router = useRouter();
   const { items, subtotalCents, clearCart } = useCart();
   const bookItems = items.filter(isBookCartItem);
   const bookIdsKey = bookItems.map((item) => item.bookId).join(",");
@@ -52,10 +54,7 @@ export function CheckoutForm() {
   const [selectedShippingId, setSelectedShippingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!bookIdsKey) {
-      setShippingInfo({});
-      return;
-    }
+    if (!bookIdsKey) return;
 
     const bookIds = bookIdsKey.split(",");
     fetch("/api/books/shipping-info", {
@@ -72,15 +71,15 @@ export function CheckoutForm() {
       });
   }, [bookIdsKey]);
 
-  const shippingLines = useMemo(
-    () =>
-      bookItems.map((item) => ({
-        priceCents: item.priceCents,
-        quantity: item.quantity,
-        isDigital: shippingInfo[item.bookId]?.isDigital ?? item.isDigital === true,
-      })),
-    [bookItems, shippingInfo]
-  );
+  const shippingLines = useMemo(() => {
+    const resolvedShippingInfo = bookIdsKey ? shippingInfo : {};
+    return bookItems.map((item) => ({
+      priceCents: item.priceCents,
+      quantity: item.quantity,
+      isDigital:
+        resolvedShippingInfo[item.bookId]?.isDigital ?? item.isDigital === true,
+    }));
+  }, [bookItems, bookIdsKey, shippingInfo]);
 
   const needsAddress = cartRequiresShippingAddress(shippingLines);
   const isFreeCart = quote?.isFreeCart ?? shippingLines.every((item) => item.priceCents === 0);
@@ -215,13 +214,13 @@ export function CheckoutForm() {
       if (!res.ok) throw new Error(json.error || "Checkout failed");
 
       if (json.checkoutUrl) {
-        window.location.href = json.checkoutUrl;
+        globalThis.location.assign(json.checkoutUrl);
         return;
       }
 
       if (json.orderNumber) {
         clearCart();
-        window.location.href = `/order-success?order=${json.orderNumber}`;
+        router.push(`/order-success?order=${encodeURIComponent(json.orderNumber)}`);
         return;
       }
 

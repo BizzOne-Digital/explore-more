@@ -29,9 +29,21 @@ export function SendNotificationForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [recipientCount, setRecipientCount] = useState<number | null>(null);
-  const [recipientHint, setRecipientHint] = useState("");
+  const [apiRecipientCount, setApiRecipientCount] = useState<number | null>(null);
+  const [apiRecipientHint, setApiRecipientHint] = useState("");
   const [loadingRecipients, setLoadingRecipients] = useState(false);
+
+  const isCustomAudience = audience === "custom";
+  const recipientCount = isCustomAudience
+    ? selectedParentId
+      ? 1
+      : 0
+    : apiRecipientCount;
+  const recipientHint = isCustomAudience
+    ? selectedParentId
+      ? ""
+      : "Select a parent account below."
+    : apiRecipientHint;
 
   const parentOptions = useMemo<SearchableOption[]>(
     () =>
@@ -69,12 +81,7 @@ export function SendNotificationForm() {
   }, []);
 
   useEffect(() => {
-    if (audience === "custom") {
-      setRecipientCount(selectedParentId ? 1 : 0);
-      setRecipientHint(selectedParentId ? "" : "Select a parent account below.");
-      setLoadingRecipients(false);
-      return;
-    }
+    if (isCustomAudience) return;
 
     let cancelled = false;
 
@@ -87,12 +94,12 @@ export function SendNotificationForm() {
         const data = await response.json();
         if (cancelled) return;
 
-        setRecipientCount(data.data?.count ?? 0);
-        setRecipientHint(data.data?.hint ?? "");
+        setApiRecipientCount(data.data?.count ?? 0);
+        setApiRecipientHint(data.data?.hint ?? "");
       } catch {
         if (!cancelled) {
-          setRecipientCount(null);
-          setRecipientHint("");
+          setApiRecipientCount(null);
+          setApiRecipientHint("");
         }
       } finally {
         if (!cancelled) setLoadingRecipients(false);
@@ -103,7 +110,7 @@ export function SendNotificationForm() {
     return () => {
       cancelled = true;
     };
-  }, [audience, selectedParentId]);
+  }, [audience, isCustomAudience]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -235,6 +242,7 @@ export function SendNotificationForm() {
             onChange={(e) => {
               setAudience(e.target.value);
               if (e.target.value !== "custom") setSelectedParentId("");
+              else setLoadingRecipients(false);
             }}
             className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-white/40 focus:outline-none"
           >

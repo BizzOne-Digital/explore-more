@@ -41,6 +41,30 @@ function DesignThumbnail({
   );
 }
 
+async function fetchCertificateDesignsData(): Promise<{
+  builtin: BuiltinDesign[];
+  custom: CertificateDesign[];
+} | null> {
+  try {
+    const res = await fetch("/api/admin/certificate-designs");
+    const json = await res.json();
+    if (!json.success || !json.data) return null;
+
+    const builtin = Array.isArray(json.data.builtin)
+      ? json.data.builtin.map((template: BuiltinDesign) => ({
+          ...template,
+          isBuiltin: true as const,
+          isActive: template.isActive ?? true,
+        }))
+      : [];
+    const custom = Array.isArray(json.data.custom) ? json.data.custom : [];
+    return { builtin, custom };
+  } catch (err) {
+    console.error("Failed to load certificate designs:", err);
+    return null;
+  }
+}
+
 export default function CertificateDesignsPage() {
   const [builtin, setBuiltin] = useState<BuiltinDesign[]>(
     getBuiltinCertificateTemplateList().map((template) => ({
@@ -57,34 +81,32 @@ export default function CertificateDesignsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const loadDesigns = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/certificate-designs");
-      const json = await res.json();
-      if (json.success && json.data) {
-        if (Array.isArray(json.data.builtin)) {
-          setBuiltin(
-            json.data.builtin.map((template: BuiltinDesign) => ({
-              ...template,
-              isBuiltin: true,
-              isActive: template.isActive ?? true,
-            }))
-          );
-        }
-        if (Array.isArray(json.data.custom)) {
-          setCustom(json.data.custom);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to load certificate designs:", err);
-    } finally {
-      setLoading(false);
-    }
+  const applyDesigns = useCallback((data: { builtin: BuiltinDesign[]; custom: CertificateDesign[] }) => {
+    setBuiltin(data.builtin);
+    setCustom(data.custom);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    loadDesigns();
-  }, [loadDesigns]);
+    let cancelled = false;
+    void fetchCertificateDesignsData().then((data) => {
+      if (cancelled || !data) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      applyDesigns(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [applyDesigns]);
+
+  const refreshDesigns = useCallback(async () => {
+    setLoading(true);
+    const data = await fetchCertificateDesignsData();
+    if (data) applyDesigns(data);
+    else setLoading(false);
+  }, [applyDesigns]);
 
   function handleFileSelect(files: File[]) {
     const selected = files[0];
@@ -134,7 +156,7 @@ export default function CertificateDesignsPage() {
       setDescription("");
       setFile(null);
       setPreview(null);
-      await loadDesigns();
+      await refreshDesigns();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Upload failed");
     } finally {

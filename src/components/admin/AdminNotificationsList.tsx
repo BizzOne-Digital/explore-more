@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
@@ -23,13 +23,13 @@ export function AdminNotificationsList({
   notifications: AdminNotificationItem[];
 }) {
   const router = useRouter();
-  const [items, setItems] = useState(notifications);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const items = useMemo(
+    () => notifications.filter((notification) => !removedIds.includes(notification._id)),
+    [notifications, removedIds]
+  );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    setItems(notifications);
-  }, [notifications]);
 
   async function handleDelete(notification: AdminNotificationItem) {
     const confirmed = window.confirm(
@@ -63,7 +63,7 @@ export function AdminNotificationsList({
         );
       }
 
-      setItems((current) => current.filter((item) => item._id !== notification._id));
+      setRemovedIds((current) => [...current, notification._id]);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete notification");

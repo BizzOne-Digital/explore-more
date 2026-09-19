@@ -310,7 +310,7 @@ export function IssueSingleCertificateForm({ students }: { students: StudentOpti
           }}
           className="rounded-xl border-2 border-dashed border-white/20 bg-white/5 p-8 text-center"
         >
-          {({ openFilePicker }) => (
+          {({ fileInputId }) => (
             <div className="space-y-3">
               {fileType === "pdf" ? (
                 <FileText className="mx-auto h-10 w-10 text-explore-teal" />
@@ -319,13 +319,12 @@ export function IssueSingleCertificateForm({ students }: { students: StudentOpti
               )}
               <p className="text-sm text-white/70">
                 Drag and drop a {fileType === "pdf" ? "PDF" : "image"} here, or{" "}
-                <button
-                  type="button"
-                  onClick={openFilePicker}
-                  className="font-semibold text-explore-teal hover:underline"
+                <label
+                  htmlFor={fileInputId}
+                  className="cursor-pointer font-semibold text-explore-teal hover:underline"
                 >
                   browse files
-                </button>
+                </label>
               </p>
               {uploading ? <p className="text-xs text-white/50">Uploading…</p> : null}
               {filePath ? (

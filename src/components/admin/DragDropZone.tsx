@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 export interface DragDropZoneState {
   dragOver: boolean;
-  openFilePicker: () => void;
+  fileInputId: string;
 }
 
 interface DragDropZoneProps {
@@ -30,6 +30,7 @@ export function DragDropZone({
   children,
 }: DragDropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputId = useId();
   const [dragOver, setDragOver] = useState(false);
 
   function openFilePicker() {
@@ -74,9 +75,10 @@ export function DragDropZone({
           disabled && "pointer-events-none opacity-60"
         )}
       >
-        {typeof children === "function" ? children({ dragOver, openFilePicker }) : children}
+        {typeof children === "function" ? children({ dragOver, fileInputId }) : children}
       </div>
       <input
+        id={fileInputId}
         ref={inputRef}
         type="file"
         accept={accept}

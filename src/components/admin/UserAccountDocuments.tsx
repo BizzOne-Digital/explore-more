@@ -158,11 +158,8 @@ export function UserAccountDocuments({ userId }: { userId: string }) {
         }}
         className="rounded-lg border border-dashed border-white/20 bg-black/20 p-6 text-center"
       >
-        {({ dragOver, openFilePicker }) => (
-          <div
-            className={dragOver ? "text-explore-teal" : "text-white/60"}
-            onClick={openFilePicker}
-          >
+        {({ dragOver }) => (
+          <div className={dragOver ? "text-explore-teal" : "text-white/60"}>
             {uploading ? (
               <Loader className="mx-auto h-8 w-8 animate-spin opacity-60" />
             ) : (

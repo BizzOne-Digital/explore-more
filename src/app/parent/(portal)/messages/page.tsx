@@ -100,6 +100,7 @@ export default async function ParentMessagesPage({
         </p>
       </div>
       <ParentMessagesClient
+        key={`${params.staff ?? ""}:${params.student ?? ""}:${initialSubject ?? ""}`}
         conversations={JSON.parse(JSON.stringify(conversations))}
         staff={staff}
         initialStaffId={params.staff}

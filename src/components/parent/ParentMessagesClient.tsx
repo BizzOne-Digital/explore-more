@@ -172,24 +172,15 @@ export function ParentMessagesClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [body, setBody] = useState("");
-  const defaultStaffId =
+  const [staffId, setStaffId] = useState(() =>
     initialStaffId && staff.some((member) => member._id === initialStaffId)
       ? initialStaffId
-      : (staff[0]?._id ?? "");
-  const [staffId, setStaffId] = useState(defaultStaffId);
+      : (staff[0]?._id ?? "")
+  );
   const [studentId, setStudentId] = useState(initialStudentId ?? "");
   const [subject, setSubject] = useState(initialSubject ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (initialStaffId && staff.some((member) => member._id === initialStaffId)) {
-      setStaffId(initialStaffId);
-      setSelectedId(null);
-    }
-    if (initialStudentId) setStudentId(initialStudentId);
-    if (initialSubject) setSubject(initialSubject);
-  }, [initialStaffId, initialStudentId, initialSubject, staff]);
 
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 

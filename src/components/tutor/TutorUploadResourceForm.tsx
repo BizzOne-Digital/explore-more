@@ -59,7 +59,6 @@ export function TutorUploadResourceForm() {
   }, []);
 
   useEffect(() => {
-    setStudentsLoading(true);
     fetch("/api/tutor/students")
       .then((r) => r.json())
       .then((json) => setStudents(json.students ?? []))
@@ -371,7 +370,7 @@ export function TutorUploadResourceForm() {
           className="mt-1 cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-10 text-center transition-colors hover:border-violet-300 hover:bg-violet-50/40"
           dragActiveClassName="border-violet-500 bg-violet-50"
         >
-          {({ dragOver, openFilePicker }) => (
+          {({ dragOver, fileInputId }) => (
             <div className="space-y-3">
               {uploading ? (
                 <Loader className="mx-auto h-10 w-10 animate-spin text-violet-600" />
@@ -411,16 +410,13 @@ export function TutorUploadResourceForm() {
                 ) : (
                   <>
                     or{" "}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openFilePicker();
-                      }}
-                      className="font-semibold text-violet-600 hover:underline"
+                    <label
+                      htmlFor={fileInputId}
+                      onClick={(e) => e.stopPropagation()}
+                      className="cursor-pointer font-semibold text-violet-600 hover:underline"
                     >
                       browse your computer
-                    </button>{" "}
+                    </label>{" "}
                     to choose a file
                   </>
                 )}

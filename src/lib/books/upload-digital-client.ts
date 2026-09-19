@@ -1,6 +1,6 @@
 import { VERCEL_SAFE_UPLOAD_SIZE } from "@/lib/constants";
 import { describeUploadError } from "@/lib/uploads/upload-errors";
-import { uploadFileViaR2Multipart } from "@/lib/uploads/upload-via-r2-multipart";
+import { uploadLargeFileViaPresignedPut } from "@/lib/uploads/upload-via-r2-presigned-put";
 
 type UploadDigitalResult = {
   success: boolean;
@@ -21,7 +21,7 @@ export async function uploadBookDigitalFileClient(
 ): Promise<UploadDigitalResult> {
   try {
     if (file.size > VERCEL_SAFE_UPLOAD_SIZE) {
-      const uploaded = await uploadFileViaR2Multipart({
+      const uploaded = await uploadLargeFileViaPresignedPut({
         scope: "book-digital",
         file,
         bookId,

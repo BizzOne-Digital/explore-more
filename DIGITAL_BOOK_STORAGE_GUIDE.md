@@ -58,7 +58,12 @@ R2_ENDPOINT=https://<account_id>.r2.cloudflarestorage.com
 ```json
 [
   {
-    "AllowedOrigins": ["https://exploremoreacademy.com", "http://localhost:3004"],
+    "AllowedOrigins": [
+      "https://exploremoreacademy.com",
+      "https://www.exploremoreacademy.com",
+      "http://localhost:3000",
+      "http://localhost:3004"
+    ],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
     "AllowedHeaders": ["*"],
     "ExposeHeaders": ["ETag"],

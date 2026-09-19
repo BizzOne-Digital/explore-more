@@ -92,8 +92,8 @@ export const MAX_PORTFOLIO_UPLOAD_SIZE = MAX_PDF_UPLOAD_SIZE;
 export const MAX_MONGO_PRIVATE_UPLOAD_SIZE = 15 * 1024 * 1024; // 15MB
 /** Vercel serverless request body limit — larger files use chunked multipart upload to R2 via our API. */
 export const VERCEL_SAFE_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB
-/** Chunk size for server-proxied R2 multipart uploads (must stay under Vercel body limit). */
-export const R2_UPLOAD_CHUNK_SIZE = 3 * 1024 * 1024; // 3MB
+/** S3/R2 multipart parts must be ≥5MB (except the last); Vercel bodies are ~4.5MB — large files use presigned PUT from the browser instead. */
+export const R2_UPLOAD_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB (legacy multipart routes only)
 /** Campaign attachments/images — no practical cap for admin uploads (server memory still applies). */
 export const MAX_CAMPAIGN_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1GB
 /** Notification attachments stored in MongoDB (16MB BSON document limit). */

@@ -14,7 +14,7 @@ import {
 } from "@/lib/constants";
 import { readJsonResponse } from "@/lib/api/read-json-response";
 import { describeUploadError } from "@/lib/uploads/upload-errors";
-import { uploadFileViaR2Multipart } from "@/lib/uploads/upload-via-r2-multipart";
+import { uploadLargeFileViaPresignedPut } from "@/lib/uploads/upload-via-r2-presigned-put";
 import {
   TutorSearchableSelect,
   type TutorSearchableOption,
@@ -104,7 +104,7 @@ export function TutorUploadResourceForm() {
       let originalName = file.name;
 
       if (file.size > VERCEL_SAFE_UPLOAD_SIZE) {
-        const uploaded = await uploadFileViaR2Multipart({
+        const uploaded = await uploadLargeFileViaPresignedPut({
           scope: "tutor-resource",
           file,
         });

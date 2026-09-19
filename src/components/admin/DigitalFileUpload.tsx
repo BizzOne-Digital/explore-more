@@ -5,6 +5,7 @@ import { Upload, CheckCircle, XCircle, Loader } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MAX_PDF_UPLOAD_MB, MAX_PDF_UPLOAD_SIZE } from "@/lib/constants";
 import { uploadBookDigitalFileClient } from "@/lib/books/upload-digital-client";
+import { describeUploadError } from "@/lib/uploads/upload-errors";
 
 interface DigitalFileUploadProps {
   bookId?: string;
@@ -119,7 +120,7 @@ export function DigitalFileUpload({
         window.location.reload();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(describeUploadError(err));
       setProgress(0);
     } finally {
       setUploading(false);

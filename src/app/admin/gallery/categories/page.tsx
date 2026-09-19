@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Loader, Trash2 } from "lucide-react";
 
 interface GalleryCategory {
@@ -12,6 +12,15 @@ interface GalleryCategory {
   order: number;
 }
 
+async function fetchGalleryCategories(): Promise<GalleryCategory[]> {
+  const res = await fetch("/api/admin/gallery/categories");
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error || "Failed to load categories");
+  }
+  return json.data ?? [];
+}
+
 export default function GalleryCategoriesPage() {
   const [categories, setCategories] = useState<GalleryCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,26 +29,36 @@ export default function GalleryCategoriesPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  const load = useCallback(async () => {
+  async function refreshCategories() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/gallery/categories");
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || "Failed to load categories");
-      }
-      setCategories(json.data ?? []);
+      setCategories(await fetchGalleryCategories());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load categories");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void fetchGalleryCategories()
+      .then((data) => {
+        if (!cancelled) setCategories(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load categories");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -59,7 +78,7 @@ export default function GalleryCategoriesPage() {
       }
       setName("");
       setDescription("");
-      await load();
+      await refreshCategories();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create category");
     } finally {
@@ -78,7 +97,7 @@ export default function GalleryCategoriesPage() {
       if (!res.ok || !json.success) {
         throw new Error(json.error || "Delete failed");
       }
-      await load();
+      await refreshCategories();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Delete failed");
     }

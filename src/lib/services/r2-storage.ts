@@ -11,10 +11,10 @@ export function isR2Configured(): boolean {
   );
 }
 
-function getR2Client(): S3Client {
+export function getR2Client(): S3Client {
   return new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    region: "auto",
+    endpoint: process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
@@ -22,7 +22,8 @@ function getR2Client(): S3Client {
   });
 }
 
-const BUCKET_NAME = process.env.R2_BUCKET_NAME || "explore-more-books";
+export const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || "explore-more-books";
+const BUCKET_NAME = R2_BUCKET_NAME;
 
 /**
  * Upload a file to R2

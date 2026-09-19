@@ -13,6 +13,8 @@ import {
   VERCEL_SAFE_UPLOAD_SIZE,
 } from "@/lib/constants";
 import { readJsonResponse } from "@/lib/api/read-json-response";
+import { describeUploadError } from "@/lib/uploads/upload-errors";
+import { uploadFileViaR2Multipart } from "@/lib/uploads/upload-via-r2-multipart";
 import {
   TutorSearchableSelect,
   type TutorSearchableOption,
@@ -102,64 +104,35 @@ export function TutorUploadResourceForm() {
       let originalName = file.name;
 
       if (file.size > VERCEL_SAFE_UPLOAD_SIZE) {
-        const presignRes = await fetch("/api/tutor/resources/upload/presign", {
+        const uploaded = await uploadFileViaR2Multipart({
+          scope: "tutor-resource",
+          file,
+        });
+
+        const confirmRes = await fetch("/api/tutor/resources/upload/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            fileName: file.name,
-            fileSize: file.size,
-            mimeType: file.type || "application/octet-stream",
+            path: uploaded.path,
+            filename: uploaded.filename,
+            r2Key: uploaded.r2Key,
+            originalName: file.name,
+            mimeType: uploaded.contentType,
+            size: file.size,
           }),
         });
-        const { ok: presignOk, data: presignData, error: presignError } = await readJsonResponse<{
+        const { ok: confirmOk, data: confirmData, error: confirmError } = await readJsonResponse<{
           error?: string;
-          direct?: boolean;
-          uploadUrl?: string;
-          path?: string;
-          filename?: string;
-          r2Key?: string;
-          contentType?: string;
-        }>(presignRes, "Upload failed");
+          filePath?: string;
+          originalName?: string;
+        }>(confirmRes, "Upload failed");
 
-        if (!presignOk || !presignData) {
-          throw new Error(presignError || "Upload failed");
+        if (!confirmOk || !confirmData?.filePath) {
+          throw new Error(confirmError || "Upload failed");
         }
 
-        if (!presignData.direct) {
-          const putRes = await fetch(presignData.uploadUrl!, {
-            method: "PUT",
-            headers: { "Content-Type": presignData.contentType! },
-            body: file,
-          });
-          if (!putRes.ok) {
-            throw new Error("Cloud upload failed. Please try again.");
-          }
-
-          const confirmRes = await fetch("/api/tutor/resources/upload/confirm", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              path: presignData.path,
-              filename: presignData.filename,
-              r2Key: presignData.r2Key,
-              originalName: file.name,
-              mimeType: presignData.contentType,
-              size: file.size,
-            }),
-          });
-          const { ok: confirmOk, data: confirmData, error: confirmError } = await readJsonResponse<{
-            error?: string;
-            filePath?: string;
-            originalName?: string;
-          }>(confirmRes, "Upload failed");
-
-          if (!confirmOk || !confirmData?.filePath) {
-            throw new Error(confirmError || "Upload failed");
-          }
-
-          filePath = confirmData.filePath;
-          originalName = confirmData.originalName || file.name;
-        }
+        filePath = confirmData.filePath;
+        originalName = confirmData.originalName || file.name;
       }
 
       if (!filePath) {
@@ -183,7 +156,7 @@ export function TutorUploadResourceForm() {
       setForm((f) => ({ ...f, filePath: filePath! }));
       setUploadedFileName(originalName);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(describeUploadError(err));
     } finally {
       setUploading(false);
     }

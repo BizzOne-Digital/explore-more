@@ -2,6 +2,7 @@ import connectDB from "@/lib/db";
 import { Certificate } from "@/models";
 import { apiSuccess, apiError, notFound, isValidObjectId } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
+import { requireRole } from "@/lib/api/auth-helpers";
 import { z } from "zod";
 import { publishCertificateToStudent } from "@/lib/certificates/publish";
 import {
@@ -98,6 +99,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const sessionResult = await requireRole(["administrator"]);
+    if ("error" in sessionResult) return sessionResult.error;
+
     const { id } = await params;
     if (!isValidObjectId(id)) return notFound();
 

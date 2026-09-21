@@ -71,9 +71,18 @@ export default async function ParentCertificatesPage({
 
           {certificates.length === 0 ? (
             <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-              <p className="text-explore-charcoal/60">No certificates have been published yet.</p>
+              <p className="text-explore-charcoal/60">No certificates are listed here yet.</p>
               <p className="mt-2 text-sm text-explore-charcoal/50">
-                Certificates appear here after they are issued and published by the academy.
+                If you received a certificate email or saw a PDF under{" "}
+                <Link href="/parent/notifications" className="text-explore-teal hover:underline">
+                  Notifications
+                </Link>
+                , use <strong>View PDF</strong> there anytime. This page shows published certificates
+                for children linked under{" "}
+                <Link href="/parent/students" className="text-explore-teal hover:underline">
+                  My Children
+                </Link>
+                .
               </p>
             </div>
           ) : (

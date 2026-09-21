@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/admin/serialize";
-import { Search, Download, Bell } from "lucide-react";
+import { Search, Download, Bell, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { getCertificateFileUrl } from "@/lib/certificates/display";
 
@@ -30,8 +31,10 @@ interface Props {
 }
 
 export function CertificatesTable({ certificates, students }: Props) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [studentFilter, setStudentFilter] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const filteredCertificates = useMemo(() => {
     return certificates.filter((cert) => {
@@ -46,6 +49,31 @@ export function CertificatesTable({ certificates, students }: Props) {
       return matchesSearch && matchesStudent;
     });
   }, [certificates, searchTerm, studentFilter]);
+
+  async function handleDelete(certificateId: string, title: string) {
+    if (
+      !confirm(
+        `Delete "${title}"? This removes it from the parent and student portals. Published certificates are deleted the same way. The PDF file may still appear in older notifications until those are removed.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(certificateId);
+    try {
+      const res = await fetch(`/api/admin/certificates/${certificateId}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) {
+        alert(json.error || "Failed to delete certificate");
+        return;
+      }
+      router.refresh();
+    } catch {
+      alert("Failed to delete certificate");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function handleResendNotification(certificateId: string) {
     if (!confirm("Resend certificate notification to parent?")) return;
@@ -178,6 +206,15 @@ export function CertificatesTable({ certificates, students }: Props) {
                         title="Resend Notification"
                       >
                         <Bell className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(cert._id, cert.title)}
+                        disabled={deletingId === cert._id}
+                        className="text-red-400 hover:text-red-300 disabled:opacity-50"
+                        title="Delete certificate"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

@@ -65,7 +65,14 @@ export function Footer({ footerLinks = FOOTER_NAV }: FooterProps) {
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-explore-teal" />
-                <span className="text-white/50">Address pending verification</span>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(COMPANY.address.mapsQuery)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/50 hover:text-white transition-colors"
+                >
+                  {COMPANY.address.full}
+                </a>
               </li>
             </ul>
           </div>

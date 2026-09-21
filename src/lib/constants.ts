@@ -5,6 +5,12 @@ export const COMPANY = {
   /** Admin inbox for orders, registrations, form submissions, and backend alerts */
   adminEmail: "chris@exploremoreacademy.com",
   phone: "+1 (240) 944-1959",
+  address: {
+    street: "3890 Smallwood Church Rd",
+    cityStateZip: "Indian Head, MD 20640",
+    full: "3890 Smallwood Church Rd, Indian Head, MD 20640",
+    mapsQuery: "3890 Smallwood Church Rd, Indian Head, MD 20640",
+  },
   website: "https://www.exploremoreacademy.com",
   tagline: "Learn Wild. Live Big.",
   supportingLine: "Hands-on learning. Real-world adventures. Limitless futures.",

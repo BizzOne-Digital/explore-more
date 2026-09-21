@@ -6,7 +6,7 @@ import { resolveStudentUserId } from "@/lib/students/id";
 
 export async function POST(request: Request) {
   try {
-    const sessionResult = await requireRole(["parent"]);
+    const sessionResult = await requireRole(["parent", "administrator"]);
     if ("error" in sessionResult) return sessionResult.error;
 
     const { studentIdCode, dateOfBirth, relationship } = await request.json();
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const sessionResult = await requireRole(["parent"]);
+    const sessionResult = await requireRole(["parent", "administrator"]);
     if ("error" in sessionResult) return sessionResult.error;
 
     const { getPendingLinkRequests } = await import("@/lib/parent/students");

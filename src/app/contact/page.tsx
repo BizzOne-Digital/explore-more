@@ -57,7 +57,16 @@ export default async function ContactPage() {
                       <MapPin className="h-5 w-5 text-explore-teal shrink-0 mt-0.5" />
                       <div>
                         <p className="font-medium text-explore-charcoal">Location</p>
-                        <p className="text-sm text-explore-charcoal/60">Address pending verification</p>
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(COMPANY.address.mapsQuery)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-explore-teal hover:underline"
+                        >
+                          {COMPANY.address.street}
+                          <br />
+                          {COMPANY.address.cityStateZip}
+                        </a>
                       </div>
                     </li>
                     <li className="flex items-start gap-3">

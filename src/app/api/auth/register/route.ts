@@ -6,12 +6,16 @@ import { hashPassword, generateVerificationCode } from "@/lib/password";
 import { sendVerificationEmail } from "@/lib/auth/verification-email";
 import { claimPendingMembership } from "@/lib/billing/membership-activation";
 import type { Role } from "@/lib/constants";
-import { GRADE_LEVELS, isGradeLevel } from "@/lib/grades";
+import { isGradeLevel } from "@/lib/grades";
+import { createStudentAccount } from "@/lib/students/create-student-account";
 
 const schema = z
   .object({
     name: z.string().min(2),
-    email: z.string().email(),
+    email: z
+      .string()
+      .optional()
+      .transform((value) => (value?.trim() ? value.trim().toLowerCase() : undefined)),
     password: z.string().min(8),
     role: z.enum(["student", "parent"]),
     childGrade: z.string().optional(),
@@ -19,7 +23,18 @@ const schema = z
   .refine((data) => data.role !== "parent" || (data.childGrade && isGradeLevel(data.childGrade)), {
     message: "Please select your child's grade",
     path: ["childGrade"],
-  });
+  })
+  .refine((data) => data.role !== "parent" || Boolean(data.email), {
+    message: "Email is required for parent accounts",
+    path: ["email"],
+  })
+  .refine(
+    (data) =>
+      data.role !== "student" ||
+      !data.email ||
+      z.string().email().safeParse(data.email).success,
+    { message: "Enter a valid email or leave it blank", path: ["email"] }
+  );
 
 export async function POST(request: Request) {
   try {
@@ -27,7 +42,24 @@ export async function POST(request: Request) {
     const data = schema.parse(body);
     await connectDB();
 
-    const existing = await User.findOne({ email: data.email.toLowerCase() });
+    if (data.role === "student" && !data.email) {
+      const created = await createStudentAccount({
+        name: data.name,
+        password: data.password,
+        emailVerified: true,
+      });
+
+      return NextResponse.json({
+        success: true,
+        studentId: created.studentId,
+        skipEmailVerification: true,
+        message:
+          "Account created. Sign in with your 6-digit Student ID and password. Save your Student ID — you will need it to log in.",
+      });
+    }
+
+    const email = data.email!;
+    const existing = await User.findOne({ email });
     if (existing) {
       return NextResponse.json({ error: "Email already registered" }, { status: 409 });
     }
@@ -37,7 +69,7 @@ export async function POST(request: Request) {
 
     const user = await User.create({
       name: data.name,
-      email: data.email.toLowerCase(),
+      email,
       passwordHash,
       role: data.role as Role,
       emailVerified: false,
@@ -61,7 +93,7 @@ export async function POST(request: Request) {
 
     const emailResult = await sendVerificationEmail({
       name: data.name,
-      email: data.email,
+      email,
       token,
     });
 

@@ -15,6 +15,7 @@ import {
 import { StudentYearSelector } from "@/components/parent/StudentYearSelector";
 import { SubmitPortfolioButton } from "@/components/parent/PortfolioForms";
 import { QuickStartGuide } from "@/components/parent/QuickStartGuide";
+import { ParentChildrenSetup } from "@/components/parent/ParentChildrenSetup";
 import { LinkChildForm } from "@/components/parent/LinkChildForm";
 import { Conversation, Enrollment, Order, Attendance } from "@/models";
 import { startOfMonth, endOfMonth } from "date-fns";
@@ -95,7 +96,7 @@ export default async function ParentDashboardPage({
       {students.length === 0 ? (
         <>
           <QuickStartGuide />
-          <LinkChildForm />
+          <ParentChildrenSetup />
         </>
       ) : (
         <>

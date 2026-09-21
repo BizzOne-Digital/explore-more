@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLinkedStudents } from "@/lib/parent/students";
 import { getAssignedTutorsByStudent } from "@/lib/parent/tutors";
-import { LinkChildForm } from "@/components/parent/LinkChildForm";
+import { ParentChildrenSetup } from "@/components/parent/ParentChildrenSetup";
 
 export default async function ParentStudentsPage() {
   const session = await auth();
@@ -27,9 +27,11 @@ export default async function ParentStudentsPage() {
         <div className="space-y-6">
           <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
             <p className="text-explore-charcoal/60 mb-2">No linked students yet.</p>
-            <p className="text-sm text-explore-charcoal/50">Use the form below to link a child with their Student ID.</p>
+            <p className="text-sm text-explore-charcoal/50">
+              Create a new student account below, or link one that already exists.
+            </p>
           </div>
-          <LinkChildForm />
+          <ParentChildrenSetup />
         </div>
       ) : (
         <>
@@ -74,7 +76,7 @@ export default async function ParentStudentsPage() {
               );
             })}
           </div>
-          <LinkChildForm />
+          <ParentChildrenSetup />
         </>
       )}
     </div>

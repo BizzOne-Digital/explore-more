@@ -24,17 +24,27 @@ import {
   type SearchableOption,
 } from "@/components/admin/AdminSearchableSelect";
 
-const schema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Valid email is required"),
-  phone: z.string().optional(),
-  dateOfBirth: z.string().optional(),
-  schoolStatus: z.enum(["homeschool", "traditional", "other", ""]).optional(),
-  bio: z.string().optional(),
-  grade: z.string().optional(),
-  isActive: z.boolean(),
-  emailVerified: z.boolean(),
-});
+const schema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().optional(),
+    password: z.string().optional(),
+    phone: z.string().optional(),
+    dateOfBirth: z.string().optional(),
+    schoolStatus: z.enum(["homeschool", "traditional", "other", ""]).optional(),
+    bio: z.string().optional(),
+    grade: z.string().optional(),
+    isActive: z.boolean(),
+    emailVerified: z.boolean(),
+  })
+  .refine((data) => !data.email?.trim() || z.string().email().safeParse(data.email.trim()).success, {
+    message: "Enter a valid email or leave blank",
+    path: ["email"],
+  })
+  .refine((data) => !data.password?.trim() || data.password.trim().length >= 8, {
+    message: "Password must be at least 8 characters",
+    path: ["password"],
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -82,6 +92,7 @@ export function StudentForm({
     defaultValues: {
       name: (initialData?.name as string) ?? "",
       email: (initialData?.email as string) ?? "",
+      password: "",
       phone: (initialData?.phone as string) ?? "",
       dateOfBirth: toDateInputValue(initialData?.dateOfBirth),
       schoolStatus: (initialData?.schoolStatus as FormData["schoolStatus"]) ?? "",
@@ -97,6 +108,8 @@ export function StudentForm({
     
     const payload = {
       ...data,
+      email: data.email?.trim() || undefined,
+      password: isNew ? data.password?.trim() || undefined : undefined,
       dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
       role: "student",
     };
@@ -331,9 +344,35 @@ export function StudentForm({
           <FormField label="Full Name" error={errors.name} required className="sm:col-span-2">
             <TextInput registration={register("name")} error={errors.name} />
           </FormField>
-          <FormField label="Email" error={errors.email} required>
-            <TextInput registration={register("email")} error={errors.email} type="email" />
+          <FormField
+            label={isNew ? "Email (optional)" : "Email"}
+            error={errors.email}
+            required={!isNew}
+          >
+            <TextInput
+              registration={register("email")}
+              error={errors.email}
+              type="email"
+              placeholder={isNew ? "Leave blank — student signs in with Student ID" : undefined}
+            />
           </FormField>
+          {isNew && (
+            <FormField
+              label="Password (optional)"
+              error={errors.password}
+              className="sm:col-span-2"
+            >
+              <TextInput
+                registration={register("password")}
+                error={errors.password}
+                type="password"
+                autoComplete="new-password"
+              />
+              <p className="mt-1 text-xs text-white/50">
+                Set a password for student login, or leave blank to auto-generate one after save.
+              </p>
+            </FormField>
+          )}
           <FormField label="Phone" error={errors.phone}>
             <TextInput registration={register("phone")} error={errors.phone} type="tel" />
           </FormField>

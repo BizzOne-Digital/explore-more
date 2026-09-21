@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileUpload } from "@/components/admin/FileUpload";
 import { notificationHasMissingUpload } from "@/lib/notifications/display";
+import { parentNotificationFileUrl } from "@/lib/notifications/paths";
 
 export function NotificationAttachmentRepair({
   notificationId,
@@ -59,10 +60,20 @@ export function NotificationAttachmentRepair({
   }
 
   if (!needsRepair && attachmentPath) {
+    const fileUrl = parentNotificationFileUrl(attachmentPath);
+    const label = attachmentName || attachmentPath.split("/").pop();
     return (
-      <p className="mt-3 text-xs text-green-300">
-        Attachment on file: {attachmentName || attachmentPath.split("/").pop()}
-      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+        <span className="text-green-300">Attachment on file: {label}</span>
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-lg border border-explore-teal/40 px-2.5 py-1 font-semibold text-explore-teal hover:bg-explore-teal/10"
+        >
+          View PDF
+        </a>
+      </div>
     );
   }
 

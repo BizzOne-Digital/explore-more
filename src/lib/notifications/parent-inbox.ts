@@ -1,11 +1,14 @@
 import connectDB from "@/lib/db";
 import { ParentNotification, ParentNotificationRead } from "@/models";
 
-/** Notifications visible in the parent portal inbox for this user. */
+/**
+ * Notifications visible in the parent portal inbox for this user.
+ * Uses explicit recipientIds only (set when sending, including “all parents” broadcasts).
+ */
 export function parentNotificationInboxFilter(userId: string) {
   return {
     sentAt: { $ne: null },
-    $or: [{ recipientIds: userId }, { audience: "all_parents" as const }],
+    recipientIds: userId,
   };
 }
 

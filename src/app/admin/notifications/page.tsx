@@ -41,7 +41,7 @@ export default async function AdminNotificationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Send Notifications"
-        description="Send announcements and notifications to parents"
+        description="Send PDFs and announcements to one parent or a group. Uploaded files appear under Recent Notifications with View PDF."
       />
 
       <SendNotificationForm />

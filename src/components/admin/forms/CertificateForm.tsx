@@ -299,8 +299,13 @@ export function CertificateForm({
         setError(json.error ?? "Delete failed");
         return;
       }
-      router.push("/admin/certificates");
-      router.refresh();
+      const returnGrade =
+        (initialData?.grade as string | undefined) || grade || watch("grade") || undefined;
+      globalThis.location.assign(
+        returnGrade
+          ? `/admin/certificates?grade=${encodeURIComponent(returnGrade)}`
+          : "/admin/certificates"
+      );
     } catch {
       setError("Delete failed");
     }

@@ -1,5 +1,5 @@
 import connectDB from "@/lib/db";
-import { User, StudentProfile } from "@/models";
+import { User, StudentProfile, GuardianStudentLink } from "@/models";
 import { apiSuccess, apiError, notFound, isValidObjectId } from "@/lib/admin/api";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -69,10 +69,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await connectDB();
     const user = await User.findOneAndDelete({ _id: id, role: "student" });
     if (!user) return notFound();
-    
-    // Delete associated profile
-    await StudentProfile.findOneAndDelete({ userId: id });
-    
+
+    await Promise.all([
+      StudentProfile.findOneAndDelete({ userId: id }),
+      GuardianStudentLink.deleteMany({ studentId: id }),
+    ]);
+
     return apiSuccess({ deleted: true });
   } catch (error) {
     return apiError(error);

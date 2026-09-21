@@ -228,8 +228,7 @@ export function StudentForm({
         setError(json.error ?? "Delete failed");
         return;
       }
-      router.push("/admin/students");
-      router.refresh();
+      globalThis.location.assign("/admin/students");
     } catch (err) {
       setError("Delete failed");
     }

@@ -20,7 +20,7 @@ interface ParentOption {
 export function SendNotificationForm() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [audience, setAudience] = useState("all_parents");
+  const [audience, setAudience] = useState("custom");
   const [selectedParentId, setSelectedParentId] = useState("");
   const [parents, setParents] = useState<ParentOption[]>([]);
   const [priority, setPriority] = useState("normal");
@@ -246,10 +246,10 @@ export function SendNotificationForm() {
             }}
             className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-white focus:border-white/40 focus:outline-none"
           >
-            <option value="all_parents">All Parents</option>
-            <option value="portfolio_parents">Portfolio Parents Only</option>
-            <option value="tutoring_parents">Tutoring Parents Only</option>
-            <option value="custom">Specific Parent Account</option>
+            <option value="custom">One parent only (pick account below)</option>
+            <option value="all_parents">All parents (broadcast)</option>
+            <option value="portfolio_parents">Portfolio parents only</option>
+            <option value="tutoring_parents">Tutoring parents only</option>
           </select>
         </div>
 

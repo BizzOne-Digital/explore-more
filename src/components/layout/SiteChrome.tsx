@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CinematicIntro } from "@/components/intro/CinematicIntro";
 import { getSiteNavigation } from "@/lib/queries/navigation";
+import { PublicPageViewBeacon } from "@/components/analytics/PublicPageViewBeacon";
 
 /** Public marketing chrome — hidden on admin and parent portal routes. */
 export async function SiteChrome({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,7 @@ export async function SiteChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <PublicPageViewBeacon />
       <CinematicIntro />
       <Header navigation={navigation!} />
       <main id="main-content" className="w-full min-w-0 overflow-x-clip">

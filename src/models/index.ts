@@ -42,3 +42,4 @@ export { SubscriptionPlan, ParentSubscription, PendingMembership } from "./Billi
 export { StoredUpload } from "./StoredUpload";
 export { CertificateDesign } from "./CertificateDesign";
 export { CertificateTemplateSettings } from "./CertificateTemplateSettings";
+export { SiteTrafficDaily } from "./SiteTraffic";

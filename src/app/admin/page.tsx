@@ -30,7 +30,9 @@ import {
   Library,
   ClipboardCheck,
   ExternalLink,
+  BarChart3,
 } from "lucide-react";
+import { getTrafficSummary } from "@/lib/analytics/traffic";
 import Link from "next/link";
 
 async function getDashboardStats() {
@@ -98,7 +100,10 @@ async function getDashboardStats() {
 }
 
 export default async function AdminDashboardPage() {
-  const { stats, recentOrders, recentRegistrations } = await getDashboardStats();
+  const [{ stats, recentOrders, recentRegistrations }, traffic] = await Promise.all([
+    getDashboardStats(),
+    getTrafficSummary(30).catch(() => null),
+  ]);
 
   return (
     <div>
@@ -135,6 +140,14 @@ export default async function AdminDashboardPage() {
           icon={DollarSign}
           trend={`${stats.totalDonations} donations`}
           accent="lime"
+        />
+        <StatCard
+          label="Site visits (30 days)"
+          value={traffic?.totalViews ?? "—"}
+          icon={BarChart3}
+          href="/admin/analytics"
+          trend={traffic ? "Public marketing pages" : "Starts after deploy"}
+          accent="teal"
         />
         <StatCard
           label="Program Inquiries"

@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
+  BarChart3,
   FileText,
   Calendar,
   ClipboardList,
@@ -46,7 +47,10 @@ export interface AdminNavGroup {
 export const adminNavGroups: AdminNavGroup[] = [
   {
     title: "Overview",
-    items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard }],
+    items: [
+      { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { label: "Site traffic", href: "/admin/analytics", icon: BarChart3 },
+    ],
   },
   {
     title: "Content",

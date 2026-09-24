@@ -9,7 +9,6 @@ import {
   ChartLine,
   ClipboardCheck,
   MessageSquare,
-  Upload,
   Users,
 } from "lucide-react";
 import { getTutorDashboardStats, getTutorProfile } from "@/lib/tutor/queries";
@@ -17,13 +16,14 @@ import { getTutorDashboardStats, getTutorProfile } from "@/lib/tutor/queries";
 export const dynamic = "force-dynamic";
 
 const QUICK_LINKS = [
-  { href: "/tutor/students", label: "My Students", icon: Users, key: "assignedStudents" as const },
-  { href: "/tutor/resources", label: "Resource Library", icon: BookOpen, key: "academyResources" as const },
-  { href: "/tutor/upload", label: "Upload Resource", icon: Upload },
+  { href: "/tutor/classroom", label: "My Classroom", icon: Users },
+  { href: "/tutor/planner", label: "Teacher Planner", icon: Calendar },
+  { href: "/tutor/attendance", label: "Attendance", icon: ClipboardCheck },
+  { href: "/tutor/gradebook", label: "Gradebook", icon: ChartLine },
+  { href: "/tutor/todos", label: "To-Do List", icon: ClipboardCheck, key: "workspace" as const, statKey: "openTodos" as const },
+  { href: "/tutor/checkout", label: "End-of-Day Check-Out", icon: Calendar },
   { href: "/tutor/messages", label: "Parent Messages", icon: MessageSquare, key: "unreadParentMessages" as const },
-  { href: "/tutor/schedule", label: "My Schedule", icon: Calendar },
-  { href: "/tutor/progress", label: "Progress Reports", icon: ChartLine },
-  { href: "/tutor/assignments", label: "Assignments", icon: ClipboardCheck },
+  { href: "/tutor/resources", label: "Resource Library", icon: BookOpen },
 ];
 
 export default async function TutorDashboardPage() {
@@ -66,9 +66,9 @@ export default async function TutorDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Assigned Students", value: stats.assignedStudents },
-          { label: "Unread Parent Messages", value: stats.unreadParentMessages },
-          { label: "Staff Messages", value: stats.unreadStaffMessages },
-          { label: "Notifications", value: stats.unreadNotifications },
+          { label: "Open to-dos", value: stats.workspace.openTodos },
+          { label: "Today’s planner blocks", value: stats.workspace.todayPlanner },
+          { label: "Unread notifications", value: stats.unreadNotifications },
         ].map((item) => (
           <div key={item.label} className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-3xl font-bold text-explore-charcoal">{item.value}</p>
@@ -82,7 +82,12 @@ export default async function TutorDashboardPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {QUICK_LINKS.map((link) => {
             const Icon = link.icon;
-            const statValue = link.key ? stats[link.key] : undefined;
+            let statValue: number | undefined;
+            if ("statKey" in link && link.statKey) {
+              statValue = stats.workspace[link.statKey];
+            } else if ("key" in link && link.key === "unreadParentMessages") {
+              statValue = stats.unreadParentMessages;
+            }
             return (
               <Link
                 key={link.href}

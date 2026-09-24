@@ -43,3 +43,19 @@ export { StoredUpload } from "./StoredUpload";
 export { CertificateDesign } from "./CertificateDesign";
 export { CertificateTemplateSettings } from "./CertificateTemplateSettings";
 export { SiteTrafficDaily } from "./SiteTraffic";
+export {
+  TeacherClassroom,
+  TeacherLessonPlan,
+  TeacherPlannerEntry,
+  TeacherClassAttendance,
+  TeacherGradeAssignment,
+  TeacherGradeScore,
+  TeacherWorkspaceRecord,
+  TeacherTodo,
+  TeacherInventoryItem,
+  TeacherFieldTrip,
+  TeacherStandardCoverage,
+  TeacherEndOfDayLog,
+  TeacherDocumentFile,
+} from "./TeacherWorkspace";
+export type { WorkspaceRecordType } from "./TeacherWorkspace";

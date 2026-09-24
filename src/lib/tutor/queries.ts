@@ -11,6 +11,7 @@ import {
   User,
 } from "@/models";
 import { ensureTutorId } from "@/lib/tutor/tutor-id";
+import { getTeacherWorkspaceDashboardStats } from "@/lib/tutor/workspace-stats";
 
 export async function getTutorProfile(userId: string) {
   await connectDB();
@@ -51,6 +52,7 @@ export async function getTutorDashboardStats(tutorUserId: string) {
     ]);
 
   const academyResources = await Resource.countDocuments({ isPublic: true });
+  const workspace = await getTeacherWorkspaceDashboardStats(tutorUserId);
 
   return {
     assignedStudents,
@@ -59,6 +61,7 @@ export async function getTutorDashboardStats(tutorUserId: string) {
     recentSessions,
     unreadNotifications: notifications,
     academyResources,
+    workspace,
   };
 }
 

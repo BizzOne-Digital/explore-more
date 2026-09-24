@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { KeyRound, Copy, Check } from "lucide-react";
@@ -76,10 +76,23 @@ export function CreateUserForm() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [schoolStatus, setSchoolStatus] = useState("");
   const [bio, setBio] = useState("");
+  const [schools, setSchools] = useState<Array<{ _id: string; name: string }>>([]);
+  const [teacherSchoolId, setTeacherSchoolId] = useState("");
+  const [teacherJobTitle, setTeacherJobTitle] = useState("");
 
   const isStaffRole =
     role === "staff" || role === "instructor" || role === "teacher" || role === "administrator";
   const isStudent = role === "student";
+  const isTeacher = role === "teacher";
+
+  useEffect(() => {
+    fetch("/api/admin/schools")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setSchools(json.data.schools ?? []);
+      })
+      .catch(() => {});
+  }, []);
 
   function handleGeneratePassword() {
     setPassword(generateAccountPassword());
@@ -125,6 +138,23 @@ export function CreateUserForm() {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || "Failed to create user");
+
+      const userId = json.data.user?._id as string | undefined;
+      if (isTeacher && teacherSchoolId && userId) {
+        const assignRes = await fetch("/api/admin/schools", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            schoolId: teacherSchoolId,
+            jobTitle: teacherJobTitle.trim() || undefined,
+          }),
+        });
+        const assignJson = await assignRes.json();
+        if (!assignJson.success) {
+          throw new Error(assignJson.error || "User created but school assignment failed");
+        }
+      }
 
       setCreated({
         email,
@@ -295,6 +325,43 @@ export function CreateUserForm() {
           Minimum 8 characters. Share this password securely with the new user.
         </p>
       </FormSection>
+
+      {isTeacher && (
+        <FormSection title="School (Teacher Portal)">
+          <p className="mb-4 text-sm text-white/60 sm:col-span-2">
+            Assign the school where this teacher works so colleague messaging stays within that
+            school. You can also assign later on the user profile.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 sm:col-span-2">
+            <FormField label="School">
+              <select
+                value={teacherSchoolId}
+                onChange={(e) => setTeacherSchoolId(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white"
+              >
+                <option value="">Select school (optional)…</option>
+                {schools.map((s) => (
+                  <option key={s._id} value={s._id} className="bg-explore-charcoal">
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Job title at school">
+              <TextInput
+                value={teacherJobTitle}
+                onChange={(e) => setTeacherJobTitle(e.target.value)}
+                placeholder="e.g. 5th Grade Teacher"
+              />
+            </FormField>
+          </div>
+          {schools.length === 0 && (
+            <p className="mt-2 text-xs text-amber-200/90 sm:col-span-2">
+              No schools yet — add one under Admin → Schools first.
+            </p>
+          )}
+        </FormSection>
+      )}
 
       {isStaffRole && (
         <FormSection title="Staff Profile">

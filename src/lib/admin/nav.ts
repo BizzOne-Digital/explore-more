@@ -31,6 +31,7 @@ import {
   Settings,
   Upload,
   Library,
+  Building2,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -110,7 +111,10 @@ export const adminNavGroups: AdminNavGroup[] = [
   },
   {
     title: "People",
-    items: [{ label: "Users", href: "/admin/users", icon: UserCog }],
+    items: [
+      { label: "Users", href: "/admin/users", icon: UserCog },
+      { label: "Schools", href: "/admin/schools", icon: Building2 },
+    ],
   },
   {
     title: "Media & FAQs",

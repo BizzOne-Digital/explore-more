@@ -1,5 +1,12 @@
 import connectDB from "@/lib/db";
-import { User, StudentProfile, InstructorProfile, GuardianStudentLink } from "@/models";
+import {
+  User,
+  StudentProfile,
+  InstructorProfile,
+  GuardianStudentLink,
+  TeacherSchoolMembership,
+  School,
+} from "@/models";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 import { logActivity, extractChanges, getIpAddress, getUserAgent } from "@/lib/admin/audit-log";
@@ -53,11 +60,36 @@ export async function GET(
         .lean();
     }
 
+    let teacherSchool: {
+      school: { _id: string; name: string; slug: string };
+      jobTitle?: string;
+    } | null = null;
+
+    if (freshUser.role === "teacher") {
+      const membership = await TeacherSchoolMembership.findOne({ userId: id })
+        .sort({ isPrimary: -1, updatedAt: -1 })
+        .lean();
+      if (membership) {
+        const school = await School.findById(membership.schoolId).lean();
+        if (school) {
+          teacherSchool = {
+            school: {
+              _id: school._id.toString(),
+              name: school.name,
+              slug: school.slug,
+            },
+            jobTitle: membership.jobTitle,
+          };
+        }
+      }
+    }
+
     return apiSuccess({
       user: freshUser,
       profile,
       guardianLinks,
       studentLinks,
+      teacherSchool,
     });
   } catch (error) {
     return apiError(error);

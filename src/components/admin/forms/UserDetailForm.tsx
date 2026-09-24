@@ -163,7 +163,9 @@ export function UserDetailForm({
               options={[
                 { value: "student", label: "Student" },
                 { value: "parent", label: "Parent" },
-                { value: "instructor", label: "Instructor" },
+                { value: "staff", label: "Staff" },
+                { value: "instructor", label: "Instructor (Tutor)" },
+                { value: "teacher", label: "Teacher (School)" },
                 { value: "administrator", label: "Administrator" },
               ]}
             />

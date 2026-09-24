@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { ParentAccountDashboard } from "@/components/admin/parent/ParentAccountDashboard";
 import { UserAccountDocuments } from "@/components/admin/UserAccountDocuments";
+import { TeacherSchoolAssignmentCard } from "@/components/admin/TeacherSchoolAssignmentCard";
 import { CopyIdButton } from "@/components/parent/CopyIdButton";
 import { formatDistanceToNow } from "date-fns";
 
@@ -88,6 +89,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const [profile, setProfile] = useState<Profile | null>(null);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [teacherSchool, setTeacherSchool] = useState<{
+    school: { _id: string; name: string; slug: string };
+    jobTitle?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +119,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         setProfile(data.data.profile);
         setRelationships(data.data.guardianLinks || data.data.studentLinks || []);
         setFormData(data.data.user);
+        setTeacherSchool(data.data.teacherSchool ?? null);
       }
 
       if (activityRes.ok) {
@@ -254,7 +260,8 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const roleLabels: Record<string, string> = {
     student: "Student",
     parent: "Parent",
-    instructor: "Instructor",
+    instructor: "Instructor (Tutor)",
+    teacher: "Teacher (School)",
     staff: "Staff",
     administrator: "Administrator",
   };
@@ -263,6 +270,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     student: "bg-blue-500/10 text-blue-400 border-blue-500/30",
     parent: "bg-green-500/10 text-green-400 border-green-500/30",
     instructor: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+    teacher: "bg-teal-500/10 text-teal-400 border-teal-500/30",
     staff: "bg-blue-500/10 text-blue-400 border-blue-500/30",
     administrator: "bg-red-500/10 text-red-400 border-red-500/30",
   };
@@ -313,7 +321,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                   <CopyIdButton value={user.guardianId} label="" variant="dark" />
                 </span>
               )}
-              {user.staffId && user.role === "staff" && (
+              {user.staffId && (user.role === "staff" || user.role === "teacher") && (
                 <span className="inline-flex items-center gap-1">
                   <span className="font-mono text-sm text-white/60" title="Staff ID">
                     {user.staffId}
@@ -473,7 +481,8 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 <option value="student">Student</option>
                 <option value="parent">Parent</option>
                 <option value="staff">Staff</option>
-                <option value="instructor">Instructor</option>
+                <option value="instructor">Instructor (Tutor)</option>
+                <option value="teacher">Teacher (School)</option>
                 <option value="administrator">Administrator</option>
               </select>
             </div>
@@ -499,6 +508,15 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
       </div>
+
+      {user.role === "teacher" && (
+        <TeacherSchoolAssignmentCard
+          userId={user._id}
+          userName={user.name}
+          initialSchool={teacherSchool?.school ?? null}
+          initialJobTitle={teacherSchool?.jobTitle ?? null}
+        />
+      )}
 
       {/* Relationships */}
       {relationships.length > 0 && (

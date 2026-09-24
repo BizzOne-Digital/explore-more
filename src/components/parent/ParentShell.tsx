@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { ParentSidebar } from "@/components/parent/ParentSidebar";
 import { ParentHeader } from "@/components/parent/ParentHeader";
 import type { MembershipFeature } from "@/lib/membership/entitlements";
+import type { ParentBillingAlert } from "@/lib/billing/parent-billing-alert";
+import { BillingAttentionBanner } from "@/components/parent/BillingAttentionBanner";
 
 interface ParentShellProps {
   children: React.ReactNode;
@@ -11,6 +13,7 @@ interface ParentShellProps {
   unreadNotifications?: number;
   showAllNav?: boolean;
   membershipFeatures?: MembershipFeature[];
+  billingAlert?: ParentBillingAlert | null;
   signOutAction: () => Promise<void>;
 }
 
@@ -22,6 +25,7 @@ export function ParentShell({
   unreadNotifications,
   showAllNav,
   membershipFeatures,
+  billingAlert,
   signOutAction,
 }: ParentShellProps) {
   return (
@@ -42,7 +46,10 @@ export function ParentShell({
           className="min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain bg-gray-50 p-4 lg:p-6"
           data-lenis-prevent
         >
-          <div className="mx-auto w-full min-w-0 max-w-6xl">{children}</div>
+          <div className="mx-auto w-full min-w-0 max-w-6xl">
+            {billingAlert ? <BillingAttentionBanner alert={billingAlert} /> : null}
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { getParentMembershipAccess } from "@/lib/membership/access";
 import { isParentPathAllowed } from "@/lib/membership/route-features";
 import { parentSignOut } from "@/app/parent/(portal)/actions";
 import { markAllParentNotificationsRead } from "@/lib/notifications/parent-inbox";
+import { getParentBillingAlert } from "@/lib/billing/parent-billing-alert";
 
 export const dynamic = "force-dynamic";
 
@@ -75,12 +76,16 @@ export default async function ParentPortalLayout({ children }: { children: React
 
   let guardianId: string | undefined;
   let counts = { messages: 0, notifications: 0 };
+  let billingAlert: Awaited<ReturnType<typeof getParentBillingAlert>> = null;
   try {
     if (pathname === "/parent/notifications" || pathname.startsWith("/parent/notifications/")) {
       await markAllParentNotificationsRead(session.user.id);
     }
     guardianId = (await ensureGuardianId(session.user.id)) ?? undefined;
     counts = await getParentCounts(session.user.id);
+    if (!isAdmin) {
+      billingAlert = await getParentBillingAlert(session.user.id);
+    }
   } catch (error) {
     console.error("Parent portal shell data failed:", error);
   }
@@ -94,6 +99,7 @@ export default async function ParentPortalLayout({ children }: { children: React
       unreadNotifications={counts.notifications}
       showAllNav={isAdmin}
       membershipFeatures={isAdmin ? undefined : access.features}
+      billingAlert={isAdmin ? null : billingAlert}
       signOutAction={parentSignOut}
     >
       {children}

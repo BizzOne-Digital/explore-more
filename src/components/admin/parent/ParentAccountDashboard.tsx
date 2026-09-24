@@ -119,6 +119,7 @@ type BillingSummary = {
     discountPercent: number;
     creditCents: number;
     features: string[];
+    stripeSubscriptionId?: string;
   };
   paymentHistory: {
     id: string;
@@ -485,6 +486,48 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
     }
   }
 
+  async function sendMembershipCheckoutLink() {
+    setError("");
+    setSuccess("");
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/billing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "email_membership_checkout" }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error || "Could not send checkout link");
+        return;
+      }
+      setSuccess(`Checkout link emailed for ${json.data.planName ?? "membership"}.`);
+    } catch {
+      setError("Could not send checkout link.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function openMembershipCheckout() {
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/billing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "membership_checkout" }),
+      });
+      const json = await res.json();
+      if (json.success && json.data.url) {
+        window.open(json.data.url, "_blank");
+      } else {
+        setError(json.error || "Checkout unavailable");
+      }
+    } catch {
+      setError("Unable to open membership checkout.");
+    }
+  }
+
   async function addNote(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -649,6 +692,32 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
               paymentMethod={billing.paymentMethod}
               variant="dark"
             />
+          )}
+          {billing.stripeConfigured && !billing.subscription.stripeSubscriptionId && (
+            <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 p-4 text-sm text-amber-50">
+              <p className="font-semibold">Stripe auto-billing not set up</p>
+              <p className="mt-1 text-amber-100/90">
+                Email the parent a secure checkout link, or open checkout yourself. They can also
+                complete this from the parent portal under Billing &amp; Subscription.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={sendMembershipCheckoutLink}
+                  disabled={saving}
+                  className="rounded-lg bg-explore-teal px-3 py-2 text-sm font-medium text-white hover:bg-explore-teal/90 disabled:opacity-50"
+                >
+                  Email checkout link
+                </button>
+                <button
+                  type="button"
+                  onClick={openMembershipCheckout}
+                  className="rounded-lg border border-white/30 px-3 py-2 text-sm text-white hover:bg-white/10"
+                >
+                  Open checkout
+                </button>
+              </div>
+            </div>
           )}
           <div className="rounded-lg border border-white/10 bg-white/5 p-6">
             <div className="flex items-start justify-between">

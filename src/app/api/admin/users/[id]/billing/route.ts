@@ -25,6 +25,9 @@ import {
 } from "@/lib/billing/parent-billing";
 
 import { createBillingPortalSession } from "@/lib/billing/stripe-customer";
+import { createMembershipCheckoutSession } from "@/lib/billing/membership-checkout";
+import { sendMembershipCheckoutLinkEmail } from "@/lib/email/membership-checkout-link";
+import { getStripe } from "@/lib/services/stripe";
 
 import { logActivity, extractChanges, getIpAddress, getUserAgent } from "@/lib/admin/audit-log";
 
@@ -490,7 +493,7 @@ export async function POST(
 
 
 
-    let body: { action?: string };
+    let body: { action?: string; planSlug?: string; sendEmail?: boolean };
 
     try {
 
@@ -504,7 +507,7 @@ export async function POST(
 
 
 
-    const user = await User.findById(id).select("role").lean();
+    const user = await User.findById(id).select("role name email").lean();
 
     if (!user) return apiError(new Error("User not found"), 404);
 
@@ -519,6 +522,76 @@ export async function POST(
       if (!url) return apiError(new Error("Stripe billing portal is not configured"), 503);
 
       return apiSuccess({ url });
+
+    }
+
+
+
+    if (body.action === "membership_checkout" || body.action === "email_membership_checkout") {
+
+      if (!getStripe()) {
+
+        return apiError(new Error("Stripe is not configured"), 503);
+
+      }
+
+
+
+      await ensureParentSubscription(id);
+
+
+
+      let planSlug = body.planSlug;
+
+      if (!planSlug) {
+
+        const summary = await getParentBillingSummary(id);
+
+        planSlug = summary.subscription.planSlug ?? "pathfinder";
+
+      }
+
+
+
+      const checkout = await createMembershipCheckoutSession({
+
+        userId: id,
+
+        planSlug,
+
+        customerEmail: user.email,
+
+      });
+
+
+
+      if (body.action === "email_membership_checkout") {
+
+        if (!user.email) {
+
+          return apiError(new Error("Parent has no email on file"), 400);
+
+        }
+
+        await sendMembershipCheckoutLinkEmail({
+
+          customerName: user.name ?? "Member",
+
+          customerEmail: user.email,
+
+          planName: checkout.planName,
+
+          checkoutUrl: checkout.url,
+
+        });
+
+        return apiSuccess({ url: checkout.url, emailed: true, planName: checkout.planName });
+
+      }
+
+
+
+      return apiSuccess({ url: checkout.url, emailed: false, planName: checkout.planName });
 
     }
 

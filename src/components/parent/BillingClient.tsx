@@ -23,6 +23,7 @@ type BillingData = {
     status: string;
     planId?: string;
     planName: string;
+    planSlug?: string;
     priceCents: number;
     interval: "month" | "year";
     features: string[];
@@ -52,6 +53,7 @@ type BillingData = {
   plans?: Array<{
     _id: string;
     name: string;
+    slug?: string;
     priceCents: number;
     interval: "month" | "year";
     features: string[];
@@ -68,6 +70,7 @@ export function BillingClient() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [planChangingId, setPlanChangingId] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({
@@ -201,6 +204,28 @@ export function BillingClient() {
       setError("Failed to save billing information");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function startMembershipCheckout(planSlug?: string) {
+    setCheckoutLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/parent/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(planSlug ? { planSlug } : {}),
+      });
+      const json = await res.json();
+      if (!json.success || !json.data?.url) {
+        setError(json.error || "Unable to start checkout");
+        return;
+      }
+      window.location.href = json.data.url;
+    } catch {
+      setError("Unable to start checkout");
+    } finally {
+      setCheckoutLoading(false);
     }
   }
 
@@ -343,6 +368,8 @@ export function BillingClient() {
   const canCancelSubscription =
     billing.canCancelSubscription ??
     (billing.stripeConfigured && (hasActiveMembership || !!sub.stripeSubscriptionId));
+  const needsStripeCheckout =
+    billing.stripeConfigured && hasActiveMembership && !sub.stripeSubscriptionId;
   const renewalDate = sub.currentPeriodEnd
     ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-US", {
         year: "numeric",
@@ -378,6 +405,27 @@ export function BillingClient() {
           paymentMethod={billing.paymentMethod}
           variant="light"
         />
+      )}
+
+      {needsStripeCheckout && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-6">
+          <h3 className="font-display text-lg font-semibold text-amber-950">
+            Set up automatic billing
+          </h3>
+          <p className="mt-1 text-sm text-amber-900/80">
+            Your membership is active, but a card is not on file for automatic renewals yet. Complete
+            secure checkout to connect Stripe billing (plan: {sub.planName}).
+          </p>
+          <button
+            type="button"
+            onClick={() => startMembershipCheckout(sub.planSlug)}
+            disabled={checkoutLoading}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-explore-teal px-4 py-2 text-sm font-semibold text-white hover:bg-explore-teal/90 disabled:opacity-50"
+          >
+            {checkoutLoading ? <Loader className="h-4 w-4 animate-spin" /> : null}
+            {checkoutLoading ? "Opening checkout…" : "Complete membership checkout"}
+          </button>
+        </section>
       )}
 
       {canCancelSubscription && (
@@ -506,12 +554,14 @@ export function BillingClient() {
             )}
 
             {!canManageSubscription && !hasActiveMembership && billing.stripeConfigured && (
-              <a
-                href="/membership"
-                className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white hover:bg-explore-teal/90"
+              <button
+                type="button"
+                onClick={() => startMembershipCheckout()}
+                disabled={checkoutLoading}
+                className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-explore-teal px-4 py-2 text-sm font-medium text-white hover:bg-explore-teal/90 disabled:opacity-50"
               >
-                View membership plans
-              </a>
+                {checkoutLoading ? "Opening checkout…" : "Subscribe with card"}
+              </button>
             )}
           </div>
 
@@ -631,12 +681,14 @@ export function BillingClient() {
                     </p>
                   )}
                   {!canManageSubscription && !isCurrent && !hasActiveMembership && (
-                    <a
-                      href="/membership"
-                      className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5"
+                    <button
+                      type="button"
+                      onClick={() => startMembershipCheckout(plan.slug ?? "pathfinder")}
+                      disabled={checkoutLoading}
+                      className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-explore-teal px-4 py-2 text-sm font-medium text-explore-teal hover:bg-explore-teal/5 disabled:opacity-50"
                     >
                       Subscribe
-                    </a>
+                    </button>
                   )}
                 </div>
               );

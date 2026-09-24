@@ -54,12 +54,14 @@ export async function createUserAccount(input: CreateUserInput) {
     );
   }
 
-  if (["staff", "instructor", "administrator"].includes(input.role)) {
+  if (["staff", "instructor", "teacher", "administrator"].includes(input.role)) {
     const defaultCategories: StaffCategory[] =
       input.role === "administrator"
         ? ["administration"]
         : input.role === "instructor"
           ? ["tutor"]
+          : input.role === "teacher"
+            ? ["administration"]
           : input.staffCategories?.length
             ? input.staffCategories
             : ["administration"];
@@ -74,6 +76,8 @@ export async function createUserAccount(input: CreateUserInput) {
             ? "Administrator"
             : input.role === "instructor"
               ? "Instructor"
+              : input.role === "teacher"
+                ? "Teacher"
               : "Staff Member"),
         categories: input.staffCategories?.length ? input.staffCategories : defaultCategories,
         messagingAvailable: input.messagingAvailable ?? true,

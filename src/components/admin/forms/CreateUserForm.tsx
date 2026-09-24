@@ -33,8 +33,13 @@ const ROLE_OPTIONS: { value: Role; label: string; description: string }[] = [
   },
   {
     value: "instructor",
-    label: "Instructor",
-    description: "Teaching staff with staff dashboard and portfolio tools",
+    label: "Instructor (Tutor)",
+    description: "Explore More tutor portal — assigned students and parent messaging",
+  },
+  {
+    value: "teacher",
+    label: "Teacher (School)",
+    description: "School teacher portal — digital planner and colleagues at their registered school",
   },
   {
     value: "administrator",
@@ -72,7 +77,8 @@ export function CreateUserForm() {
   const [schoolStatus, setSchoolStatus] = useState("");
   const [bio, setBio] = useState("");
 
-  const isStaffRole = role === "staff" || role === "instructor" || role === "administrator";
+  const isStaffRole =
+    role === "staff" || role === "instructor" || role === "teacher" || role === "administrator";
   const isStudent = role === "student";
 
   function handleGeneratePassword() {

@@ -16,7 +16,7 @@ async function workspaceFetch<T>(
   const q = init?.query
     ? `?${new URLSearchParams(init.query).toString()}`
     : "";
-  const res = await fetch(`/api/tutor/workspace/${apiModule}${q}`, {
+  const res = await fetch(`/api/teacher/workspace/${apiModule}${q}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
@@ -76,14 +76,14 @@ function CalendarView({ config }: { config: WorkspacePageConfig }) {
     <Shell title={config.title} description={config.description}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Link
-          href="/tutor/schedule"
+          href="/teacher/calendar"
           className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-violet-200"
         >
           <p className="font-semibold text-explore-charcoal">Student schedules</p>
           <p className="mt-1 text-sm text-gray-500">View tutoring schedules for assigned students.</p>
         </Link>
         <Link
-          href="/tutor/planner"
+          href="/teacher/planner"
           className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-violet-200"
         >
           <p className="font-semibold text-explore-charcoal">Teacher planner</p>
@@ -441,22 +441,7 @@ function AttendanceView({ config }: { config: WorkspacePageConfig }) {
   const [statusByStudent, setStatusByStudent] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch("/api/tutor/students")
-      .then((r) => r.json())
-      .then((d) => {
-        const list = (d.students ?? d.data?.students ?? []) as Array<{
-          studentId: string;
-          name?: string;
-          studentName?: string;
-        }>;
-        setStudents(
-          list.map((s) => ({
-            studentId: s.studentId,
-            studentName: s.studentName ?? s.name ?? "Student",
-          }))
-        );
-      })
-      .catch(() => setStudents([]));
+    setStudents([]);
   }, []);
 
   useEffect(() => {
@@ -488,7 +473,10 @@ function AttendanceView({ config }: { config: WorkspacePageConfig }) {
         onChange={(e) => setDate(e.target.value)}
       />
       {students.length === 0 ? (
-        <p className="text-sm text-gray-500">No assigned students yet.</p>
+        <p className="text-sm text-gray-500">
+          Attendance uses your school class roster (not Explore More tutor assignments). Ask your
+          administrator to connect your school roster, or use Teacher Notes until then.
+        </p>
       ) : (
         <ul className="space-y-2">
           {students.map((s) => (

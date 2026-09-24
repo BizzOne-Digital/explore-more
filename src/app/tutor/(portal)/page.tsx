@@ -9,6 +9,7 @@ import {
   ChartLine,
   ClipboardCheck,
   MessageSquare,
+  Upload,
   Users,
 } from "lucide-react";
 import { getTutorDashboardStats, getTutorProfile } from "@/lib/tutor/queries";
@@ -16,14 +17,13 @@ import { getTutorDashboardStats, getTutorProfile } from "@/lib/tutor/queries";
 export const dynamic = "force-dynamic";
 
 const QUICK_LINKS = [
-  { href: "/tutor/classroom", label: "My Classroom", icon: Users },
-  { href: "/tutor/planner", label: "Teacher Planner", icon: Calendar },
-  { href: "/tutor/attendance", label: "Attendance", icon: ClipboardCheck },
-  { href: "/tutor/gradebook", label: "Gradebook", icon: ChartLine },
-  { href: "/tutor/todos", label: "To-Do List", icon: ClipboardCheck, key: "workspace" as const, statKey: "openTodos" as const },
-  { href: "/tutor/checkout", label: "End-of-Day Check-Out", icon: Calendar },
+  { href: "/tutor/students", label: "My Students", icon: Users, key: "assignedStudents" as const },
+  { href: "/tutor/resources", label: "Resource Library", icon: BookOpen, key: "academyResources" as const },
+  { href: "/tutor/upload", label: "Upload Resource", icon: Upload },
   { href: "/tutor/messages", label: "Parent Messages", icon: MessageSquare, key: "unreadParentMessages" as const },
-  { href: "/tutor/resources", label: "Resource Library", icon: BookOpen },
+  { href: "/tutor/schedule", label: "My Schedule", icon: Calendar },
+  { href: "/tutor/progress", label: "Progress Reports", icon: ChartLine },
+  { href: "/tutor/assignments", label: "Assignments", icon: ClipboardCheck },
 ];
 
 export default async function TutorDashboardPage() {
@@ -45,9 +45,13 @@ export default async function TutorDashboardPage() {
     <div className="space-y-8">
       <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-violet-800 p-6 text-white shadow-lg sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-widest text-violet-200">
-          Explore More Academy Staff Portal
+          Explore More Academy — Tutor Portal
         </p>
         <h2 className="mt-2 font-display text-3xl font-bold">Welcome, {profile?.name}</h2>
+        <p className="mt-2 text-sm text-violet-100">
+          Manage assigned students, sessions, and parent communication. For the school teacher
+          planner, sign in with a <strong className="text-white">Teacher</strong> account.
+        </p>
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-violet-100">
           {profile?.tutorId && (
             <span>
@@ -66,9 +70,9 @@ export default async function TutorDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Assigned Students", value: stats.assignedStudents },
-          { label: "Open to-dos", value: stats.workspace.openTodos },
-          { label: "Today’s planner blocks", value: stats.workspace.todayPlanner },
-          { label: "Unread notifications", value: stats.unreadNotifications },
+          { label: "Unread Parent Messages", value: stats.unreadParentMessages },
+          { label: "Staff Messages", value: stats.unreadStaffMessages },
+          { label: "Notifications", value: stats.unreadNotifications },
         ].map((item) => (
           <div key={item.label} className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-3xl font-bold text-explore-charcoal">{item.value}</p>
@@ -82,12 +86,7 @@ export default async function TutorDashboardPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {QUICK_LINKS.map((link) => {
             const Icon = link.icon;
-            let statValue: number | undefined;
-            if ("statKey" in link && link.statKey) {
-              statValue = stats.workspace[link.statKey];
-            } else if ("key" in link && link.key === "unreadParentMessages") {
-              statValue = stats.unreadParentMessages;
-            }
+            const statValue = link.key ? stats[link.key] : undefined;
             return (
               <Link
                 key={link.href}

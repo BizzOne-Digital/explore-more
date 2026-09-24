@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth/edge";
+import { staffPortalHomePath, canAccessTeacherPortal, canAccessTutorPortal } from "@/lib/staff/portal-home";
 
 const publicPaths = [
   "/",
@@ -80,15 +81,28 @@ export async function middleware(request: NextRequest) {
     return withPathname(request, pathname);
   }
 
-  // Staff portal (instructor / administrator dashboard at /tutor)
+  // Staff sign-in (tutors + school teachers)
   if (pathname.startsWith("/tutor")) {
     if (pathname === "/tutor/login") {
-      if (session?.user?.role && ["instructor", "administrator"].includes(session.user.role)) {
-        return NextResponse.redirect(new URL("/tutor", request.url));
+      if (session?.user?.role) {
+        const home = staffPortalHomePath(session.user.role);
+        if (home !== "/tutor/login") {
+          return NextResponse.redirect(new URL(home, request.url));
+        }
       }
       return withPathname(request, pathname);
     }
-    if (!session || !["instructor", "administrator"].includes(session.user.role)) {
+    if (!session || !canAccessTutorPortal(session.user.role)) {
+      return NextResponse.redirect(
+        new URL("/tutor/login?callbackUrl=" + encodeURIComponent(pathname), request.url)
+      );
+    }
+    return withPathname(request, pathname);
+  }
+
+  // School teacher portal (digital planner)
+  if (pathname.startsWith("/teacher")) {
+    if (!session || !canAccessTeacherPortal(session.user.role)) {
       return NextResponse.redirect(
         new URL("/tutor/login?callbackUrl=" + encodeURIComponent(pathname), request.url)
       );
@@ -119,10 +133,8 @@ export async function middleware(request: NextRequest) {
         session?.user?.role &&
         ["staff", "instructor", "administrator"].includes(session.user.role)
       ) {
-        if (session.user.role === "instructor") {
-          return NextResponse.redirect(new URL("/tutor", request.url));
-        }
-        return NextResponse.redirect(new URL("/staff", request.url));
+        const home = staffPortalHomePath(session.user.role);
+        return NextResponse.redirect(new URL(home, request.url));
       }
       return withPathname(request, pathname);
     }

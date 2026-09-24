@@ -38,7 +38,7 @@ const UserSchema = new Schema<IUser>(
     passwordHash: { type: String, required: true },
     role: {
       type: String,
-      enum: ["student", "parent", "staff", "instructor", "administrator"],
+      enum: ["student", "parent", "staff", "instructor", "teacher", "administrator"],
       required: true,
     },
     studentId: { type: String, unique: true, sparse: true },
@@ -76,11 +76,20 @@ UserSchema.pre("save", async function () {
   }
 
   if (
-    (this.role === "administrator" || this.role === "instructor" || this.role === "staff") &&
+    (this.role === "administrator" ||
+      this.role === "instructor" ||
+      this.role === "teacher" ||
+      this.role === "staff") &&
     !this.staffId
   ) {
     const prefix =
-      this.role === "administrator" ? "ADM" : this.role === "instructor" ? "INS" : "STF";
+      this.role === "administrator"
+        ? "ADM"
+        : this.role === "instructor"
+          ? "INS"
+          : this.role === "teacher"
+            ? "TCH"
+            : "STF";
     this.staffId = `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
   }
 

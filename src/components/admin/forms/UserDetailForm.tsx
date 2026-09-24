@@ -19,7 +19,7 @@ const schema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required"),
   phone: z.string().optional(),
-  role: z.enum(["student", "parent", "instructor", "administrator"]),
+  role: z.enum(["student", "parent", "staff", "instructor", "teacher", "administrator"]),
   isActive: z.boolean(),
   emailVerified: z.boolean(),
 });

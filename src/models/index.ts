@@ -59,3 +59,9 @@ export {
   TeacherDocumentFile,
 } from "./TeacherWorkspace";
 export type { WorkspaceRecordType } from "./TeacherWorkspace";
+export {
+  School,
+  TeacherSchoolMembership,
+  SchoolTeacherConversation,
+  SchoolTeacherMessage,
+} from "./School";

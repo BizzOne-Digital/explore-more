@@ -66,8 +66,8 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
     description: "Formal assessments and checkpoints (Phase 1 links to assignments and gradebook).",
     kind: "placeholder",
     placeholderLinks: [
-      { href: "/tutor/gradebook", label: "Open gradebook" },
-      { href: "/tutor/assignments", label: "Academy assignments" },
+      { href: "/teacher/gradebook", label: "Open gradebook" },
+      { href: "/teacher/gradebook", label: "Gradebook" },
     ],
   },
   goals: {
@@ -99,8 +99,8 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
     description: "Portfolio work is collected in student progress and parent-facing reports.",
     kind: "placeholder",
     placeholderLinks: [
-      { href: "/tutor/progress", label: "Student progress" },
-      { href: "/tutor/students", label: "My students" },
+      { href: "/teacher/progress", label: "Student progress" },
+      { href: "/teacher/students", label: "My students" },
     ],
   },
   inventory: {
@@ -118,15 +118,15 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
     description: "Leave sub-ready notes in your classroom profile and lesson plans.",
     kind: "placeholder",
     placeholderLinks: [
-      { href: "/tutor/classroom", label: "Classroom profile" },
-      { href: "/tutor/lesson-plans", label: "Lesson plans" },
+      { href: "/teacher/classroom", label: "Classroom profile" },
+      { href: "/teacher/lesson-plans", label: "Lesson plans" },
     ],
   },
   reports: {
     title: "Reports",
     description: "Progress and academy reports (use Progress Reports for published cards).",
     kind: "placeholder",
-    placeholderLinks: [{ href: "/tutor/progress", label: "Progress reports" }],
+    placeholderLinks: [{ href: "/teacher/progress", label: "Progress reports" }],
   },
   documents: {
     title: "Teacher Documents",
@@ -156,15 +156,15 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
     description: "Archived lesson plans and records from prior years.",
     kind: "placeholder",
     placeholderLinks: [
-      { href: "/tutor/lesson-plans", label: "Lesson plans" },
-      { href: "/tutor/documents", label: "Documents" },
+      { href: "/teacher/lesson-plans", label: "Lesson plans" },
+      { href: "/teacher/documents", label: "Documents" },
     ],
   },
   templates: {
     title: "Templates",
     description: "Reusable lesson and planner templates (coming soon).",
     kind: "placeholder",
-    placeholderLinks: [{ href: "/tutor/lesson-plans", label: "Create from lesson plans" }],
+    placeholderLinks: [{ href: "/teacher/lesson-plans", label: "Create from lesson plans" }],
   },
   "import-export": {
     title: "Import / Export",
@@ -175,7 +175,7 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
     title: "Feedback",
     description: "Share product feedback with Explore More Academy administration.",
     kind: "placeholder",
-    placeholderLinks: [{ href: "/tutor/help", label: "Help & training" }],
+    placeholderLinks: [{ href: "/teacher/help", label: "Help & training" }],
   },
   todos: {
     title: "To-Do List",

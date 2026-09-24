@@ -11,7 +11,7 @@ export default function TutorPortalEntryPage() {
   return (
     <AuthFormShell
       title="Staff Portal"
-      subtitle="Welcome to the Explore More Academy Staff Portal. Sign in to manage your students, resources, and parent communications."
+      subtitle="One sign-in for Explore More staff. Tutors open the Tutor Portal (students & parents). School teachers open the Teacher Portal (digital planner & school colleagues)."
     >
       <div className="space-y-6">
         <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 text-center">

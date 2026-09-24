@@ -9,7 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormField, TextInput, FormActions } from "@/components/admin/forms";
 import { COMPANY } from "@/lib/constants";
-import { TUTOR_PORTAL_ROLES } from "@/lib/constants";
+import { isStaffPortalRole } from "@/lib/staff/portal-home";
+import { staffPortalHomePath } from "@/lib/staff/portal-home";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Enter your email or Staff ID"),
@@ -46,13 +47,13 @@ export default function TutorLoginPage() {
     const sessionRes = await fetch("/api/auth/session");
     const session = await sessionRes.json();
 
-    if (!TUTOR_PORTAL_ROLES.includes(session?.user?.role)) {
+    if (!isStaffPortalRole(session?.user?.role)) {
       setError("Access denied. Approved staff account required.");
       await fetch("/api/auth/signout", { method: "POST" });
       return;
     }
 
-    router.push("/tutor");
+    router.push(staffPortalHomePath(session?.user?.role));
     router.refresh();
   }
 

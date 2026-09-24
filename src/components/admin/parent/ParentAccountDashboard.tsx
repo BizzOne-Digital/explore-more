@@ -21,6 +21,8 @@ import {
   formatSubscriptionStatus,
 } from "@/lib/billing/format";
 import { previewPortalAccess } from "@/lib/membership/portal-preview";
+import { BillingInsightsPanel } from "@/components/billing/BillingInsightsPanel";
+import type { StripeBillingInsights } from "@/lib/billing/stripe-billing-insights";
 
 import {
   OverviewProfileTab,
@@ -128,6 +130,7 @@ type BillingSummary = {
   }[];
   plans: Plan[];
   stripeConfigured: boolean;
+  billingInsights?: StripeBillingInsights | null;
   portalAccess?: {
     hasActiveMembership: boolean;
     tierId: string | null;
@@ -640,6 +643,13 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
       {tab === "billing" && (
         billing ? (
         <div className="space-y-6">
+          {billing.billingInsights && (
+            <BillingInsightsPanel
+              insights={billing.billingInsights}
+              paymentMethod={billing.paymentMethod}
+              variant="dark"
+            />
+          )}
           <div className="rounded-lg border border-white/10 bg-white/5 p-6">
             <div className="flex items-start justify-between">
               <div>
@@ -711,8 +721,20 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
 
       {tab === "subscription" && (
         billing ? (
+        <div className="space-y-6">
+        {billing.billingInsights && (
+          <BillingInsightsPanel
+            insights={billing.billingInsights}
+            paymentMethod={billing.paymentMethod}
+            variant="dark"
+          />
+        )}
         <div className="rounded-lg border border-white/10 bg-white/5 p-6">
           <h3 className="mb-4 text-lg font-semibold text-white">Subscription Management</h3>
+          <p className="mb-4 text-xs text-white/50">
+            Fields below update the academy record. Recurring charges follow Stripe (see status
+            above). Square or manual payments are not stored as a card on file in Stripe.
+          </p>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs text-white/60">Plan</label>
@@ -873,6 +895,7 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
             </button>
           </div>
         </div>
+        </div>
         ) : (
           <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/60">
             Subscription data could not be loaded. Please refresh the page.
@@ -882,7 +905,60 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
 
       {tab === "payments" && (
         billing ? (
-        <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+        <div className="space-y-6">
+        {billing.billingInsights && (
+          <BillingInsightsPanel
+            insights={billing.billingInsights}
+            paymentMethod={billing.paymentMethod}
+            variant="dark"
+          />
+        )}
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-white">Membership invoices (Stripe)</h3>
+          <p className="mb-3 text-xs text-white/50">
+            Monthly Pathfinder renewals appear here when billed through Stripe. Square payments do
+            not show in this list.
+          </p>
+          <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+            <table className="min-w-full text-sm">
+              <thead className="bg-white/5 text-left text-white/60">
+                <tr>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Description</th>
+                  <th className="px-4 py-3">Invoice #</th>
+                  <th className="px-4 py-3">Amount</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(billing.billingInsights?.membershipInvoices?.length ?? 0) === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-white/40">
+                      No Stripe invoices for this customer (matches empty invoice history in Stripe).
+                    </td>
+                  </tr>
+                ) : (
+                  billing.billingInsights!.membershipInvoices.map((p) => (
+                    <tr key={p.id} className="border-t border-white/10">
+                      <td className="px-4 py-3 text-white">
+                        {new Date(p.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-white">{p.description}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-explore-teal">
+                        {p.number ?? p.id}
+                      </td>
+                      <td className="px-4 py-3 text-white">{formatCents(p.amountCents)}</td>
+                      <td className="px-4 py-3 capitalize text-white/70">{p.status}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-white">Store, courses & events</h3>
+          <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
           <table className="min-w-full text-sm">
             <thead className="bg-white/5 text-left text-white/60">
               <tr>
@@ -917,6 +993,8 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
               )}
             </tbody>
           </table>
+          </div>
+        </div>
         </div>
         ) : (
           <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/60">

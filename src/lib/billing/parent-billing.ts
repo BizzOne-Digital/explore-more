@@ -11,6 +11,7 @@ import { resolveMongoId } from "./utils";
 import { getParentMembershipAccess } from "@/lib/membership/access";
 import { previewPortalAccess } from "@/lib/membership/portal-preview";
 import { ensureStripeSubscriptionLinked } from "./subscription-management";
+import { getStripeBillingInsights } from "./stripe-billing-insights";
 
 const MANAGEABLE_STATUSES = new Set(["active", "trialing", "past_due"]);
 
@@ -90,6 +91,9 @@ export async function getParentBillingSummary(userId: string) {
 
   const portalAccess = await getParentMembershipAccess(userId);
   const portalPreview = previewPortalAccess(plan?.slug, subscription?.status ?? "none");
+  const billingInsights = stripeConfigured
+    ? await getStripeBillingInsights(userId)
+    : null;
 
   return {
     user: {
@@ -142,6 +146,7 @@ export async function getParentBillingSummary(userId: string) {
         },
     paymentHistory,
     stripeConfigured,
+    billingInsights,
     portalAccess: {
       hasActiveMembership: portalAccess.hasActiveMembership,
       tierId: portalAccess.tierId,

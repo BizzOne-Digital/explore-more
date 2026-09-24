@@ -8,6 +8,8 @@ import {
   formatPaymentMethod,
   formatSubscriptionStatus,
 } from "@/lib/billing/format";
+import { BillingInsightsPanel } from "@/components/billing/BillingInsightsPanel";
+import type { StripeBillingInsights } from "@/lib/billing/stripe-billing-insights";
 
 type BillingData = {
   billing: {
@@ -46,6 +48,7 @@ type BillingData = {
     reference?: string;
   }[];
   stripeConfigured: boolean;
+  billingInsights?: StripeBillingInsights | null;
   plans?: Array<{
     _id: string;
     name: string;
@@ -367,6 +370,14 @@ export function BillingClient() {
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {success}
         </div>
+      )}
+
+      {billing.billingInsights && (
+        <BillingInsightsPanel
+          insights={billing.billingInsights}
+          paymentMethod={billing.paymentMethod}
+          variant="light"
+        />
       )}
 
       {canCancelSubscription && (

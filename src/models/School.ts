@@ -74,6 +74,13 @@ export interface ISchoolTeacherMessage extends Document {
   body: string;
   resourcePath?: string;
   resourceName?: string;
+  attachments: Array<{
+    path: string;
+    filename: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +93,18 @@ const SchoolTeacherMessageSchema = new Schema<ISchoolTeacherMessage>(
     body: { type: String, required: true },
     resourcePath: String,
     resourceName: String,
+    attachments: {
+      type: [
+        {
+          path: String,
+          filename: String,
+          originalName: String,
+          mimeType: String,
+          size: Number,
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true }
 );

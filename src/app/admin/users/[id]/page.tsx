@@ -511,6 +511,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
       {user.role === "teacher" && (
         <TeacherSchoolAssignmentCard
+          key={`${user._id}-${teacherSchool?.school?._id ?? "none"}-${teacherSchool?.jobTitle ?? ""}`}
           userId={user._id}
           userName={user.name}
           initialSchool={teacherSchool?.school ?? null}

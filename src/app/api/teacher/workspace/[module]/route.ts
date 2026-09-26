@@ -79,14 +79,14 @@ export async function GET(
   if ("error" in sessionResult) return sessionResult.error;
 
   const { module: rawModule } = await context.params;
-  const module = parseModule(rawModule);
-  if (!module) return jsonError("Unknown workspace module", 404);
+  const workspaceModule = parseModule(rawModule);
+  if (!workspaceModule) return jsonError("Unknown workspace module", 404);
 
   await connectDB();
   const teacherId = sessionResult.user.id;
   const schoolYear = request.nextUrl.searchParams.get("schoolYear") ?? currentSchoolYear();
 
-  switch (module) {
+  switch (workspaceModule) {
     case "classroom": {
       const doc = await TeacherClassroom.findOne({ teacherId, schoolYear }).lean();
       return jsonOk({ item: doc });
@@ -186,8 +186,8 @@ export async function POST(
   if ("error" in sessionResult) return sessionResult.error;
 
   const { module: rawModule } = await context.params;
-  const module = parseModule(rawModule);
-  if (!module) return jsonError("Unknown workspace module", 404);
+  const workspaceModule = parseModule(rawModule);
+  if (!workspaceModule) return jsonError("Unknown workspace module", 404);
 
   await connectDB();
   const teacherId = sessionResult.user.id;
@@ -197,7 +197,7 @@ export async function POST(
   const schoolYear =
     typeof body.schoolYear === "string" ? body.schoolYear : currentSchoolYear();
 
-  switch (module) {
+  switch (workspaceModule) {
     case "classroom": {
       const doc = await TeacherClassroom.findOneAndUpdate(
         { teacherId, schoolYear },
@@ -401,8 +401,8 @@ export async function PATCH(
   if ("error" in sessionResult) return sessionResult.error;
 
   const { module: rawModule } = await context.params;
-  const module = parseModule(rawModule);
-  if (!module) return jsonError("Unknown workspace module", 404);
+  const workspaceModule = parseModule(rawModule);
+  if (!workspaceModule) return jsonError("Unknown workspace module", 404);
 
   const body = await request.json().catch(() => null);
   if (!body?.id) return jsonError("id required", 400);
@@ -430,7 +430,7 @@ export async function PATCH(
     return jsonOk({ item: doc });
   };
 
-  switch (module) {
+  switch (workspaceModule) {
     case "lesson-plans":
       return updateOwned(TeacherLessonPlan);
     case "planner":
@@ -465,8 +465,8 @@ export async function DELETE(
   if ("error" in sessionResult) return sessionResult.error;
 
   const { module: rawModule } = await context.params;
-  const module = parseModule(rawModule);
-  if (!module) return jsonError("Unknown workspace module", 404);
+  const workspaceModule = parseModule(rawModule);
+  if (!workspaceModule) return jsonError("Unknown workspace module", 404);
 
   const id = parseId(request.nextUrl.searchParams.get("id"));
   if (!id) return jsonError("id required", 400);
@@ -491,7 +491,7 @@ export async function DELETE(
     documents: TeacherDocumentFile,
   };
 
-  if (module === "gradebook") {
+  if (workspaceModule === "gradebook") {
     const kind = request.nextUrl.searchParams.get("kind");
     const Model = (kind === "assignment" ? TeacherGradeAssignment : TeacherGradeScore) as DeletableModel;
     const deleted = await Model.findOneAndDelete({ _id: id, teacherId });
@@ -502,7 +502,7 @@ export async function DELETE(
     return jsonOk({ ok: true });
   }
 
-  const Model = models[module];
+  const Model = models[workspaceModule];
   if (!Model) return jsonError("DELETE not supported", 400);
 
   const deleted = await Model.findOneAndDelete({ _id: id, teacherId });

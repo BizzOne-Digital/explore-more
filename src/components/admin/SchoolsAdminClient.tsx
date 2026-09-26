@@ -28,8 +28,8 @@ export function SchoolsAdminClient() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
+  const refreshSchools = useCallback((showLoading = false) => {
+    if (showLoading) setLoading(true);
     fetch("/api/admin/schools")
       .then((r) => r.json())
       .then((json) => {
@@ -39,8 +39,19 @@ export function SchoolsAdminClient() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    fetch("/api/admin/schools")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json.success) setSchools(json.data.schools ?? []);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function createSchool(e: React.FormEvent) {
     e.preventDefault();
@@ -62,7 +73,7 @@ export function SchoolsAdminClient() {
       setName("");
       setSlug("");
       setDistrict("");
-      load();
+      refreshSchools(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
     } finally {

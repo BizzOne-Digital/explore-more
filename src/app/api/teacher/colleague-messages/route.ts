@@ -8,6 +8,7 @@ import {
   assertSameSchool,
 } from "@/lib/teacher/school";
 import { SchoolTeacherConversation, SchoolTeacherMessage, User } from "@/models";
+import { collectMessageAttachmentsFromFormData } from "@/lib/messaging/attachments";
 
 const postSchema = z.object({
   recipientId: z.string().min(1),
@@ -78,15 +79,41 @@ export async function POST(request: Request) {
   const sessionResult = await requireTeacherPortal();
   if ("error" in sessionResult) return sessionResult.error;
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return jsonError("Invalid JSON", 400);
+  const contentType = request.headers.get("content-type") ?? "";
+  let recipientId: string;
+  let subject: string;
+  let bodyText: string;
+  let resourcePath: string | undefined;
+  let resourceName: string | undefined;
+  let attachments: Awaited<ReturnType<typeof collectMessageAttachmentsFromFormData>> = [];
+
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await request.formData();
+    recipientId = String(formData.get("recipientId") ?? "");
+    subject = String(formData.get("subject") ?? "");
+    bodyText = String(formData.get("body") ?? "");
+    resourcePath = (formData.get("resourcePath") as string) || undefined;
+    resourceName = (formData.get("resourceName") as string) || undefined;
+    attachments = await collectMessageAttachmentsFromFormData(formData);
+  } else {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonError("Invalid JSON", 400);
+    }
+    const parsed = postSchema.safeParse(body);
+    if (!parsed.success) return jsonError("Invalid message data", 400);
+    recipientId = parsed.data.recipientId;
+    subject = parsed.data.subject;
+    bodyText = parsed.data.body;
+    resourcePath = parsed.data.resourcePath;
+    resourceName = parsed.data.resourceName;
   }
 
-  const parsed = postSchema.safeParse(body);
-  if (!parsed.success) return jsonError("Invalid message data", 400);
+  if (!recipientId || !subject.trim() || !bodyText.trim()) {
+    return jsonError("recipientId, subject, and body are required", 400);
+  }
 
   await connectDB();
   const schoolCtx = await getPrimarySchoolForTeacher(sessionResult.user.id);
@@ -94,13 +121,13 @@ export async function POST(request: Request) {
 
   const schoolId = schoolCtx.school._id;
 
-  const sameSchool = await assertSameSchool(sessionResult.user.id, parsed.data.recipientId);
+  const sameSchool = await assertSameSchool(sessionResult.user.id, recipientId);
   if (!sameSchool) {
     return jsonError("You can only message colleagues at your registered school", 403);
   }
 
   const recipient = await User.findOne({
-    _id: parsed.data.recipientId,
+    _id: recipientId,
     role: { $in: ["teacher", "administrator"] },
     isActive: { $ne: false },
   }).lean();
@@ -108,23 +135,23 @@ export async function POST(request: Request) {
 
   let conversation = await SchoolTeacherConversation.findOne({
     schoolId,
-    participants: { $all: [sessionResult.user.id, parsed.data.recipientId] },
-    subject: parsed.data.subject,
+    participants: { $all: [sessionResult.user.id, recipientId] },
+    subject: subject.trim(),
   });
 
   if (!conversation) {
     conversation = await SchoolTeacherConversation.create({
       schoolId,
-      participants: [sessionResult.user.id, parsed.data.recipientId],
+      participants: [sessionResult.user.id, recipientId],
       initiatorId: sessionResult.user.id,
-      recipientId: parsed.data.recipientId,
-      subject: parsed.data.subject,
+      recipientId,
+      subject: subject.trim(),
       lastMessageAt: new Date(),
-      unreadCounts: new Map([[parsed.data.recipientId, 1]]),
+      unreadCounts: new Map([[recipientId, 1]]),
     });
   } else {
-    const current = conversation.unreadCounts?.get(parsed.data.recipientId) ?? 0;
-    conversation.unreadCounts.set(parsed.data.recipientId, current + 1);
+    const current = conversation.unreadCounts?.get(recipientId) ?? 0;
+    conversation.unreadCounts.set(recipientId, current + 1);
     conversation.lastMessageAt = new Date();
     await conversation.save();
   }
@@ -133,9 +160,10 @@ export async function POST(request: Request) {
     conversationId: conversation._id,
     schoolId,
     senderId: sessionResult.user.id,
-    body: parsed.data.body,
-    resourcePath: parsed.data.resourcePath,
-    resourceName: parsed.data.resourceName,
+    body: bodyText.trim(),
+    resourcePath,
+    resourceName,
+    attachments,
   });
 
   return jsonOk({ conversationId: conversation._id.toString(), message }, 201);

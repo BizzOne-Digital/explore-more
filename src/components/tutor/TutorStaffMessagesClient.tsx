@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
+import { MessageAttachmentField } from "@/components/messaging/MessageAttachmentField";
 import {
   STAFF_MESSAGE_CATEGORIES,
   STAFF_MESSAGE_CATEGORY_LABELS,
@@ -34,6 +35,7 @@ export function TutorStaffMessagesClient() {
   const [recipientId, setRecipientId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
@@ -52,15 +54,24 @@ export function TutorStaffMessagesClient() {
     setSending(true);
     setError("");
     try {
+      const formData = new FormData();
+      formData.set("recipientId", recipientId);
+      formData.set("subject", subject);
+      formData.set("body", body);
+      formData.set("category", category);
+      for (const file of attachedFiles) {
+        formData.append("files", file);
+      }
+
       const res = await fetch("/api/tutor/staff-messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipientId, subject, body, category }),
+        body: formData,
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to send");
       setBody("");
       setSubject("");
+      setAttachedFiles([]);
       const refresh = await fetch("/api/tutor/staff-conversations");
       const data = await refresh.json();
       setConversations(data.conversations ?? []);
@@ -133,6 +144,11 @@ export function TutorStaffMessagesClient() {
             rows={4}
             placeholder="Message"
             className="w-full rounded-lg border px-3 py-2 text-sm"
+          />
+          <MessageAttachmentField
+            files={attachedFiles}
+            onChange={setAttachedFiles}
+            disabled={sending}
           />
           <button
             type="submit"

@@ -61,7 +61,7 @@ export async function createUserAccount(input: CreateUserInput) {
         : input.role === "instructor"
           ? ["tutor"]
           : input.role === "teacher"
-            ? ["administration"]
+            ? ["teacher"]
           : input.staffCategories?.length
             ? input.staffCategories
             : ["administration"];

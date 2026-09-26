@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { TUTOR_PORTAL_ROLES } from "@/lib/constants";
 import { getTutorProfile } from "@/lib/tutor/queries";
-import { StaffProfile } from "@/models";
+import { StaffProfile, User } from "@/models";
+import { PortalProfileAvatarSection } from "@/components/account/PortalProfileAvatarSection";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,10 @@ export default async function TutorProfilePage() {
   }
 
   await connectDB();
-  const [profile, staffProfile] = await Promise.all([
+  const [profile, staffProfile, user] = await Promise.all([
     getTutorProfile(session.user.id),
     StaffProfile.findOne({ userId: session.user.id }).lean(),
+    User.findById(session.user.id).select("avatar").lean(),
   ]);
 
   return (
@@ -25,6 +27,11 @@ export default async function TutorProfilePage() {
         <h2 className="font-display text-2xl font-bold">My Profile</h2>
         <p className="mt-1 text-sm text-gray-500">Your Explore More Academy staff account.</p>
       </div>
+
+      <PortalProfileAvatarSection
+        name={profile?.name ?? "Staff"}
+        initialAvatar={user?.avatar}
+      />
 
       <div className="rounded-2xl bg-white p-6 shadow-sm space-y-4">
         <div>

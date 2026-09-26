@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
+import { MessageAttachmentField } from "@/components/messaging/MessageAttachmentField";
 
 type Colleague = { id: string; name: string; email: string; staffId?: string };
 
@@ -20,8 +21,7 @@ export function TeacherColleagueMessagesClient() {
   const [recipientId, setRecipientId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
-  const [resourceName, setResourceName] = useState("");
-  const [resourcePath, setResourcePath] = useState("");
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,23 +42,23 @@ export function TeacherColleagueMessagesClient() {
     setSending(true);
     setError("");
     try {
+      const formData = new FormData();
+      formData.set("recipientId", recipientId);
+      formData.set("subject", subject);
+      formData.set("body", body);
+      for (const file of attachedFiles) {
+        formData.append("files", file);
+      }
+
       const res = await fetch("/api/teacher/colleague-messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipientId,
-          subject,
-          body,
-          resourceName: resourceName || undefined,
-          resourcePath: resourcePath || undefined,
-        }),
+        body: formData,
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to send");
       setBody("");
       setSubject("");
-      setResourceName("");
-      setResourcePath("");
+      setAttachedFiles([]);
       const refresh = await fetch("/api/teacher/colleague-messages");
       const data = await refresh.json();
       setConversations(data.conversations ?? []);
@@ -119,17 +119,10 @@ export function TeacherColleagueMessagesClient() {
             onChange={(e) => setBody(e.target.value)}
             required
           />
-          <input
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-            placeholder="Shared resource name (optional)"
-            value={resourceName}
-            onChange={(e) => setResourceName(e.target.value)}
-          />
-          <input
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-            placeholder="Resource link or file path (optional)"
-            value={resourcePath}
-            onChange={(e) => setResourcePath(e.target.value)}
+          <MessageAttachmentField
+            files={attachedFiles}
+            onChange={setAttachedFiles}
+            disabled={sending}
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button

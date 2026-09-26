@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader, Save } from "lucide-react";
 import { CopyIdButton } from "@/components/parent/CopyIdButton";
+import { ProfileAvatarField } from "@/components/account/ProfileAvatarField";
 import { GRADE_LEVELS, formatGradeLabel } from "@/lib/grades";
 
 type ProfileData = {
@@ -11,6 +12,7 @@ type ProfileData = {
     email: string;
     phone?: string;
     guardianId?: string;
+    avatar?: string;
     notificationPreferences?: {
       events: boolean;
       courses: boolean;
@@ -144,6 +146,16 @@ export function ParentAccountForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <section className="rounded-2xl bg-white p-6 shadow-sm">
+        <h3 className="font-display text-lg font-bold">Profile photo</h3>
+        <div className="mt-4">
+          <ProfileAvatarField
+            name={data?.user.name ?? "Parent"}
+            initialAvatar={data?.user.avatar}
+          />
+        </div>
+      </section>
+
       {data?.user.guardianId && (
         <div className="rounded-2xl bg-white p-6 shadow-sm flex flex-wrap items-center gap-3">
           <span className="text-sm text-explore-charcoal/70">

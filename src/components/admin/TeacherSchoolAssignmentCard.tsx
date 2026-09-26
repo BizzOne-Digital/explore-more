@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Building2, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -32,25 +32,20 @@ export function TeacherSchoolAssignmentCard({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSchools = useCallback(() => {
-    setLoadingSchools(true);
+  useEffect(() => {
+    let cancelled = false;
     fetch("/api/admin/schools")
       .then((r) => r.json())
       .then((json) => {
-        if (json.success) setSchools(json.data.schools ?? []);
+        if (!cancelled && json.success) setSchools(json.data.schools ?? []);
       })
-      .finally(() => setLoadingSchools(false));
+      .finally(() => {
+        if (!cancelled) setLoadingSchools(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  useEffect(() => {
-    loadSchools();
-  }, [loadSchools]);
-
-  useEffect(() => {
-    setSchoolId(initialSchool?._id ?? "");
-    setAssignedSchool(initialSchool);
-    setJobTitle(initialJobTitle ?? "");
-  }, [initialSchool, initialJobTitle]);
 
   async function saveAssignment() {
     if (!schoolId) {

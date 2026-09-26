@@ -2,8 +2,7 @@ import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { Conversation, ConversationMessage, StaffProfile, User } from "@/models";
-import { uploadPrivateFile } from "@/lib/services/upload";
-import { MAX_PORTFOLIO_UPLOAD_SIZE } from "@/lib/constants";
+import { collectMessageAttachmentsFromFormData } from "@/lib/messaging/attachments";
 
 export async function GET() {
   try {
@@ -34,7 +33,7 @@ export async function POST(request: Request) {
     let studentId: string | undefined;
     let staffCategory: string | undefined;
     let conversationId: string | undefined;
-    const attachments: Array<{ path: string; filename: string; originalName: string; mimeType: string; size: number }> = [];
+    let attachments: Awaited<ReturnType<typeof collectMessageAttachmentsFromFormData>> = [];
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
@@ -44,12 +43,7 @@ export async function POST(request: Request) {
       studentId = (formData.get("studentId") as string) || undefined;
       staffCategory = (formData.get("staffCategory") as string) || undefined;
       conversationId = (formData.get("conversationId") as string) || undefined;
-
-      for (const file of formData.getAll("files")) {
-        if (file instanceof File && file.size > 0) {
-          attachments.push(await uploadPrivateFile(file, "messages", MAX_PORTFOLIO_UPLOAD_SIZE));
-        }
-      }
+      attachments = await collectMessageAttachmentsFromFormData(formData);
     } else {
       const json = await request.json();
       staffId = json.staffId;

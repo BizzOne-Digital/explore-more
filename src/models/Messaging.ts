@@ -20,7 +20,7 @@ const StaffProfileSchema = new Schema<IStaffProfile>(
     bio: String,
     categories: {
       type: [String],
-      enum: ["portfolio_reviewer", "tutor", "homeschool_support", "administration"],
+      enum: ["portfolio_reviewer", "tutor", "teacher", "homeschool_support", "administration"],
       default: [],
     },
     specialties: [String],
@@ -56,7 +56,7 @@ const ConversationSchema = new Schema<IConversation>(
     studentId: { type: Schema.Types.ObjectId, ref: "User" },
     staffCategory: {
       type: String,
-      enum: ["portfolio_reviewer", "tutor", "homeschool_support", "administration"],
+      enum: ["portfolio_reviewer", "tutor", "teacher", "homeschool_support", "administration"],
     },
     subject: { type: String, required: true },
     lastMessageAt: { type: Date, default: Date.now },

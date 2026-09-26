@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import {
+  MessageAttachmentField,
+  MessageAttachmentLinks,
+} from "@/components/messaging/MessageAttachmentField";
 
 interface ConversationItem {
   _id: string;
@@ -31,9 +35,16 @@ export function StaffMessagesClient({
   const [parentId, setParentId] = useState("");
   const [subject, setSubject] = useState("");
   const [messages, setMessages] = useState<
-    Array<{ _id: string; body: string; senderId: { name: string }; createdAt: string }>
+    Array<{
+      _id: string;
+      body: string;
+      senderId: { name: string };
+      createdAt: string;
+      attachments?: Array<{ path: string; originalName: string }>;
+    }>
   >([]);
   const [body, setBody] = useState("");
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -62,14 +73,20 @@ export function StaffMessagesClient({
     setError("");
 
     try {
-      const payload = selectedId
-        ? { conversationId: selectedId, body }
-        : { parentId, subject, body };
+      const formData = new FormData();
+      formData.set("body", body);
+      if (selectedId) formData.set("conversationId", selectedId);
+      else {
+        formData.set("parentId", parentId);
+        formData.set("subject", subject);
+      }
+      for (const file of attachedFiles) {
+        formData.append("files", file);
+      }
 
       const res = await fetch("/api/staff/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
       const json = await res.json();
       if (!json.success) {
@@ -80,6 +97,7 @@ export function StaffMessagesClient({
       setBody("");
       setSubject("");
       setParentId("");
+      setAttachedFiles([]);
       setComposeOpen(false);
 
       const conversationId = json.data?.conversation?._id ?? selectedId;
@@ -156,6 +174,7 @@ export function StaffMessagesClient({
               <div key={m._id} className="rounded-lg bg-explore-cream p-3 text-sm">
                 <p className="text-xs font-semibold text-explore-teal">{m.senderId?.name}</p>
                 <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
+                <MessageAttachmentLinks attachments={m.attachments} />
                 <p className="mt-1 text-[10px] text-explore-charcoal/40">
                   {new Date(m.createdAt).toLocaleString()}
                 </p>
@@ -207,6 +226,11 @@ export function StaffMessagesClient({
               placeholder={composeOpen ? "Write your message to the parent…" : "Type your reply to the parent…"}
               required
               className="w-full rounded-lg border px-3 py-2 text-sm"
+            />
+            <MessageAttachmentField
+              files={attachedFiles}
+              onChange={setAttachedFiles}
+              disabled={loading}
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex flex-wrap gap-2">

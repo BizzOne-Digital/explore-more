@@ -437,12 +437,8 @@ function EndOfDayView({ config }: { config: WorkspacePageConfig }) {
 
 function AttendanceView({ config }: { config: WorkspacePageConfig }) {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [students, setStudents] = useState<StudentOption[]>([]);
+  const students: StudentOption[] = [];
   const [statusByStudent, setStatusByStudent] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setStudents([]);
-  }, []);
 
   useEffect(() => {
     workspaceFetch<{ items: Array<{ studentId: string; status: string }> }>("attendance", {

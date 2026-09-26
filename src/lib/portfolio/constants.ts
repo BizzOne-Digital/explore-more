@@ -107,6 +107,7 @@ export const PORTFOLIO_STATUS_LABELS: Record<PortfolioStatus, string> = {
 export const STAFF_CATEGORIES = [
   "portfolio_reviewer",
   "tutor",
+  "teacher",
   "homeschool_support",
   "administration",
 ] as const;
@@ -116,6 +117,7 @@ export type StaffCategory = (typeof STAFF_CATEGORIES)[number];
 export const STAFF_CATEGORY_LABELS: Record<StaffCategory, string> = {
   portfolio_reviewer: "Portfolio Reviewer",
   tutor: "Tutor",
+  teacher: "Teacher",
   homeschool_support: "Homeschool Support",
   administration: "Administration",
 };

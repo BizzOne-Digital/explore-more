@@ -3,13 +3,38 @@ import { requireRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { Conversation, ConversationMessage, User } from "@/models";
 import { STAFF_PORTAL_ROLES } from "@/lib/constants";
+import { collectMessageAttachmentsFromFormData } from "@/lib/messaging/attachments";
 
 export async function POST(request: Request) {
   try {
     const sessionResult = await requireRole([...STAFF_PORTAL_ROLES]);
     if ("error" in sessionResult) return sessionResult.error;
 
-    const { conversationId, parentId, subject, body, studentId } = await request.json();
+    const contentType = request.headers.get("content-type") ?? "";
+    let conversationId: string | undefined;
+    let parentId: string | undefined;
+    let subject: string | undefined;
+    let body: string;
+    let studentId: string | undefined;
+    let attachments: Awaited<ReturnType<typeof collectMessageAttachmentsFromFormData>> = [];
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      conversationId = (formData.get("conversationId") as string) || undefined;
+      parentId = (formData.get("parentId") as string) || undefined;
+      subject = (formData.get("subject") as string) || undefined;
+      body = (formData.get("body") as string) || "";
+      studentId = (formData.get("studentId") as string) || undefined;
+      attachments = await collectMessageAttachmentsFromFormData(formData);
+    } else {
+      const json = await request.json();
+      conversationId = json.conversationId;
+      parentId = json.parentId;
+      subject = json.subject;
+      body = json.body;
+      studentId = json.studentId;
+    }
+
     if (!body?.trim()) {
       return apiError(new Error("Message body is required"), 400);
     }
@@ -58,7 +83,7 @@ export async function POST(request: Request) {
       conversationId: conversation._id,
       senderId: sessionResult.user.id,
       body: body.trim(),
-      attachments: [],
+      attachments,
       read: false,
     });
 

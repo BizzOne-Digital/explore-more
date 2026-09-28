@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { BookOpen, Library, MessagesSquare, UserCircle, Receipt } from "lucide-react";
 import { UpgradeBanner } from "@/components/parent/UpgradeBanner";
+import { PortalWelcomeHeading } from "@/components/account/PortalWelcomeHeading";
 
 interface FreeParentDashboardProps {
   firstName: string;
+  fullName: string;
+  initialAvatar?: string | null;
   orderCount: number;
   unreadMessages: number;
   showUpgradePrompt?: boolean;
@@ -44,6 +47,8 @@ const quickLinks = [
 
 export function FreeParentDashboard({
   firstName,
+  fullName,
+  initialAvatar,
   orderCount,
   unreadMessages,
   showUpgradePrompt,
@@ -51,9 +56,13 @@ export function FreeParentDashboard({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold text-explore-charcoal">
-          Welcome back, {firstName}
-        </h1>
+        <PortalWelcomeHeading
+          name={fullName}
+          initialAvatar={initialAvatar}
+          greeting={`Welcome back, ${firstName}`}
+          titleClassName="text-3xl font-bold"
+          avatarSize="lg"
+        />
         <p className="mt-2 text-explore-charcoal/70">
           Your free account gives you access to purchased books and courses, staff messaging, and
           your profile.

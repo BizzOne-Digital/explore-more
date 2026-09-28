@@ -6,6 +6,7 @@ import { teacherSignOut } from "@/app/teacher/(portal)/actions";
 import { getPrimarySchoolForTeacher } from "@/lib/teacher/school";
 import { SchoolTeacherConversation } from "@/models";
 import connectDB from "@/lib/db";
+import { getUserAvatar } from "@/lib/account/get-user-avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -45,12 +46,16 @@ export default async function TeacherPortalLayout({ children }: { children: Reac
       ? await unreadColleagueCount(session.user.id, schoolCtx.school._id.toString())
       : 0;
 
-  const firstName = (session.user.name ?? "Teacher").split(" ")[0];
+  const fullName = session.user.name ?? "Teacher";
+  const firstName = fullName.split(" ")[0];
   const staffId = (session.user as { staffId?: string }).staffId;
+  const initialAvatar = await getUserAvatar(session.user.id);
 
   return (
     <TeacherShell
       firstName={firstName}
+      fullName={fullName}
+      initialAvatar={initialAvatar}
       staffId={staffId}
       schoolName={schoolName}
       unreadColleagueMessages={unread}

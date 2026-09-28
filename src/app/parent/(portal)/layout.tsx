@@ -11,6 +11,7 @@ import { isParentPathAllowed } from "@/lib/membership/route-features";
 import { parentSignOut } from "@/app/parent/(portal)/actions";
 import { markAllParentNotificationsRead } from "@/lib/notifications/parent-inbox";
 import { getParentBillingAlert } from "@/lib/billing/parent-billing-alert";
+import { getUserAvatar } from "@/lib/account/get-user-avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -89,11 +90,20 @@ export default async function ParentPortalLayout({ children }: { children: React
   } catch (error) {
     console.error("Parent portal shell data failed:", error);
   }
-  const firstName = (session.user.name ?? "Parent").split(" ")[0];
+  const fullName = session.user.name ?? "Parent";
+  const firstName = fullName.split(" ")[0];
+  let initialAvatar: string | undefined;
+  try {
+    initialAvatar = await getUserAvatar(session.user.id);
+  } catch {
+    initialAvatar = undefined;
+  }
 
   return (
     <ParentShell
       firstName={firstName}
+      fullName={fullName}
+      initialAvatar={initialAvatar}
       guardianId={guardianId}
       unreadMessages={counts.messages}
       unreadNotifications={counts.notifications}

@@ -19,6 +19,7 @@ import { ParentChildrenSetup } from "@/components/parent/ParentChildrenSetup";
 import { LinkChildForm } from "@/components/parent/LinkChildForm";
 import { Conversation, Enrollment, Order, Attendance } from "@/models";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { getUserAvatar } from "@/lib/account/get-user-avatar";
 
 export default async function ParentDashboardPage({
   searchParams,
@@ -30,7 +31,8 @@ export default async function ParentDashboardPage({
 
   const params = await searchParams;
   const access = await getParentMembershipAccess(session.user.id);
-  const firstName = (session.user.name ?? "Parent").split(" ")[0];
+  const fullName = session.user.name ?? "Parent";
+  const firstName = fullName.split(" ")[0];
 
   if (access.isFreeAccount) {
     await connectDB();
@@ -45,9 +47,12 @@ export default async function ParentDashboardPage({
       }),
     ]);
 
+    const initialAvatar = await getUserAvatar(session.user.id);
     return (
       <FreeParentDashboard
         firstName={firstName}
+        fullName={fullName}
+        initialAvatar={initialAvatar}
         orderCount={orderCount}
         unreadMessages={unreadMessages}
         showUpgradePrompt={params.upgrade === "1"}

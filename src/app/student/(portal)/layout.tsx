@@ -9,6 +9,9 @@ import {
   STUDENT_NAV_ITEMS,
 } from "@/lib/membership/nav-filter";
 import { getRequiredFeatureForStudentPath } from "@/lib/membership/route-features";
+import { StudentPortalHeader } from "@/components/student/StudentPortalHeader";
+import { getUserAvatar } from "@/lib/account/get-user-avatar";
+import connectDB from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -55,33 +58,29 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   const navItems = isAdmin ? STUDENT_NAV_ITEMS : filterStudentNavForMembership(access.features);
 
+  const fullName = session.user.name ?? "Student";
+  const firstName = fullName.split(" ")[0];
+  let initialAvatar: string | undefined;
+  try {
+    await connectDB();
+    initialAvatar = await getUserAvatar(session.user.id);
+  } catch {
+    initialAvatar = undefined;
+  }
+
+  async function studentSignOut() {
+    "use server";
+    await signOutToHome();
+  }
+
   return (
     <div className="fixed inset-0 z-[100] flex h-dvh flex-col overflow-hidden bg-explore-cream">
-      <header className="shrink-0 border-b border-explore-charcoal/10 bg-white">
-        <div className="mx-auto flex w-full min-w-0 max-w-7xl items-center justify-between px-3 py-4 sm:px-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-explore-teal">
-              Student Portal
-            </p>
-            <h1 className="font-display text-xl text-explore-charcoal">
-              Welcome, {session.user.name}
-            </h1>
-          </div>
-          <form
-            action={async () => {
-              "use server";
-              await signOutToHome();
-            }}
-          >
-            <button
-              type="submit"
-              className="rounded-lg px-3 py-1.5 text-sm text-explore-charcoal/70 hover:bg-explore-sand"
-            >
-              Sign Out
-            </button>
-          </form>
-        </div>
-      </header>
+      <StudentPortalHeader
+        fullName={fullName}
+        firstName={firstName}
+        initialAvatar={initialAvatar}
+        signOutAction={studentSignOut}
+      />
 
       <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-7xl flex-1 flex-col gap-6 overflow-hidden px-3 py-6 sm:px-6 lg:flex-row">
         <nav className="shrink-0 lg:w-56">

@@ -1,18 +1,30 @@
+import { PortalWelcomeHeading } from "@/components/account/PortalWelcomeHeading";
+
 interface ParentHeaderProps {
   firstName: string;
+  fullName: string;
+  initialAvatar?: string | null;
   signOutAction: () => Promise<void>;
 }
 
-export function ParentHeader({ firstName, signOutAction }: ParentHeaderProps) {
+export function ParentHeader({
+  firstName,
+  fullName,
+  initialAvatar,
+  signOutAction,
+}: ParentHeaderProps) {
   return (
     <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-3 py-2.5 sm:px-4 lg:px-6 lg:py-3">
       <div className="min-w-0 pl-11 lg:pl-0">
         <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 lg:hidden">
           Parent Portal
         </p>
-        <h1 className="truncate font-display text-base text-explore-charcoal sm:text-lg lg:text-xl">
-          Welcome, {firstName}
-        </h1>
+        <PortalWelcomeHeading
+          name={fullName}
+          initialAvatar={initialAvatar}
+          greeting={`Welcome, ${firstName}`}
+          titleClassName="text-base sm:text-lg lg:text-xl"
+        />
       </div>
       <form action={signOutAction} className="shrink-0">
         <button

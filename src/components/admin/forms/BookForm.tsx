@@ -123,6 +123,9 @@ export function BookForm({
       finalData.publishedToWebsite = true;
     } else if (action === "unpublish") {
       finalData.publishedToWebsite = false;
+    } else if (finalData.publishedToWebsite || finalData.status === "published") {
+      finalData.status = "published";
+      finalData.publishedToWebsite = true;
     }
 
     if (

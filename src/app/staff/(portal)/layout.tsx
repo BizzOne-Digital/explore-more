@@ -6,6 +6,8 @@ import { Conversation } from "@/models";
 import Link from "next/link";
 import { signOutToHome } from "@/lib/auth/sign-out";
 import { STAFF_NAV_ITEMS } from "@/lib/staff/nav";
+import { StaffPortalHeader } from "@/components/staff/StaffPortalHeader";
+import { getUserAvatar } from "@/lib/account/get-user-avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -21,50 +23,39 @@ export default async function StaffPortalLayout({ children }: { children: React.
   }
 
   const unread = await getUnreadCount(session.user.id);
+  const fullName = session.user.name ?? "Staff";
+  const firstName = fullName.split(" ")[0];
+  const initialAvatar = await getUserAvatar(session.user.id);
+
+  async function staffSignOut() {
+    "use server";
+    await signOutToHome();
+  }
 
   return (
     <div className="min-h-screen w-full overflow-x-clip bg-explore-cream">
-      <header className="border-b border-explore-charcoal/10 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-explore-teal">
-              Staff Messages
-            </p>
-            <p className="font-display text-lg font-bold text-explore-charcoal">
-              {session.user.name}
-            </p>
-          </div>
-          <form
-            action={async () => {
-              "use server";
-              await signOutToHome();
-            }}
+      <StaffPortalHeader
+        fullName={fullName}
+        firstName={firstName}
+        initialAvatar={initialAvatar}
+        signOutAction={staffSignOut}
+      />
+      <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto border-b border-explore-charcoal/10 bg-white px-4 pb-3">
+        {STAFF_NAV_ITEMS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-explore-charcoal/70 hover:bg-explore-sand hover:text-explore-charcoal"
           >
-            <button
-              type="submit"
-              className="rounded-lg border border-explore-charcoal/20 px-3 py-1.5 text-sm font-semibold"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
-        <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-3">
-          {STAFF_NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-explore-charcoal/70 hover:bg-explore-sand hover:text-explore-charcoal"
-            >
-              {item.label}
-              {item.href === "/staff/messages" && unread > 0 && (
-                <span className="ml-2 rounded-full bg-explore-orange px-2 py-0.5 text-xs text-white">
-                  {unread}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
-      </header>
+            {item.label}
+            {item.href === "/staff/messages" && unread > 0 && (
+              <span className="ml-2 rounded-full bg-explore-orange px-2 py-0.5 text-xs text-white">
+                {unread}
+              </span>
+            )}
+          </Link>
+        ))}
+      </nav>
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
     </div>
   );

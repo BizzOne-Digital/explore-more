@@ -23,10 +23,7 @@ export default async function StaffDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-2xl font-bold text-explore-charcoal">
-          Welcome, {(session.user.name ?? "Staff").split(" ")[0]}
-        </h2>
-        <p className="mt-1 text-sm text-explore-charcoal/70">
+        <p className="text-sm text-explore-charcoal/70">
           Staff dashboard — respond to parent messages and support calls.
         </p>
       </div>

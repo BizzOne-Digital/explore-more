@@ -1,9 +1,12 @@
+import { PortalWelcomeHeading } from "@/components/account/PortalWelcomeHeading";
 import { TutorSidebar } from "@/components/tutor/TutorSidebar";
 import { TutorPortalBackButton } from "@/components/tutor/TutorPortalBackButton";
 
 interface TutorShellProps {
   children: React.ReactNode;
   firstName: string;
+  fullName: string;
+  initialAvatar?: string | null;
   userRole: string;
   tutorId?: string;
   unreadParentMessages?: number;
@@ -15,6 +18,8 @@ interface TutorShellProps {
 export function TutorShell({
   children,
   firstName,
+  fullName,
+  initialAvatar,
   userRole,
   tutorId,
   unreadParentMessages,
@@ -35,10 +40,12 @@ export function TutorShell({
         <header className="border-b border-gray-200 bg-white px-3 py-2.5 sm:px-4 lg:px-6 lg:py-4">
           <div className="flex items-center gap-3 pl-11 lg:pl-0">
             <TutorPortalBackButton role={userRole} />
-            <div>
-              <p className="text-sm text-gray-500">Welcome back,</p>
-              <h1 className="font-display text-xl font-bold text-explore-charcoal">{firstName}</h1>
-            </div>
+            <PortalWelcomeHeading
+              name={fullName}
+              initialAvatar={initialAvatar}
+              greeting={`Welcome back, ${firstName}`}
+              titleClassName="text-xl font-bold"
+            />
           </div>
         </header>
         <main

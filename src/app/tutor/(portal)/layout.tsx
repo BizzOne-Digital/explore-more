@@ -6,6 +6,7 @@ import { Conversation, StaffInternalConversation, TutorNotification } from "@/mo
 import { TutorShell } from "@/components/tutor/TutorShell";
 import { tutorSignOut } from "@/app/tutor/(portal)/actions";
 import { ensureTutorId } from "@/lib/tutor/tutor-id";
+import { getUserAvatar } from "@/lib/account/get-user-avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +34,15 @@ export default async function TutorPortalLayout({ children }: { children: React.
 
   const tutorId = await ensureTutorId(session.user.id);
   const unread = await getUnreadCounts(session.user.id);
-  const firstName = (session.user.name ?? "Tutor").split(" ")[0];
+  const fullName = session.user.name ?? "Tutor";
+  const firstName = fullName.split(" ")[0];
+  const initialAvatar = await getUserAvatar(session.user.id);
 
   return (
     <TutorShell
       firstName={firstName}
+      fullName={fullName}
+      initialAvatar={initialAvatar}
       userRole={session.user.role}
       tutorId={tutorId}
       unreadParentMessages={unread.parentMessages}

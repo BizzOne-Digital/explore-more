@@ -8,6 +8,8 @@ import { BillingAttentionBanner } from "@/components/parent/BillingAttentionBann
 interface ParentShellProps {
   children: React.ReactNode;
   firstName: string;
+  fullName: string;
+  initialAvatar?: string | null;
   guardianId?: string;
   unreadMessages?: number;
   unreadNotifications?: number;
@@ -20,6 +22,8 @@ interface ParentShellProps {
 export function ParentShell({
   children,
   firstName,
+  fullName,
+  initialAvatar,
   guardianId,
   unreadMessages,
   unreadNotifications,
@@ -40,7 +44,12 @@ export function ParentShell({
         />
       </Suspense>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <ParentHeader firstName={firstName} signOutAction={signOutAction} />
+        <ParentHeader
+          firstName={firstName}
+          fullName={fullName}
+          initialAvatar={initialAvatar}
+          signOutAction={signOutAction}
+        />
         <main
           id="parent-main-scroll"
           className="min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain bg-gray-50 p-4 lg:p-6"

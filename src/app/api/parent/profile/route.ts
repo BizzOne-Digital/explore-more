@@ -1,12 +1,12 @@
 import connectDB from "@/lib/db";
-import { requireRole } from "@/lib/api/auth-helpers";
+import { requireParentPortalRole } from "@/lib/api/auth-helpers";
 import { apiSuccess, apiError } from "@/lib/admin/api";
 import { User, ParentProfile } from "@/models";
 import { hashPassword, verifyPassword } from "@/lib/password";
 
 export async function GET() {
   try {
-    const sessionResult = await requireRole(["parent"]);
+    const sessionResult = await requireParentPortalRole();
     if ("error" in sessionResult) return sessionResult.error;
 
     await connectDB();
@@ -25,7 +25,7 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const sessionResult = await requireRole(["parent"]);
+    const sessionResult = await requireParentPortalRole();
     if ("error" in sessionResult) return sessionResult.error;
 
     const body = await request.json();

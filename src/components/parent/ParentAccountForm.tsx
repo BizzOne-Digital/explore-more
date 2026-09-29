@@ -61,32 +61,34 @@ export function ParentAccountForm() {
     fetch("/api/parent/profile")
       .then((r) => r.json())
       .then((json) => {
-        if (json.success) {
-          setData(json.data);
-          const { user, profile } = json.data;
-          const [firstName = "", ...rest] = (user.name ?? "").split(" ");
-          setForm({
-            name: user.name ?? "",
-            email: user.email ?? "",
-            phone: user.phone ?? "",
-            firstName: profile?.firstName ?? firstName,
-            lastName: profile?.lastName ?? rest.join(" "),
-            street: profile?.mailingAddress?.street ?? "",
-            city: profile?.mailingAddress?.city ?? "",
-            state: profile?.mailingAddress?.state ?? "",
-            zip: profile?.mailingAddress?.zip ?? "",
-            emergencyName: profile?.emergencyContact?.name ?? "",
-            emergencyPhone: profile?.emergencyContact?.phone ?? "",
-            emergencyRelationship: profile?.emergencyContact?.relationship ?? "",
-            preferredCommunication: profile?.preferredCommunication ?? "email",
-            childGrade: profile?.childGrade ?? "",
-            events: user.notificationPreferences?.events ?? true,
-            courses: user.notificationPreferences?.courses ?? true,
-            announcements: user.notificationPreferences?.announcements ?? true,
-            currentPassword: "",
-            newPassword: "",
-          });
+        if (!json.success) {
+          setError(json.error || "Could not load profile");
+          return;
         }
+        setData(json.data);
+        const { user, profile } = json.data;
+        const [firstName = "", ...rest] = (user.name ?? "").split(" ");
+        setForm({
+          name: user.name ?? "",
+          email: user.email ?? "",
+          phone: user.phone ?? "",
+          firstName: profile?.firstName ?? firstName,
+          lastName: profile?.lastName ?? rest.join(" "),
+          street: profile?.mailingAddress?.street ?? "",
+          city: profile?.mailingAddress?.city ?? "",
+          state: profile?.mailingAddress?.state ?? "",
+          zip: profile?.mailingAddress?.zip ?? "",
+          emergencyName: profile?.emergencyContact?.name ?? "",
+          emergencyPhone: profile?.emergencyContact?.phone ?? "",
+          emergencyRelationship: profile?.emergencyContact?.relationship ?? "",
+          preferredCommunication: profile?.preferredCommunication ?? "email",
+          childGrade: profile?.childGrade ?? "",
+          events: user.notificationPreferences?.events ?? true,
+          courses: user.notificationPreferences?.courses ?? true,
+          announcements: user.notificationPreferences?.announcements ?? true,
+          currentPassword: "",
+          newPassword: "",
+        });
       })
       .finally(() => setLoading(false));
   }, []);

@@ -33,6 +33,13 @@ export async function requireRole(
   return result;
 }
 
+/** Parent portal UI allows parents and administrators (see middleware). */
+export async function requireParentPortalRole(): Promise<
+  { user: SessionUser } | { error: ReturnType<typeof jsonError> }
+> {
+  return requireRole(["parent", "administrator"]);
+}
+
 export function verifyCronSecret(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;

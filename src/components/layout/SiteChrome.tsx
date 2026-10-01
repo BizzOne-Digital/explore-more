@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 import { CinematicIntro } from "@/components/intro/CinematicIntro";
 import { getSiteNavigation } from "@/lib/queries/navigation";
 import { PublicPageViewBeacon } from "@/components/analytics/PublicPageViewBeacon";
+import { EducationalChatWidget } from "@/components/chat/EducationalChatWidget";
 
 /** Public marketing chrome — hidden on admin and parent portal routes. */
 export async function SiteChrome({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export async function SiteChrome({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <Footer footerLinks={navigation!.footerLinks} />
+      <EducationalChatWidget />
     </>
   );
 }

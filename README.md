@@ -41,6 +41,8 @@ cp .env.example .env.local
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
 | `CRON_SECRET` | Protects `/api/email/process` endpoint |
+| `XAI_API_KEY` or `GROK_API_KEY` | xAI Grok API key for the public Learning Assistant chatbot |
+| `XAI_CHAT_MODEL` | Optional Grok model (default `grok-3-mini`) |
 | `RESET_DB` | Set to `true` for destructive reseed |
 
 ## MongoDB Setup

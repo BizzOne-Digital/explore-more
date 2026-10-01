@@ -1,13 +1,13 @@
 import { EDUCATIONAL_CHAT_SYSTEM_PROMPT } from "@/lib/grok/educational-system-prompt";
+import {
+  fetchGroqChatModelIds,
+  isGroqModelAccessError,
+  rankGroqChatModels,
+} from "@/lib/grok/groq-models";
 
 export type GrokChatMessage = {
   role: "user" | "assistant";
   content: string;
-};
-
-type ChatProvider = {
-  baseUrl: string;
-  model: string;
 };
 
 function trimEnv(value: string | undefined): string {
@@ -40,23 +40,17 @@ function getCredentials(): Credentials {
   return { apiKey: xaiKey, provider: "xai" };
 }
 
-function resolveProvider(provider: "groq" | "xai"): ChatProvider {
-  if (provider === "groq") {
-    return {
-      baseUrl: "https://api.groq.com/openai/v1",
-      model: trimEnv(process.env.GROQ_CHAT_MODEL) || "llama-3.1-8b-instant",
-    };
-  }
-  return {
-    baseUrl: "https://api.x.ai/v1",
-    model: trimEnv(process.env.XAI_CHAT_MODEL) || "grok-2-1212",
-  };
-}
+type CompletionJson = {
+  error?: { message?: string };
+  choices?: Array<{ message?: { content?: string } }>;
+};
 
-export async function createEducationalChatReply(messages: GrokChatMessage[]): Promise<string> {
-  const { apiKey, provider } = getCredentials();
-  const { baseUrl, model } = resolveProvider(provider);
-
+async function requestChatCompletion(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  messages: GrokChatMessage[]
+): Promise<{ ok: true; text: string } | { ok: false; status: number; message: string }> {
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -74,28 +68,66 @@ export async function createEducationalChatReply(messages: GrokChatMessage[]): P
     }),
   });
 
-  const json = (await res.json()) as {
-    error?: { message?: string };
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
+  const json = (await res.json()) as CompletionJson;
   if (!res.ok) {
-    const detail = json.error?.message?.trim();
-    if (res.status === 401 || res.status === 403) {
-      throw new Error("Invalid API key. Check GROQ_API_KEY or XAI_API_KEY in your environment.");
-    }
-    if (provider === "groq") {
-      throw new Error(detail || "Groq rejected the request. Use a full gsk_ key from console.groq.com.");
-    }
-    throw new Error(
-      detail ||
-        "xAI rejected the request. Use a valid key from console.x.ai, or set GROQ_API_KEY for Groq."
-    );
+    return {
+      ok: false,
+      status: res.status,
+      message: json.error?.message?.trim() || res.statusText || "Request failed",
+    };
   }
 
   const text = json.choices?.[0]?.message?.content?.trim();
   if (!text) {
-    throw new Error("No response from assistant");
+    return { ok: false, status: 500, message: "No response from assistant" };
   }
-  return text;
+  return { ok: true, text };
+}
+
+async function createGroqReply(apiKey: string, messages: GrokChatMessage[]): Promise<string> {
+  const baseUrl = "https://api.groq.com/openai/v1";
+  const available = await fetchGroqChatModelIds(apiKey);
+  const models = rankGroqChatModels(available, trimEnv(process.env.GROQ_CHAT_MODEL));
+
+  let lastError = "Groq chat failed.";
+  for (const model of models) {
+    const result = await requestChatCompletion(baseUrl, apiKey, model, messages);
+    if (result.ok) {
+      return result.text;
+    }
+    lastError = result.message;
+    if (result.status === 401 || result.status === 403) {
+      throw new Error("Invalid Groq API key. Create a new key at console.groq.com and set GROQ_API_KEY.");
+    }
+    if (!isGroqModelAccessError(result.message)) {
+      throw new Error(result.message);
+    }
+  }
+
+  throw new Error(
+    `${lastError} Check GROQ_API_KEY at console.groq.com — your account may need a new API key or enabled models.`
+  );
+}
+
+async function createXaiReply(apiKey: string, messages: GrokChatMessage[]): Promise<string> {
+  const baseUrl = "https://api.x.ai/v1";
+  const model = trimEnv(process.env.XAI_CHAT_MODEL) || "grok-2-1212";
+  const result = await requestChatCompletion(baseUrl, apiKey, model, messages);
+  if (result.ok) return result.text;
+
+  if (result.status === 401 || result.status === 403) {
+    throw new Error("Invalid xAI API key. Use a key from console.x.ai or set GROQ_API_KEY for Groq.");
+  }
+  throw new Error(
+    result.message ||
+      "xAI rejected the request. Use a valid key from console.x.ai, or set GROQ_API_KEY for Groq."
+  );
+}
+
+export async function createEducationalChatReply(messages: GrokChatMessage[]): Promise<string> {
+  const { apiKey, provider } = getCredentials();
+  if (provider === "groq") {
+    return createGroqReply(apiKey, messages);
+  }
+  return createXaiReply(apiKey, messages);
 }

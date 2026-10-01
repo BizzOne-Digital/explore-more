@@ -8,42 +8,54 @@ export type GrokChatMessage = {
 type ChatProvider = {
   baseUrl: string;
   model: string;
-  label: string;
 };
 
-function getApiKey(): string {
-  const key =
-    process.env.XAI_API_KEY ||
-    process.env.GROK_API_KEY ||
-    process.env.GROQ_API_KEY;
-  if (!key?.trim()) {
-    throw new Error(
-      "Chat is not configured. Add XAI_API_KEY (Grok at console.x.ai) or GROQ_API_KEY (console.groq.com)."
-    );
-  }
-  return key.trim();
+function trimEnv(value: string | undefined): string {
+  return value?.trim().replace(/^["']|["']$/g, "") ?? "";
 }
 
-function resolveProvider(apiKey: string): ChatProvider {
-  // Groq keys start with gsk_ — OpenAI-compatible API (not the same as xAI Grok).
-  if (apiKey.startsWith("gsk_")) {
-    return {
-      baseUrl: "https://api.groq.com/openai/v1",
-      model: process.env.GROQ_CHAT_MODEL?.trim() || "llama-3.3-70b-versatile",
-      label: "Groq",
-    };
+type Credentials = { apiKey: string; provider: "groq" | "xai" };
+
+function getCredentials(): Credentials {
+  const groqKey = trimEnv(process.env.GROQ_API_KEY);
+  if (groqKey) {
+    const apiKey = groqKey.startsWith("gsk_") ? groqKey : `gsk_${groqKey}`;
+    return { apiKey, provider: "groq" };
   }
 
+  const chatProvider = trimEnv(process.env.CHAT_PROVIDER).toLowerCase();
+  const xaiKey = trimEnv(process.env.XAI_API_KEY) || trimEnv(process.env.GROK_API_KEY);
+
+  if (!xaiKey) {
+    throw new Error(
+      "Chat is not configured. Set GROQ_API_KEY (Groq, gsk_…) or XAI_API_KEY (Grok at console.x.ai)."
+    );
+  }
+
+  if (chatProvider === "groq" || xaiKey.startsWith("gsk_")) {
+    const apiKey = xaiKey.startsWith("gsk_") ? xaiKey : `gsk_${xaiKey}`;
+    return { apiKey, provider: "groq" };
+  }
+
+  return { apiKey: xaiKey, provider: "xai" };
+}
+
+function resolveProvider(provider: "groq" | "xai"): ChatProvider {
+  if (provider === "groq") {
+    return {
+      baseUrl: "https://api.groq.com/openai/v1",
+      model: trimEnv(process.env.GROQ_CHAT_MODEL) || "llama-3.1-8b-instant",
+    };
+  }
   return {
     baseUrl: "https://api.x.ai/v1",
-    model: process.env.XAI_CHAT_MODEL?.trim() || "grok-2-1212",
-    label: "xAI Grok",
+    model: trimEnv(process.env.XAI_CHAT_MODEL) || "grok-2-1212",
   };
 }
 
 export async function createEducationalChatReply(messages: GrokChatMessage[]): Promise<string> {
-  const apiKey = getApiKey();
-  const { baseUrl, model } = resolveProvider(apiKey);
+  const { apiKey, provider } = getCredentials();
+  const { baseUrl, model } = resolveProvider(provider);
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -63,25 +75,22 @@ export async function createEducationalChatReply(messages: GrokChatMessage[]): P
   });
 
   const json = (await res.json()) as {
-    error?: { message?: string; code?: string };
+    error?: { message?: string };
     choices?: Array<{ message?: { content?: string } }>;
   };
 
   if (!res.ok) {
     const detail = json.error?.message?.trim();
     if (res.status === 401 || res.status === 403) {
-      throw new Error("Invalid API key. Check XAI_API_KEY or GROQ_API_KEY in your environment.");
+      throw new Error("Invalid API key. Check GROQ_API_KEY or XAI_API_KEY in your environment.");
     }
-    if (res.status === 400 && apiKey.startsWith("gsk_")) {
-      throw new Error(detail || "Groq rejected the request. Check GROQ_API_KEY and model name.");
+    if (provider === "groq") {
+      throw new Error(detail || "Groq rejected the request. Use a full gsk_ key from console.groq.com.");
     }
-    if (res.status === 400 && !apiKey.startsWith("gsk_")) {
-      throw new Error(
-        detail ||
-          "xAI rejected the request. Use a key from console.x.ai (not Groq gsk_ keys) or set GROQ_API_KEY for Groq."
-      );
-    }
-    throw new Error(detail || res.statusText || "Request failed");
+    throw new Error(
+      detail ||
+        "xAI rejected the request. Use a valid key from console.x.ai, or set GROQ_API_KEY for Groq."
+    );
   }
 
   const text = json.choices?.[0]?.message?.content?.trim();

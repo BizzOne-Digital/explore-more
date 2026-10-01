@@ -42,8 +42,9 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
 | `CRON_SECRET` | Protects `/api/email/process` endpoint |
 | `XAI_API_KEY` | xAI **Grok** key from [console.x.ai](https://console.x.ai) (not Groq `gsk_` keys) |
-| `GROQ_API_KEY` | Optional: Groq key (`gsk_…`) — also works if placed in `XAI_API_KEY` |
-| `XAI_CHAT_MODEL` / `GROQ_CHAT_MODEL` | Optional model override (defaults: `grok-2-1212`, `llama-3.3-70b-versatile`) |
+| `GROQ_API_KEY` | **Recommended for Groq:** full key including `gsk_` prefix from [console.groq.com](https://console.groq.com) |
+| `CHAT_PROVIDER` | Optional: set to `groq` if your key is in `XAI_API_KEY` without the `gsk_` prefix |
+| `XAI_CHAT_MODEL` / `GROQ_CHAT_MODEL` | Optional model override (defaults: `grok-2-1212`, `llama-3.1-8b-instant`) |
 | `RESET_DB` | Set to `true` for destructive reseed |
 
 ## MongoDB Setup

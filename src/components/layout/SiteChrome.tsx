@@ -12,7 +12,9 @@ export async function SiteChrome({ children }: { children: React.ReactNode }) {
   const isAdmin = pathname.startsWith("/admin");
   const isParentPortal = pathname.startsWith("/parent");
   const isStudentPortal = pathname.startsWith("/student");
-  const hidePublicChrome = isAdmin || isParentPortal || isStudentPortal;
+  const isLearningAssistant = pathname.startsWith("/learning-assistant");
+  const hidePublicChrome =
+    isAdmin || isParentPortal || isStudentPortal || isLearningAssistant;
   const navigation = hidePublicChrome ? null : await getSiteNavigation();
 
   if (hidePublicChrome) {

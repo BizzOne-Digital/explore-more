@@ -8,7 +8,6 @@ import {
   Calculator,
   FlaskConical,
   GraduationCap,
-  Grid3X3,
   Home,
   Loader2,
   PenLine,
@@ -17,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { ExploreSearchLogo } from "@/components/chat/ExploreSearchLogo";
+import { GoogleStyleSearchResults } from "@/components/chat/GoogleStyleSearchResults";
 import { useEducationalChat } from "@/components/chat/useEducationalChat";
 import { COMPANY } from "@/lib/constants";
 import { LEARNING_TOPICS, type LearningTopicId } from "@/lib/chat/constants";
@@ -76,7 +76,7 @@ export function LearningAssistantPage() {
         </Link>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-6 pt-2 sm:px-6 sm:pb-8">
+      <main className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pb-6 pt-2 sm:px-6 sm:pb-8">
         <div className="text-center">
           <div className="mx-auto flex justify-center px-2">
             <ExploreSearchLogo size="hero" />
@@ -141,49 +141,16 @@ export function LearningAssistantPage() {
           </div>
         </div>
 
-        {(hasUserMessages || error) && (
-          <section
-            className="mt-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/15 bg-black/40 shadow-2xl backdrop-blur-md sm:mt-8"
-            aria-live="polite"
-          >
-            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-              <Grid3X3 className="h-4 w-4 text-white/50" />
-              <h2 className="text-sm font-semibold text-white/90">Your conversation</h2>
-            </div>
-            <div
-              ref={listRef}
-              className="max-h-[min(28rem,52dvh)] space-y-4 overflow-y-auto px-4 py-4 sm:px-5"
-              data-lenis-prevent
-            >
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  {m.role === "user" ? (
-                    <div className="max-w-[90%] rounded-2xl bg-explore-teal px-4 py-2.5 text-sm leading-relaxed text-white">
-                      {m.content}
-                    </div>
-                  ) : (
-                    <div className="max-w-full text-sm leading-relaxed text-white/95 whitespace-pre-wrap">
-                      {m.content}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {loading && (
-                <div className="flex items-center gap-2 text-sm text-white/70">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Thinking…
-                </div>
-              )}
-            </div>
-            {error && (
-              <p className="border-t border-white/10 px-4 py-2 text-xs text-red-300" role="alert">
-                {error}
-              </p>
-            )}
-          </section>
+        {(hasUserMessages || loading) && (
+          <div ref={listRef} aria-live="polite">
+            <GoogleStyleSearchResults messages={messages} loading={loading} />
+          </div>
+        )}
+
+        {error && (
+          <p className="mt-4 rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-200" role="alert">
+            {error}
+          </p>
         )}
       </main>
 

@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 
 export function EducationalChatWidget() {
+  const pathname = usePathname();
+  if (pathname?.startsWith("/learning-assistant")) {
+    return null;
+  }
+
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-[200] sm:bottom-6 sm:right-6">
       <Link

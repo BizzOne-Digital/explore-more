@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 
 const LOGO_SRC = "/learning-assistant/explore-search-logo.jpg";
 
-/** Logo shipped on black — `mix-blend-screen` hides the dark plate on scenic backgrounds. */
+/** Black plate in source art is hidden via mix-blend-lighten on dark scenic backgrounds. */
 export function ExploreSearchLogo({
   size = "hero",
   href,
@@ -16,17 +16,26 @@ export function ExploreSearchLogo({
 }) {
   const dimensions =
     size === "header"
-      ? { width: 140, height: 56, imgClass: "h-10 w-auto sm:h-11" }
-      : { width: 560, height: 300, imgClass: "h-auto w-full max-w-[min(100%,26rem)] sm:max-w-md md:max-w-xl" };
+      ? { width: 100, height: 40, imgClass: "h-8 w-auto sm:h-9" }
+      : { width: 400, height: 220, imgClass: "h-auto w-full max-w-[14rem] sm:max-w-[16rem] md:max-w-[18rem]" };
 
   const image = (
-    <span className={cn("relative inline-flex max-w-full items-center justify-center", className)}>
+    <span
+      className={cn(
+        "relative inline-flex max-w-full items-center justify-center",
+        size === "hero" && "my-5 py-3 sm:my-6 sm:py-4",
+        className
+      )}
+    >
       <Image
         src={LOGO_SRC}
         alt="Explore Search — educational search for brighter minds"
         width={dimensions.width}
         height={dimensions.height}
-        className={cn(dimensions.imgClass, "mix-blend-screen")}
+        className={cn(
+          dimensions.imgClass,
+          "mix-blend-lighten brightness-[1.08] contrast-[1.05] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)]"
+        )}
         priority={size === "hero"}
         unoptimized
       />
@@ -35,7 +44,10 @@ export function ExploreSearchLogo({
 
   if (href) {
     return (
-      <Link href={href} className="inline-flex shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-explore-lime">
+      <Link
+        href={href}
+        className="inline-flex shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-explore-lime"
+      >
         {image}
       </Link>
     );

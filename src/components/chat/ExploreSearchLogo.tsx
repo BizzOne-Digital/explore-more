@@ -2,9 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
-const LOGO_SRC = "/learning-assistant/explore-search-logo.jpg";
-
-/** Black plate in source art is hidden via mix-blend-lighten on dark scenic backgrounds. */
+const LOGO_SRC = "/learning-assistant/explore-search-logo.png";
 export function ExploreSearchLogo({
   size = "hero",
   href,
@@ -32,10 +30,7 @@ export function ExploreSearchLogo({
         alt="Explore Search — educational search for brighter minds"
         width={dimensions.width}
         height={dimensions.height}
-        className={cn(
-          dimensions.imgClass,
-          "mix-blend-lighten brightness-[1.08] contrast-[1.05] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)]"
-        )}
+        className={cn(dimensions.imgClass, "drop-shadow-[0_4px_28px_rgba(0,0,0,0.55)]")}
         priority={size === "hero"}
         unoptimized
       />

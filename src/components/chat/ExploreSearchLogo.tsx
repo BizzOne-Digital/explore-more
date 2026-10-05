@@ -14,8 +14,16 @@ export function ExploreSearchLogo({
 }) {
   const dimensions =
     size === "header"
-      ? { width: 100, height: 40, imgClass: "h-8 w-auto sm:h-9" }
-      : { width: 400, height: 220, imgClass: "h-auto w-full max-w-[14rem] sm:max-w-[16rem] md:max-w-[18rem]" };
+      ? {
+          width: 102,
+          height: 41,
+          imgClass: "h-[2.04rem] w-auto sm:h-[2.295rem]",
+        }
+      : {
+          width: 368,
+          height: 202,
+          imgClass: "h-auto w-full max-w-[12.88rem] sm:max-w-[14.72rem] md:max-w-[16.56rem]",
+        };
 
   const image = (
     <span

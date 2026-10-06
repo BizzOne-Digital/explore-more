@@ -17,6 +17,7 @@ import {
 } from "@/components/admin/forms";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { MultiImageUpload } from "@/components/admin/MultiImageUpload";
 import { DigitalFileUpload } from "@/components/admin/DigitalFileUpload";
 import { safeSlug } from "@/lib/utils";
 
@@ -63,6 +64,10 @@ export function BookForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pendingDigitalFile, setPendingDigitalFile] = useState<File | null>(null);
+  const [samplePages, setSamplePages] = useState<string[]>(() => {
+    const raw = initialData?.images;
+    return Array.isArray(raw) ? raw.filter((u): u is string => typeof u === "string" && u.length > 0) : [];
+  });
   const {
     register,
     handleSubmit,
@@ -140,7 +145,7 @@ export function BookForm({
     const res = await fetch(url, {
       method: isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(finalData),
+      body: JSON.stringify({ ...finalData, images: samplePages }),
     });
     const json = await res.json();
     if (!json.success) {
@@ -228,6 +233,16 @@ export function BookForm({
               folder="books"
             />
           </div>
+        </FormSection>
+
+        <FormSection title="Sample Pages (store preview)">
+          <MultiImageUpload
+            label="Preview pages"
+            hint="Upload a few interior pages so shoppers can preview the book before buying. The cover is uploaded separately above."
+            value={samplePages}
+            onChange={setSamplePages}
+            folder="books"
+          />
         </FormSection>
 
         <FormSection title="Book Information">

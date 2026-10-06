@@ -26,6 +26,9 @@ export function mapPublicBook(raw: Record<string, unknown>): PublicBook {
     shortDescription: String(raw.shortDescription ?? ""),
     fullDescription: String(raw.fullDescription ?? ""),
     coverImage: raw.coverImage as string | undefined,
+    samplePages: Array.isArray(raw.images)
+      ? (raw.images as string[]).filter((u) => typeof u === "string" && u.length > 0)
+      : undefined,
     priceCents: dollarsToCents(priceAmount),
     salePriceCents:
       effectiveSale != null ? dollarsToCents(effectiveSale) : undefined,

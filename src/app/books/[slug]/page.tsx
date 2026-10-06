@@ -6,6 +6,7 @@ import { getCatalogBook, bookCoverPath } from "@/lib/content/books";
 import { formatCents } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { AddToCartButton } from "@/components/forms/AddToCartButton";
+import { BookSamplePreview } from "@/components/books/BookSamplePreview";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -68,6 +69,10 @@ export default async function BookDetailPage({ params }: Props) {
             <div className="mt-8">
               <AddToCartButton book={book} />
             </div>
+
+            {book.samplePages && book.samplePages.length > 0 && (
+              <BookSamplePreview pages={book.samplePages} bookTitle={book.title} />
+            )}
 
             <div className="mt-10 pt-8 border-t border-explore-charcoal/10">
               <h2 className="font-display text-xl font-bold mb-4">About This Book</h2>

@@ -3,7 +3,17 @@
 import { AssistantAnswerMarkdown } from "@/components/chat/AssistantAnswerMarkdown";
 import type { ChatMessage } from "@/components/chat/useEducationalChat";
 import { Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/cn";
 import { COMPANY } from "@/lib/constants";
+
+type ResultsTab = "all" | "study-guide" | "key-facts";
+
+const RESULT_TABS: { id: ResultsTab; label: string; targetId: string }[] = [
+  { id: "all", label: "All", targetId: "explore-search-results" },
+  { id: "study-guide", label: "Study guide", targetId: "explore-study-guide" },
+  { id: "key-facts", label: "Key facts", targetId: "explore-key-facts" },
+];
 
 function extractTitle(content: string): string {
   const match = content.match(/^##\s+(.+)$/m);
@@ -50,21 +60,43 @@ export function GoogleStyleSearchResults({
 
   const overviewTitle = lastAssistant ? extractTitle(lastAssistant.content) : "Searching…";
   const quickFacts = lastAssistant ? extractQuickFacts(lastAssistant.content) : [];
+  const [activeTab, setActiveTab] = useState<ResultsTab>("all");
+
+  useEffect(() => {
+    setActiveTab("all");
+  }, [lastUser?.id, lastAssistant?.id]);
+
+  function goToTab(tab: ResultsTab, targetId: string) {
+    setActiveTab(tab);
+    const el = document.getElementById(targetId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
-    <div className="mt-6 space-y-4 sm:mt-8">
-      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-3 text-sm">
-        {["All", "Study guide", "Key facts"].map((tab, idx) => (
-          <span
-            key={tab}
-            className={
-              idx === 0
-                ? "rounded-full bg-white/15 px-3 py-1 font-semibold text-white"
-                : "px-3 py-1 text-white/50"
-            }
+    <div id="explore-search-results" className="mt-6 scroll-mt-6 space-y-4 sm:mt-8">
+      <div
+        className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-3 text-sm"
+        role="tablist"
+        aria-label="Result sections"
+      >
+        {RESULT_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={tab.targetId}
+            onClick={() => goToTab(tab.id, tab.targetId)}
+            className={cn(
+              "rounded-full px-3 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-explore-lime",
+              activeTab === tab.id
+                ? "bg-white/15 font-semibold text-white"
+                : "text-white/50 hover:text-white/80"
+            )}
           >
-            {tab}
-          </span>
+            {tab.label}
+          </button>
         ))}
       </div>
 
@@ -83,7 +115,9 @@ export function GoogleStyleSearchResults({
           </p>
 
           {lastAssistant ? (
-            <AssistantAnswerMarkdown content={lastAssistant.content} />
+            <div id="explore-study-guide" className="scroll-mt-24" role="tabpanel" aria-label="Study guide">
+              <AssistantAnswerMarkdown content={lastAssistant.content} />
+            </div>
           ) : loading ? (
             <p className="text-sm text-white/60">Gathering a clear, student-friendly answer…</p>
           ) : null}
@@ -94,7 +128,12 @@ export function GoogleStyleSearchResults({
           </p>
         </article>
 
-        <aside className="h-fit rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-md lg:sticky lg:top-4">
+        <aside
+          id="explore-key-facts"
+          className="h-fit scroll-mt-24 rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-md lg:sticky lg:top-4"
+          role="tabpanel"
+          aria-label="Key facts"
+        >
           <h3 className="text-sm font-semibold text-white">Quick look</h3>
           {quickFacts.length > 0 ? (
             <dl className="mt-3 space-y-2.5 text-sm">

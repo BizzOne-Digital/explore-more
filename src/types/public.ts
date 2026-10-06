@@ -87,6 +87,8 @@ export interface PublicBook {
   shortDescription: string;
   fullDescription: string;
   coverImage?: string;
+  /** Interior sample page images for storefront preview (not the full digital PDF). */
+  samplePages?: string[];
   priceCents: number;
   salePriceCents?: number;
   category?: string;

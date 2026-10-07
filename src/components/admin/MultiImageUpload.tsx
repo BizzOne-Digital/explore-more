@@ -8,6 +8,8 @@ import { uploadAdminImage } from "@/lib/uploads/admin-image-upload";
 import { isSampleImageFile, sampleImageRejectMessage } from "@/lib/uploads/is-sample-image-file";
 import {
   LEGACY_UPLOAD_FOLDER_MAP,
+  MAX_BOOK_SAMPLE_PAGE_MB,
+  MAX_BOOK_SAMPLE_PAGE_SIZE,
   type StoredUploadFolder,
 } from "@/lib/constants";
 
@@ -77,18 +79,20 @@ export function MultiImageUpload({
 
     try {
       for (const file of toUpload) {
-        if (file.size > 8 * 1024 * 1024) {
-          setToast(`${file.name} is over 8MB and was skipped.`);
+        if (file.size > MAX_BOOK_SAMPLE_PAGE_SIZE) {
+          setToast(`${file.name} is over ${MAX_BOOK_SAMPLE_PAGE_MB}MB and was skipped.`);
           continue;
         }
-        const { url } = await uploadAdminImage(file, storedFolder, folder);
+        const { url } = await uploadAdminImage(file, storedFolder, folder, {
+          maxSizeMb: MAX_BOOK_SAMPLE_PAGE_MB,
+        });
         added.push(url);
       }
       if (added.length > 0) {
         onChange([...value, ...added]);
         setToast(`Added ${added.length} sample page${added.length === 1 ? "" : "s"}. Click Save or Publish to store them on the book.`);
       } else {
-        setToast("No files were uploaded. Check file type and size (max 8MB each).");
+        setToast(`No files were uploaded. Check file type and size (max ${MAX_BOOK_SAMPLE_PAGE_MB}MB each).`);
       }
     } catch (err) {
       setToast(err instanceof Error ? err.message : "Upload failed.");
@@ -203,7 +207,7 @@ export function MultiImageUpload({
               <ImageIcon className="h-7 w-7 text-white/40" />
               <p className="mt-2 text-sm text-white/60">Add sample page images</p>
               <p className="mt-1 text-xs text-white/40">
-                Drag & drop or browse — up to {maxFiles} pages, 8MB each
+                Drag & drop or browse — up to {maxFiles} pages, {MAX_BOOK_SAMPLE_PAGE_MB}MB each
               </p>
             </>
           )}

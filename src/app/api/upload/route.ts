@@ -1,7 +1,12 @@
 import connectDB from "@/lib/db";
 import { requireRole } from "@/lib/api/auth-helpers";
 import { storeUploadedImage, isStoredUploadFolder } from "@/lib/services/stored-upload";
-import { STORED_UPLOAD_FOLDERS } from "@/lib/constants";
+import {
+  MAX_BOOK_SAMPLE_PAGE_MB,
+  MAX_BOOK_SAMPLE_PAGE_SIZE,
+  MAX_STORED_IMAGE_SIZE,
+  STORED_UPLOAD_FOLDERS,
+} from "@/lib/constants";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -33,7 +38,15 @@ export async function POST(request: Request) {
 
   try {
     await connectDB();
-    const result = await storeUploadedImage(file, folder);
+    const maxSizeMbRaw = Number(formData.get("maxSizeMb"));
+    const maxSize =
+      Number.isFinite(maxSizeMbRaw) &&
+      maxSizeMbRaw > 0 &&
+      maxSizeMbRaw <= MAX_BOOK_SAMPLE_PAGE_MB
+        ? maxSizeMbRaw * 1024 * 1024
+        : MAX_STORED_IMAGE_SIZE;
+    const cappedMax = Math.min(maxSize, MAX_BOOK_SAMPLE_PAGE_SIZE);
+    const result = await storeUploadedImage(file, folder, cappedMax);
     return NextResponse.json(
       {
         success: true,

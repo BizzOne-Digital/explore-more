@@ -83,6 +83,9 @@ export const LEGACY_UPLOAD_FOLDER_MAP: Record<keyof typeof UPLOAD_DIRS, StoredUp
 
 export const PLACEHOLDER_IMAGE = "/images/placeholder.svg";
 export const MAX_STORED_IMAGE_SIZE = 8 * 1024 * 1024; // 8MB
+/** High-res scans for book “Look inside” sample pages (admin). */
+export const MAX_BOOK_SAMPLE_PAGE_MB = 25;
+export const MAX_BOOK_SAMPLE_PAGE_SIZE = MAX_BOOK_SAMPLE_PAGE_MB * 1024 * 1024;
 /** Certificate background images for the public generator. */
 export const MAX_CERTIFICATE_TEMPLATE_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB
 export const STORED_IMAGE_MIME_TYPES = [

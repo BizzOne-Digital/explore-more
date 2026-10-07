@@ -10,7 +10,8 @@ interface UploadImageResult {
 export async function uploadAdminImage(
   file: File,
   folder: StoredUploadFolder,
-  legacyCategory?: string
+  legacyCategory?: string,
+  options?: { maxSizeMb?: number }
 ): Promise<UploadImageResult> {
   const formData = new FormData();
   formData.append("file", file);
@@ -18,6 +19,9 @@ export async function uploadAdminImage(
 
   if (legacyCategory) {
     formData.append("category", legacyCategory);
+  }
+  if (options?.maxSizeMb != null && options.maxSizeMb > 0) {
+    formData.append("maxSizeMb", String(options.maxSizeMb));
   }
 
   const endpoints = ["/api/upload", "/api/upload/public"];

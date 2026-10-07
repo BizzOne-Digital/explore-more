@@ -172,7 +172,10 @@ export function BookForm({
       }
     }
 
-    router.push(savedBookId && isNew && pendingDigitalFile ? `/admin/books/${savedBookId}` : "/admin/books");
+    const stayOnEdit = savedBookId && (samplePages.length > 0 || !isNew);
+    router.push(
+      stayOnEdit ? `/admin/books/${savedBookId}` : isNew && pendingDigitalFile ? `/admin/books/${savedBookId}` : "/admin/books"
+    );
     router.refresh();
   }
 
@@ -238,7 +241,7 @@ export function BookForm({
         <FormSection title="Sample Pages (store preview)">
           <MultiImageUpload
             label="Preview pages"
-            hint="Upload a few interior pages so shoppers can preview the book before buying. The cover is uploaded separately above."
+            hint="Upload JPG or PNG images of interior pages (not PDF). Wait until thumbnails appear, then Save or Publish. The cover is uploaded separately above."
             value={samplePages}
             onChange={setSamplePages}
             folder="books"

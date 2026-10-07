@@ -5,6 +5,7 @@ import { Image as ImageIcon, Upload, X } from "lucide-react";
 import { deleteStoredUploadByUrl } from "@/lib/services/stored-upload-client";
 import { resolveImageUrl } from "@/lib/images/resolve";
 import { uploadAdminImage } from "@/lib/uploads/admin-image-upload";
+import { isSampleImageFile, sampleImageRejectMessage } from "@/lib/uploads/is-sample-image-file";
 import {
   LEGACY_UPLOAD_FOLDER_MAP,
   type StoredUploadFolder,
@@ -52,11 +53,13 @@ export function MultiImageUpload({
   }, [toast]);
 
   async function uploadFiles(files: FileList | File[]) {
-    const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (list.length === 0) {
-      setToast("Please select image files (PNG, JPG, WebP, or GIF).");
+    const all = Array.from(files);
+    const rejectMsg = sampleImageRejectMessage(all);
+    if (rejectMsg) {
+      setToast(rejectMsg);
       return;
     }
+    const list = all.filter(isSampleImageFile);
 
     const slotsLeft = maxFiles - value.length;
     if (slotsLeft <= 0) {
@@ -83,6 +86,9 @@ export function MultiImageUpload({
       }
       if (added.length > 0) {
         onChange([...value, ...added]);
+        setToast(`Added ${added.length} sample page${added.length === 1 ? "" : "s"}. Click Save or Publish to store them on the book.`);
+      } else {
+        setToast("No files were uploaded. Check file type and size (max 8MB each).");
       }
     } catch (err) {
       setToast(err instanceof Error ? err.message : "Upload failed.");
@@ -115,7 +121,14 @@ export function MultiImageUpload({
       </div>
 
       {toast && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100" role="status">
+        <p
+          className={`rounded-lg px-3 py-2 text-sm ${
+            toast.startsWith("Added ")
+              ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+              : "border border-amber-500/30 bg-amber-500/10 text-amber-100"
+          }`}
+          role="status"
+        >
           {toast}
         </p>
       )}

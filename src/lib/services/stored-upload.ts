@@ -22,6 +22,14 @@ const MIME_TO_EXT: Record<string, string> = {
   "image/gif": "gif",
 };
 
+const EXT_TO_MIME: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
 function extensionFromFile(file: File): string | null {
   const fromMime = MIME_TO_EXT[file.type];
   if (fromMime) return fromMime;
@@ -37,13 +45,21 @@ function validateStoredImage(
   maxSize: number = MAX_STORED_IMAGE_SIZE
 ): { mimeType: string; ext: string } {
   const ext = extensionFromFile(file);
-  if (!ext || !(STORED_IMAGE_MIME_TYPES as readonly string[]).includes(file.type)) {
+  if (!ext) {
+    throw new Error("Invalid file type. Allowed: JPEG, PNG, WebP, GIF");
+  }
+
+  let mimeType = file.type?.trim() ?? "";
+  if (!mimeType || mimeType === "application/octet-stream") {
+    mimeType = EXT_TO_MIME[ext] ?? "";
+  }
+  if (!(STORED_IMAGE_MIME_TYPES as readonly string[]).includes(mimeType)) {
     throw new Error("Invalid file type. Allowed: JPEG, PNG, WebP, GIF");
   }
   if (file.size > maxSize) {
     throw new Error(`File too large. Maximum size is ${maxSize / 1024 / 1024}MB`);
   }
-  return { mimeType: file.type, ext };
+  return { mimeType, ext };
 }
 
 function generateStoredFilename(ext: string): string {

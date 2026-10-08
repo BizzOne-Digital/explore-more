@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getStoredUpload, isStoredUploadFolder } from "@/lib/services/stored-upload";
+import {
+  getStoredUpload,
+  isStoredUploadFolder,
+  readStoredUploadBody,
+} from "@/lib/services/stored-upload";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,22 +24,20 @@ export async function GET(_request: Request, { params }: RouteParams) {
   }
 
   const doc = await getStoredUpload(folder, filename);
-  if (!doc?.data) {
+  if (!doc) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const raw = doc.data as Buffer | { buffer: ArrayBuffer } | Uint8Array;
-  const buffer = Buffer.isBuffer(raw)
-    ? raw
-    : raw instanceof Uint8Array
-      ? Buffer.from(raw)
-      : Buffer.from(new Uint8Array(raw.buffer));
+  const body = await readStoredUploadBody(doc);
+  if (!body) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
-  return new NextResponse(buffer as unknown as BodyInit, {
+  return new NextResponse(body.buffer as unknown as BodyInit, {
     status: 200,
     headers: {
-      "Content-Type": doc.mimeType,
-      "Content-Length": String(doc.size),
+      "Content-Type": body.mimeType,
+      "Content-Length": String(body.buffer.length),
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });

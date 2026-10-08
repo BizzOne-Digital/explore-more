@@ -7,6 +7,7 @@ import {
   STORED_UPLOAD_FOLDERS,
   type StoredUploadFolder,
 } from "@/lib/constants";
+import { deleteFromR2, readFromR2 } from "@/lib/services/r2-storage";
 import {
   buildStoredUploadUrl,
   isStoredUploadFolder,
@@ -40,7 +41,7 @@ function extensionFromFile(file: File): string | null {
   return null;
 }
 
-function validateStoredImage(
+export function validateStoredImage(
   file: File,
   maxSize: number = MAX_STORED_IMAGE_SIZE
 ): { mimeType: string; ext: string } {
@@ -62,7 +63,7 @@ function validateStoredImage(
   return { mimeType, ext };
 }
 
-function generateStoredFilename(ext: string): string {
+export function generateStoredFilename(ext: string): string {
   const randomHex = crypto.randomBytes(8).toString("hex");
   return `${Date.now()}-${randomHex}.${ext}`;
 }
@@ -106,11 +107,64 @@ export async function getStoredUpload(folder: string, filename: string) {
   return StoredUpload.findOne({ folder, filename }).lean();
 }
 
+export async function readStoredUploadBody(doc: {
+  mimeType: string;
+  size: number;
+  data?: Buffer | { buffer: ArrayBuffer } | Uint8Array;
+  storage?: "mongo" | "r2";
+  r2Key?: string;
+}): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  if (doc.storage === "r2" && doc.r2Key) {
+    const r2File = await readFromR2(doc.r2Key);
+    return { buffer: r2File.buffer, mimeType: r2File.mimeType || doc.mimeType };
+  }
+  if (!doc.data) return null;
+  const raw = doc.data;
+  const buffer = Buffer.isBuffer(raw)
+    ? raw
+    : raw instanceof Uint8Array
+      ? Buffer.from(raw)
+      : Buffer.from(new Uint8Array(raw.buffer));
+  return { buffer, mimeType: doc.mimeType };
+}
+
+export async function registerStoredUploadFromR2(params: {
+  folder: StoredUploadFolder;
+  filename: string;
+  mimeType: string;
+  size: number;
+  r2Key: string;
+}): Promise<{ url: string; filename: string; size: number; folder: StoredUploadFolder }> {
+  await connectDB();
+  await StoredUpload.create({
+    folder: params.folder,
+    filename: params.filename,
+    mimeType: params.mimeType,
+    size: params.size,
+    storage: "r2",
+    r2Key: params.r2Key,
+  });
+
+  return {
+    url: buildStoredUploadUrl(params.folder, params.filename),
+    filename: params.filename,
+    size: params.size,
+    folder: params.folder,
+  };
+}
+
 export async function deleteStoredUploadByUrl(url: string): Promise<boolean> {
   const parsed = parseStoredUploadUrl(url);
   if (!parsed) return false;
 
   await connectDB();
+  const doc = await StoredUpload.findOne({
+    folder: parsed.folder,
+    filename: parsed.filename,
+  }).lean();
+  if (doc?.storage === "r2" && doc.r2Key) {
+    await deleteFromR2(doc.r2Key);
+  }
   const result = await StoredUpload.deleteOne({
     folder: parsed.folder,
     filename: parsed.filename,

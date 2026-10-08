@@ -5,7 +5,7 @@ import type { R2MultipartScope } from "@/lib/uploads/r2-multipart-auth";
 const CORS_HINT =
   "Large files upload directly to cloud storage. In Cloudflare R2 → your bucket → Settings → CORS, allow PUT from https://exploremoreacademy.com and https://www.exploremoreacademy.com (and http://localhost:3000 for local testing).";
 
-async function putFileToPresignedUrl(uploadUrl: string, contentType: string, file: File) {
+export async function putFileToPresignedUrl(uploadUrl: string, contentType: string, file: File) {
   try {
     const putRes = await fetch(uploadUrl, {
       method: "PUT",

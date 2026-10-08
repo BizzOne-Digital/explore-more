@@ -241,7 +241,7 @@ export function BookForm({
         <FormSection title="Sample Pages (store preview)">
           <MultiImageUpload
             label="Preview pages"
-            hint="Upload JPG or PNG images of interior pages (not PDF). Wait until thumbnails appear, then Save or Publish. The cover is uploaded separately above."
+            hint="Upload JPG or PNG images of interior pages (not PDF or iPhone HEIC). Under 4 MB each uploads directly; larger files use cloud storage when enabled. Wait for thumbnails, then Save or Publish."
             value={samplePages}
             onChange={setSamplePages}
             folder="books"

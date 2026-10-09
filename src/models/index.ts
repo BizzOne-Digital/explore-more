@@ -40,6 +40,7 @@ export { ParentNotification, ParentNotificationRead } from "./ParentNotification
 export { AccountNote } from "./Note";
 export { SubscriptionPlan, ParentSubscription, PendingMembership } from "./Billing";
 export { StoredUpload } from "./StoredUpload";
+export { AdminDocument, AdminDocumentFolder } from "./AdminDocument";
 export { CertificateDesign } from "./CertificateDesign";
 export { CertificateTemplateSettings } from "./CertificateTemplateSettings";
 export { SiteTrafficDaily } from "./SiteTraffic";

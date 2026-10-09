@@ -74,6 +74,10 @@ function extensionFromPrivateFile(file: File, folder?: PrivateStoredFolder): str
   if (!ext) return null;
   if (ext === "jpeg") return "jpg";
 
+  if (folder === "admin-documents") {
+    return ext === "pdf" ? "pdf" : null;
+  }
+
   if (folder === "sponsors") {
     if ((SPONSOR_FILE_EXTENSIONS as readonly string[]).includes(ext)) return ext;
     return null;
@@ -132,7 +136,9 @@ export function validatePrivateUploadFile(
   const ext = extensionFromPrivateFile(file, folder);
   if (!ext) {
     const allowed =
-      folder === "sponsors"
+      folder === "admin-documents"
+        ? "PDF"
+        : folder === "sponsors"
         ? "PDF, Word (.doc, .docx)"
         : folder === "notifications" || folder === "user-documents"
           ? "PDF, images, Office documents, zip, audio, and video"

@@ -41,6 +41,10 @@ async function authorizeFileAccess(
   const [folder, filename] = relativePath.split("/");
   if (!folder || !filename) return false;
 
+  if (folder === "admin-documents") {
+    return user.role === "administrator";
+  }
+
   if (user.role === "administrator" || user.role === "instructor") return true;
 
   if (folder === "results") {
@@ -114,7 +118,7 @@ async function authorizeFileAccess(
   return false;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const sessionResult = await requireSession();
   if ("error" in sessionResult) return sessionResult.error;
 
@@ -131,6 +135,10 @@ export async function GET(_request: Request, context: RouteContext) {
     return jsonError("Forbidden", 403);
   }
 
+  const download = new URL(request.url).searchParams.get("download") === "1";
+  const disposition = (filename: string) =>
+    download ? `attachment; filename="${filename}"` : `inline; filename="${filename}"`;
+
   try {
     const stored = await readPrivateStoredFile(relativePath);
     if (stored) {
@@ -138,7 +146,7 @@ export async function GET(_request: Request, context: RouteContext) {
       return new Response(new Uint8Array(stored.buffer), {
         headers: {
           "Content-Type": stored.mimeType,
-          "Content-Disposition": `inline; filename="${filename}"`,
+          "Content-Disposition": disposition(filename),
           "Cache-Control": "private, no-store",
         },
       });
@@ -150,7 +158,7 @@ export async function GET(_request: Request, context: RouteContext) {
     return new Response(new Uint8Array(buffer), {
       headers: {
         "Content-Type": getMimeType(filename),
-        "Content-Disposition": `inline; filename="${filename}"`,
+        "Content-Disposition": disposition(filename),
         "Cache-Control": "private, no-store",
       },
     });

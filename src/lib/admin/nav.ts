@@ -32,6 +32,7 @@ import {
   Upload,
   Library,
   Building2,
+  FileStack,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -135,7 +136,10 @@ export const adminNavGroups: AdminNavGroup[] = [
   },
   {
     title: "System",
-    items: [{ label: "Settings", href: "/admin/settings", icon: Settings }],
+    items: [
+      { label: "Admin Documents", href: "/admin/documents", icon: FileStack },
+      { label: "Settings", href: "/admin/settings", icon: Settings },
+    ],
   },
 ];
 

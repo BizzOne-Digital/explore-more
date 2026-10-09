@@ -65,6 +65,7 @@ export const PRIVATE_STORED_FOLDERS = [
   "resources",
   "portfolio",
   "messages",
+  "admin-documents",
 ] as const;
 export type PrivateStoredFolder = (typeof PRIVATE_STORED_FOLDERS)[number];
 

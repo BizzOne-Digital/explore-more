@@ -4,6 +4,7 @@ import { DonationCampaign, Donation } from "@/models";
 import { createCheckoutSession, getAppUrl, isStripeConfigured } from "@/lib/services/stripe";
 import { jsonOk, jsonError } from "@/lib/api/response";
 import { requireSession } from "@/lib/api/auth-helpers";
+import { publicCampaignSlug } from "@/lib/campaign-slug";
 import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const checkoutSchema = z.object({
@@ -34,10 +35,11 @@ export async function POST(request: Request) {
 
   await connectDB();
 
-  const campaign = await DonationCampaign.findOne({
-    slug: parsed.data.campaignSlug,
-    status: "published",
-  });
+  const { findPublishedCampaignBySlugParam } = await import("@/lib/campaign-slug");
+  const campaign = await findPublishedCampaignBySlugParam(
+    DonationCampaign,
+    parsed.data.campaignSlug
+  );
 
   if (!campaign) {
     return jsonError("Campaign not found", 404);
@@ -90,8 +92,8 @@ export async function POST(request: Request) {
     },
     customerEmail: parsed.data.donorEmail,
     managedPayments: false,
-    successUrl: `${appUrl}/donate/${campaign.slug}?success=true`,
-    cancelUrl: `${appUrl}/donate/${campaign.slug}`,
+    successUrl: `${appUrl}/donate/${publicCampaignSlug(String(campaign.slug))}?success=true`,
+    cancelUrl: `${appUrl}/donate/${publicCampaignSlug(String(campaign.slug))}`,
   });
 
   donation.stripeSessionId = session.id;

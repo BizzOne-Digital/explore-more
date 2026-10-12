@@ -243,7 +243,8 @@ export async function getPublishedCampaigns(): Promise<PublicCampaign[]> {
 
 export async function getCampaignBySlug(slug: string): Promise<PublicCampaign | null> {
   return withDb(async () => {
-    const campaign = await DonationCampaign.findOne({ slug, status: "published" }).lean();
+    const { findPublishedCampaignBySlugParam } = await import("@/lib/campaign-slug");
+    const campaign = await findPublishedCampaignBySlugParam(DonationCampaign, slug);
     return campaign
       ? mapPublicCampaign(serialize(campaign) as unknown as Record<string, unknown>)
       : null;

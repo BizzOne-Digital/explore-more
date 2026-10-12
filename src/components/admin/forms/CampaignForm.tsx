@@ -91,6 +91,7 @@ export function CampaignForm({
     
     const finalData = {
       ...data,
+      slug: safeSlug(data.slug || data.title),
       startDate: data.startDate ? new Date(data.startDate) : undefined,
       endDate: data.endDate ? new Date(data.endDate) : undefined,
       suggestedAmounts: data.suggestedAmounts

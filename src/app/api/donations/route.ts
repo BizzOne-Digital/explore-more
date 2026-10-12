@@ -6,6 +6,7 @@ import { createCheckoutSession, getAppUrl, getStripe } from "@/lib/services/stri
 import { auth } from "@/lib/auth";
 import { sendDonationEmails } from "@/lib/email/donation-notifications";
 import { getCampaignGoalCents } from "@/lib/pricing";
+import { publicCampaignSlug } from "@/lib/campaign-slug";
 import { stripeProductData } from "@/lib/stripe/tax-codes";
 
 const schema = z.object({
@@ -26,7 +27,6 @@ export async function POST(request: Request) {
 
     const campaign = await DonationCampaign.findOne({
       _id: data.campaignId,
-      slug: data.campaignSlug,
       status: "published",
     });
 
@@ -95,8 +95,8 @@ export async function POST(request: Request) {
       },
       customerEmail: data.donorEmail,
       managedPayments: false,
-      successUrl: `${getAppUrl()}/sponsor-a-kid?donated=${campaign.slug}`,
-      cancelUrl: `${getAppUrl()}/donate/${campaign.slug}`,
+      successUrl: `${getAppUrl()}/sponsor-a-kid?donated=${publicCampaignSlug(campaign.slug)}`,
+      cancelUrl: `${getAppUrl()}/donate/${publicCampaignSlug(campaign.slug)}`,
     });
 
     await Donation.findByIdAndUpdate(donation._id, { stripeSessionId: checkoutSession.id });

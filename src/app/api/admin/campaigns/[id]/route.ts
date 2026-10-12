@@ -1,6 +1,7 @@
 import connectDB from "@/lib/db";
 import { DonationCampaign } from "@/models";
 import { apiSuccess, apiError, notFound, isValidObjectId } from "@/lib/admin/api";
+import { sanitizeCampaignSlug } from "@/lib/campaign-slug";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -21,7 +22,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!isValidObjectId(id)) return notFound();
     await connectDB();
     const body = await request.json();
-    const item = await DonationCampaign.findByIdAndUpdate(id, body, { new: true, runValidators: true }).lean();
+    const slug = sanitizeCampaignSlug(body.slug);
+    const update = slug ? { ...body, slug } : body;
+    const item = await DonationCampaign.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true,
+    }).lean();
     if (!item) return notFound();
     return apiSuccess(item);
   } catch (error) {

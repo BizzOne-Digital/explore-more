@@ -1,3 +1,4 @@
+import { publicCampaignSlug } from "@/lib/campaign-slug";
 import { getCampaignGoalCents, getCampaignRaisedCents } from "@/lib/pricing";
 import { dollarsToCents } from "@/lib/utils";
 import type { PublicCampaign } from "@/types/public";
@@ -8,7 +9,7 @@ export function mapPublicCampaign(raw: Record<string, unknown>): PublicCampaign 
 
   return {
     _id: String(raw._id),
-    slug: String(raw.slug),
+    slug: publicCampaignSlug(String(raw.slug)),
     title: String(raw.title),
     description: String(raw.description ?? ""),
     coverImage: raw.coverImage as string | undefined,

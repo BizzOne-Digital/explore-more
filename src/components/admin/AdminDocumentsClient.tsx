@@ -13,6 +13,7 @@ import {
   Upload,
 } from "lucide-react";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { MAX_PDF_UPLOAD_MB, VERCEL_SAFE_UPLOAD_SIZE } from "@/lib/constants";
 
 type FolderRow = { _id: string; name: string };
 type DocumentRow = {
@@ -36,6 +37,32 @@ function fileUrl(path: string, download = false) {
   return download ? `${base}?download=1` : base;
 }
 
+function isPdfFile(file: File): boolean {
+  if (file.type === "application/pdf") return true;
+  return file.name.toLowerCase().endsWith(".pdf");
+}
+
+async function readApiJson(res: Response): Promise<{ success?: boolean; error?: string; data?: unknown }> {
+  const text = await res.text();
+  if (!text.trim()) {
+    if (res.status === 413) {
+      throw new Error(
+        `This PDF is too large to send in one request (over ${VERCEL_SAFE_UPLOAD_SIZE / (1024 * 1024)} MB). Try again after the latest site update, or use a file under 4 MB.`
+      );
+    }
+    throw new Error(`Upload failed (HTTP ${res.status}). Please try again.`);
+  }
+  try {
+    return JSON.parse(text) as { success?: boolean; error?: string; data?: unknown };
+  } catch {
+    throw new Error(
+      res.status === 413
+        ? `File is too large for a direct upload. Use a PDF under 4 MB, or ask your developer to enable cloud storage for larger files (up to ${MAX_PDF_UPLOAD_MB} MB).`
+        : "The server returned an unexpected response. Please try again or use a smaller PDF."
+    );
+  }
+}
+
 export function AdminDocumentsClient() {
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
@@ -48,6 +75,7 @@ export function AdminDocumentsClient() {
   const [message, setMessage] = useState<string | null>(null);
   const [draftTitles, setDraftTitles] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -128,6 +156,10 @@ export function AdminDocumentsClient() {
   }
 
   async function uploadPdf(file: File) {
+    if (!isPdfFile(file)) {
+      setError("Only PDF files can be dropped or uploaded here.");
+      return;
+    }
     if (!selectedFolderId) {
       setError("Create or select a folder before uploading.");
       return;
@@ -135,21 +167,111 @@ export function AdminDocumentsClient() {
     setUploading(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folderId", selectedFolderId);
-      const res = await fetch("/api/admin/admin-documents/upload", {
+      const presignRes = await fetch("/api/admin/admin-documents/upload/presign", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folderId: selectedFolderId,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type || "application/pdf",
+        }),
       });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? "Upload failed");
-      setMessage(`Uploaded “${json.data.document.title}”.`);
+      const presignJson = await readApiJson(presignRes);
+      if (!presignRes.ok || !presignJson.success) {
+        throw new Error(presignJson.error ?? "Upload failed");
+      }
+
+      const presign = presignJson.data as {
+        direct?: boolean;
+        uploadUrl?: string;
+        path?: string;
+        filename?: string;
+        r2Key?: string;
+        contentType?: string;
+      };
+
+      let documentTitle: string;
+
+      if (presign.direct) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folderId", selectedFolderId);
+        const res = await fetch("/api/admin/admin-documents/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const json = await readApiJson(res);
+        if (!res.ok || !json.success) throw new Error(json.error ?? "Upload failed");
+        const doc = (json.data as { document: { title: string } }).document;
+        documentTitle = doc.title;
+      } else {
+        if (!presign.uploadUrl || !presign.path || !presign.filename || !presign.r2Key) {
+          throw new Error("Invalid upload response from server");
+        }
+        const putRes = await fetch(presign.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": presign.contentType ?? "application/pdf" },
+          body: file,
+        });
+        if (!putRes.ok) {
+          throw new Error("Cloud upload failed. Please try again.");
+        }
+        const confirmRes = await fetch("/api/admin/admin-documents/upload/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folderId: selectedFolderId,
+            path: presign.path,
+            filename: presign.filename,
+            r2Key: presign.r2Key,
+            originalName: file.name,
+            mimeType: presign.contentType ?? "application/pdf",
+            size: file.size,
+          }),
+        });
+        const confirmJson = await readApiJson(confirmRes);
+        if (!confirmRes.ok || !confirmJson.success) {
+          throw new Error(confirmJson.error ?? "Upload failed");
+        }
+        const doc = (confirmJson.data as { document: { title: string } }).document;
+        documentTitle = doc.title;
+      }
+
+      setMessage(`Uploaded “${documentTitle}”.`);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!uploading && selectedFolderId) setDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (uploading || !selectedFolderId) return;
+
+    const files = Array.from(e.dataTransfer.files).filter(isPdfFile);
+    if (files.length === 0) {
+      setError("Drop one or more PDF files.");
+      return;
+    }
+    for (const file of files) {
+      await uploadPdf(file);
     }
   }
 
@@ -279,7 +401,16 @@ export function AdminDocumentsClient() {
           )}
         </aside>
 
-        <section className="rounded-lg border border-white/10 bg-white/5 p-4 sm:p-6">
+        <section
+          className={`rounded-lg border p-4 transition-colors sm:p-6 ${
+            dragOver
+              ? "border-explore-teal bg-explore-teal/10"
+              : "border-white/10 bg-white/5"
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-white">
               {folders.find((f) => f._id === selectedFolderId)?.name ?? "Documents"}
@@ -311,9 +442,31 @@ export function AdminDocumentsClient() {
 
           {!selectedFolderId ? (
             <p className="text-sm text-white/55">Select or create a folder to add documents.</p>
-          ) : folderDocuments.length === 0 ? (
-            <p className="text-sm text-white/55">No PDFs in this folder yet.</p>
           ) : (
+            <div
+              className={`mb-6 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
+                dragOver
+                  ? "border-explore-teal bg-explore-teal/15"
+                  : "border-white/20 bg-black/20"
+              } ${uploading ? "pointer-events-none opacity-60" : ""}`}
+            >
+              {uploading ? (
+                <Loader2 className="mx-auto h-8 w-8 animate-spin text-explore-teal" />
+              ) : (
+                <Upload className="mx-auto h-8 w-8 text-white/50" />
+              )}
+              <p className="mt-3 text-sm font-medium text-white/85">
+                Drag & drop PDFs here
+              </p>
+              <p className="mt-1 text-xs text-white/45">
+                or use Upload PDF above — multiple files at once is supported
+              </p>
+            </div>
+          )}
+
+          {selectedFolderId && folderDocuments.length === 0 ? (
+            <p className="text-sm text-white/55">No PDFs in this folder yet.</p>
+          ) : selectedFolderId ? (
             <ul className="space-y-4">
               {folderDocuments.map((doc) => (
                 <li
@@ -387,7 +540,7 @@ export function AdminDocumentsClient() {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </section>
       </div>
     </div>

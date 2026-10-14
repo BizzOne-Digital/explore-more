@@ -48,6 +48,10 @@ export async function POST(request: Request) {
     const uploaded = await storePrivateUpload(file, "admin-documents", MAX_PDF_UPLOAD_SIZE);
     const title = titleRaw || file.name.replace(/\.pdf$/i, "") || "Document";
 
+    const uploadedBy = isValidObjectId(sessionResult.user.id)
+      ? sessionResult.user.id
+      : undefined;
+
     const document = await AdminDocument.create({
       folderId,
       title,
@@ -55,7 +59,7 @@ export async function POST(request: Request) {
       originalFileName: uploaded.originalName,
       mimeType: uploaded.mimeType,
       sizeBytes: uploaded.size,
-      uploadedBy: sessionResult.user.id,
+      uploadedBy,
     });
 
     return apiSuccess({ document }, 201);

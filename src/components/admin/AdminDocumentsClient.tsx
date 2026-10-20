@@ -94,12 +94,16 @@ export function AdminDocumentsClient() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    queueMicrotask(() => {
+      refresh();
+    });
   }, [refresh]);
 
   useEffect(() => {
     if (!selectedFolderId && folders.length > 0) {
-      setSelectedFolderId(folders[0]._id);
+      queueMicrotask(() => {
+        setSelectedFolderId(folders[0]._id);
+      });
     }
   }, [folders, selectedFolderId]);
 

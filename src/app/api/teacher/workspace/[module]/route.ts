@@ -311,7 +311,7 @@ export async function POST(
         teacherId,
         itemName: body.itemName ?? "Item",
         category: body.category,
-        quantity: body.quantity ?? 1,
+        quantity: Math.max(0, Number(body.quantity) || 1),
         condition: body.condition,
         location: body.location,
         assetNumber: body.assetNumber,
@@ -325,6 +325,7 @@ export async function POST(
         schoolYear,
         tripName: body.tripName ?? "Field trip",
         destination: body.destination,
+        tripTime: body.tripTime,
         tripDate: body.tripDate ? new Date(body.tripDate) : undefined,
         objective: body.objective,
         schedule: body.schedule,
@@ -421,10 +422,28 @@ export async function PATCH(
   };
 
   const updateOwned = async (Model: TeacherOwnedModel, extra: Record<string, unknown> = {}) => {
+    const fields = { ...(body.data ?? body) } as Record<string, unknown>;
+    delete fields.id;
+    delete fields.kind;
+    delete fields.data;
+
+    if (workspaceModule === "inventory" && fields.quantity != null) {
+      fields.quantity = Math.max(0, Number(fields.quantity) || 0);
+    }
+    if (workspaceModule === "field-trips") {
+      if (fields.tripDate === "") {
+        fields.tripDate = undefined;
+      } else if (fields.tripDate) {
+        const parsed = new Date(String(fields.tripDate));
+        if (!Number.isNaN(parsed.getTime())) fields.tripDate = parsed;
+        else delete fields.tripDate;
+      }
+    }
+
     const doc = await Model.findOneAndUpdate(
       { _id: id, teacherId, ...extra },
-      { $set: body.data ?? body },
-      { new: true }
+      { $set: fields },
+      { new: true, runValidators: true }
     );
     if (!doc) return jsonError("Not found", 404);
     return jsonOk({ item: doc });

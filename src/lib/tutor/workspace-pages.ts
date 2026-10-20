@@ -122,6 +122,17 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
       { href: "/teacher/lesson-plans", label: "Lesson plans" },
     ],
   },
+  progress: {
+    title: "Progress Reports",
+    description:
+      "Student goals, gradebook summaries, and portfolio-related progress in one place.",
+    kind: "placeholder",
+    placeholderLinks: [
+      { href: "/teacher/goals", label: "Student goals" },
+      { href: "/teacher/gradebook", label: "Gradebook" },
+      { href: "/teacher/portfolios", label: "Student portfolios" },
+    ],
+  },
   reports: {
     title: "Reports",
     description: "Progress and academy reports (use Progress Reports for published cards).",

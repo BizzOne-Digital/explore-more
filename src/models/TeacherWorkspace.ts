@@ -306,6 +306,7 @@ export interface ITeacherFieldTrip extends Document {
   schoolYear: string;
   tripName: string;
   destination?: string;
+  tripTime?: string;
   tripDate?: Date;
   objective?: string;
   schedule?: string;
@@ -322,6 +323,7 @@ const TeacherFieldTripSchema = new Schema<ITeacherFieldTrip>(
     schoolYear: { type: String, required: true },
     tripName: { type: String, required: true },
     destination: String,
+    tripTime: String,
     tripDate: Date,
     objective: String,
     schedule: String,

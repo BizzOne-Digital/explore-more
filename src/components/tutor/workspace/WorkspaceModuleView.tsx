@@ -355,6 +355,315 @@ function SimpleListView({
   );
 }
 
+function useListDrafts(
+  items: Array<Record<string, unknown>>,
+  keys: string[],
+  formatValue?: (key: string, value: unknown) => string
+) {
+  const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      const next: Record<string, Record<string, string>> = {};
+      for (const item of items) {
+        const id = String(item._id);
+        const row: Record<string, string> = {};
+        for (const key of keys) {
+          const raw = item[key];
+          row[key] = formatValue ? formatValue(key, raw) : raw != null ? String(raw) : "";
+        }
+        next[id] = row;
+      }
+      setDrafts(next);
+    });
+  }, [items, keys, formatValue]);
+
+  return [drafts, setDrafts] as const;
+}
+
+function InventoryView({ config }: { config: WorkspacePageConfig }) {
+  const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
+  const [addForm, setAddForm] = useState({ itemName: "", quantity: "1" });
+
+  const load = useCallback(() => {
+    workspaceFetch<{ items: typeof items }>("inventory")
+      .then((d) => setItems(d.items ?? []))
+      .catch(() => setItems([]));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const [drafts, setDrafts] = useListDrafts(items, ["itemName", "quantity"], (key, value) =>
+    key === "quantity" ? String(value ?? 1) : String(value ?? "")
+  );
+
+  const add = async () => {
+    if (!addForm.itemName.trim()) return;
+    await workspaceFetch("inventory", {
+      method: "POST",
+      body: JSON.stringify({
+        itemName: addForm.itemName.trim(),
+        quantity: Math.max(0, Number(addForm.quantity) || 1),
+      }),
+    });
+    setAddForm({ itemName: "", quantity: "1" });
+    load();
+  };
+
+  const save = async (id: string) => {
+    const row = drafts[id];
+    if (!row) return;
+    await workspaceFetch("inventory", {
+      method: "PATCH",
+      body: JSON.stringify({
+        id,
+        itemName: row.itemName.trim(),
+        quantity: Math.max(0, Number(row.quantity) || 0),
+      }),
+    });
+    load();
+  };
+
+  const remove = async (id: string) => {
+    await workspaceFetch("inventory", { method: "DELETE", query: { id } });
+    load();
+  };
+
+  return (
+    <Shell title={config.title} description={config.description}>
+      <div className="flex flex-wrap gap-2 rounded-2xl bg-white p-4 shadow-sm">
+        <input
+          className="min-w-[140px] flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          placeholder="Item name"
+          value={addForm.itemName}
+          onChange={(e) => setAddForm((p) => ({ ...p, itemName: e.target.value }))}
+        />
+        <input
+          type="number"
+          min={0}
+          className="w-24 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          placeholder="Qty"
+          value={addForm.quantity}
+          onChange={(e) => setAddForm((p) => ({ ...p, quantity: e.target.value }))}
+        />
+        <button
+          type="button"
+          onClick={add}
+          className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white"
+        >
+          Add
+        </button>
+      </div>
+      <ul className="space-y-2">
+        {items.map((item) => {
+          const id = String(item._id);
+          const row = drafts[id] ?? { itemName: "", quantity: "1" };
+          return (
+            <li
+              key={id}
+              className="flex flex-wrap items-center gap-2 rounded-xl bg-white px-4 py-3 shadow-sm"
+            >
+              <input
+                className="min-w-[120px] flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                value={row.itemName}
+                onChange={(e) =>
+                  setDrafts((p) => ({ ...p, [id]: { ...row, itemName: e.target.value } }))
+                }
+              />
+              <label className="flex items-center gap-1.5 text-sm text-gray-600">
+                <span className="shrink-0 font-medium">Qty</span>
+                <input
+                  type="number"
+                  min={0}
+                  className="w-20 rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
+                  value={row.quantity}
+                  onChange={(e) =>
+                    setDrafts((p) => ({ ...p, [id]: { ...row, quantity: e.target.value } }))
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => save(id)}
+                className="rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                className="text-xs text-red-600"
+                onClick={() => remove(id)}
+              >
+                Delete
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </Shell>
+  );
+}
+
+function FieldTripsView({ config }: { config: WorkspacePageConfig }) {
+  const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
+  const [addForm, setAddForm] = useState({
+    tripName: "",
+    tripDate: "",
+    tripTime: "",
+    destination: "",
+  });
+
+  const load = useCallback(() => {
+    workspaceFetch<{ items: typeof items }>("field-trips")
+      .then((d) => setItems(d.items ?? []))
+      .catch(() => setItems([]));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const formatTripField = (key: string, value: unknown) => {
+    if (key === "tripDate" && value) {
+      const d = new Date(String(value));
+      if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
+    return value != null ? String(value) : "";
+  };
+
+  const [drafts, setDrafts] = useListDrafts(
+    items,
+    ["tripName", "tripDate", "tripTime", "destination"],
+    formatTripField
+  );
+
+  const add = async () => {
+    if (!addForm.tripName.trim()) return;
+    await workspaceFetch("field-trips", {
+      method: "POST",
+      body: JSON.stringify({
+        tripName: addForm.tripName.trim(),
+        tripDate: addForm.tripDate || undefined,
+        tripTime: addForm.tripTime.trim() || undefined,
+        destination: addForm.destination.trim() || undefined,
+      }),
+    });
+    setAddForm({ tripName: "", tripDate: "", tripTime: "", destination: "" });
+    load();
+  };
+
+  const save = async (id: string) => {
+    const row = drafts[id];
+    if (!row) return;
+    await workspaceFetch("field-trips", {
+      method: "PATCH",
+      body: JSON.stringify({
+        id,
+        tripName: row.tripName.trim(),
+        tripDate: row.tripDate || undefined,
+        tripTime: row.tripTime.trim() || undefined,
+        destination: row.destination.trim() || undefined,
+      }),
+    });
+    load();
+  };
+
+  const remove = async (id: string) => {
+    await workspaceFetch("field-trips", { method: "DELETE", query: { id } });
+    load();
+  };
+
+  const emptyTripRow = { tripName: "", tripDate: "", tripTime: "", destination: "" };
+
+  const fieldRow = (
+    id: string | "new",
+    row: Record<string, string>,
+    onChange: (key: keyof typeof addForm, value: string) => void,
+    showActions?: boolean
+  ) => (
+    <div className="flex flex-wrap gap-2">
+      <input
+        className="min-w-[120px] flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        placeholder="Trip name"
+        value={row.tripName}
+        onChange={(e) => onChange("tripName", e.target.value)}
+      />
+      <input
+        type="date"
+        className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        value={row.tripDate}
+        onChange={(e) => onChange("tripDate", e.target.value)}
+        aria-label="Date"
+      />
+      <input
+        type="time"
+        className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        value={row.tripTime}
+        onChange={(e) => onChange("tripTime", e.target.value)}
+        aria-label="Time"
+      />
+      <input
+        className="min-w-[160px] flex-[2] rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        placeholder="Address / location"
+        value={row.destination}
+        onChange={(e) => onChange("destination", e.target.value)}
+      />
+      {showActions && id !== "new" && (
+        <>
+          <button
+            type="button"
+            onClick={() => save(id)}
+            className="rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            className="text-xs text-red-600"
+            onClick={() => remove(id)}
+          >
+            Delete
+          </button>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <Shell title={config.title} description={config.description}>
+      <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+        {fieldRow("new", addForm, (key, value) => setAddForm((p) => ({ ...p, [key]: value })))}
+        <button
+          type="button"
+          onClick={add}
+          className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white"
+        >
+          Add trip
+        </button>
+      </div>
+      <ul className="space-y-3">
+        {items.map((item) => {
+          const id = String(item._id);
+          const row = { ...emptyTripRow, ...drafts[id] };
+          return (
+            <li key={id} className="rounded-xl bg-white px-4 py-3 shadow-sm">
+              {fieldRow(
+                id,
+                row,
+                (key, value) =>
+                  setDrafts((p) => ({ ...p, [id]: { ...row, [key]: value } })),
+                true
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </Shell>
+  );
+}
+
 function TodosView({ config }: { config: WorkspacePageConfig }) {
   return (
     <SimpleListView
@@ -627,27 +936,9 @@ export function WorkspaceModuleView({ pageKey }: { pageKey: string }) {
         />
       );
     case "inventory":
-      return (
-        <SimpleListView
-          config={config}
-          apiModule="inventory"
-          fields={[
-            { key: "itemName", label: "Item name", required: true },
-            { key: "quantity", label: "Qty" },
-          ]}
-        />
-      );
+      return <InventoryView config={config} />;
     case "field-trips":
-      return (
-        <SimpleListView
-          config={config}
-          apiModule="field-trips"
-          fields={[
-            { key: "tripName", label: "Trip name", required: true },
-            { key: "destination", label: "Destination" },
-          ]}
-        />
-      );
+      return <FieldTripsView config={config} />;
     case "documents":
       return (
         <SimpleListView

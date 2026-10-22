@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -69,6 +70,7 @@ const ICONS: Record<TeacherNavIcon, React.ComponentType<{ className?: string }>>
 interface TeacherSidebarProps {
   staffId?: string;
   schoolName?: string;
+  academyLogoUrl?: string;
   unreadColleagueMessages?: number;
   signOutAction: () => Promise<void>;
 }
@@ -76,6 +78,7 @@ interface TeacherSidebarProps {
 export function TeacherSidebar({
   staffId,
   schoolName,
+  academyLogoUrl,
   unreadColleagueMessages = 0,
   signOutAction,
 }: TeacherSidebarProps) {
@@ -100,6 +103,15 @@ export function TeacherSidebar({
     <div className="flex h-full flex-col">
       <div className="border-b border-gray-200 px-5 py-5">
         <Link href="/teacher" className="block" onClick={() => setOpen(false)}>
+          {academyLogoUrl && (
+            <Image
+              src={academyLogoUrl}
+              alt="Explore More Academy"
+              width={160}
+              height={40}
+              className="mb-2 h-8 w-auto object-contain object-left"
+            />
+          )}
           <span className="font-display text-lg font-semibold text-explore-charcoal">
             Explore More
           </span>

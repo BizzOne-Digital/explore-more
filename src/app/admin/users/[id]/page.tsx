@@ -28,6 +28,7 @@ import {
 import { ParentAccountDashboard } from "@/components/admin/parent/ParentAccountDashboard";
 import { UserAccountDocuments } from "@/components/admin/UserAccountDocuments";
 import { TeacherSchoolAssignmentCard } from "@/components/admin/TeacherSchoolAssignmentCard";
+import { TeacherRosterManager } from "@/components/admin/TeacherRosterManager";
 import { CopyIdButton } from "@/components/parent/CopyIdButton";
 import { formatDistanceToNow } from "date-fns";
 
@@ -510,13 +511,16 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {user.role === "teacher" && (
-        <TeacherSchoolAssignmentCard
-          key={`${user._id}-${teacherSchool?.school?._id ?? "none"}-${teacherSchool?.jobTitle ?? ""}`}
-          userId={user._id}
-          userName={user.name}
-          initialSchool={teacherSchool?.school ?? null}
-          initialJobTitle={teacherSchool?.jobTitle ?? null}
-        />
+        <>
+          <TeacherSchoolAssignmentCard
+            key={`${user._id}-${teacherSchool?.school?._id ?? "none"}-${teacherSchool?.jobTitle ?? ""}`}
+            userId={user._id}
+            userName={user.name}
+            initialSchool={teacherSchool?.school ?? null}
+            initialJobTitle={teacherSchool?.jobTitle ?? null}
+          />
+          <TeacherRosterManager teacherUserId={user._id} />
+        </>
       )}
 
       {/* Relationships */}

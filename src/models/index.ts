@@ -47,10 +47,13 @@ export { SiteTrafficDaily } from "./SiteTraffic";
 export {
   TeacherClassroom,
   TeacherLessonPlan,
+  TeacherLessonPlanRevision,
+  TeacherProductFeedback,
   TeacherPlannerEntry,
   TeacherClassAttendance,
   TeacherGradeAssignment,
   TeacherGradeScore,
+  TeacherAssessment,
   TeacherWorkspaceRecord,
   TeacherTodo,
   TeacherInventoryItem,
@@ -62,6 +65,7 @@ export {
 export type { WorkspaceRecordType } from "./TeacherWorkspace";
 export {
   School,
+  TeacherClassRoster,
   TeacherSchoolMembership,
   SchoolTeacherConversation,
   SchoolTeacherMessage,

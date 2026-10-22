@@ -8,6 +8,7 @@ interface TeacherShellProps {
   initialAvatar?: string | null;
   staffId?: string;
   schoolName?: string;
+  academyLogoUrl?: string;
   unreadColleagueMessages?: number;
   signOutAction: () => Promise<void>;
 }
@@ -19,6 +20,7 @@ export function TeacherShell({
   initialAvatar,
   staffId,
   schoolName,
+  academyLogoUrl,
   unreadColleagueMessages,
   signOutAction,
 }: TeacherShellProps) {
@@ -27,6 +29,7 @@ export function TeacherShell({
       <TeacherSidebar
         staffId={staffId}
         schoolName={schoolName}
+        academyLogoUrl={academyLogoUrl}
         unreadColleagueMessages={unreadColleagueMessages}
         signOutAction={signOutAction}
       />

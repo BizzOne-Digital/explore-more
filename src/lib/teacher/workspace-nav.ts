@@ -65,6 +65,7 @@ export const TEACHER_WORKSPACE_NAV: TeacherNavGroup[] = [
       { href: "/teacher/interventions", label: "Interventions", icon: "shield" },
       { href: "/teacher/behavior", label: "Behavior & Incidents", icon: "note" },
       { href: "/teacher/notes", label: "Teacher Notes", icon: "note" },
+      { href: "/teacher/students", label: "My Students", icon: "folder" },
       { href: "/teacher/portfolios", label: "Student Portfolios", icon: "folder" },
     ],
   },

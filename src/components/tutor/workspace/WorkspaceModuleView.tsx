@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   WORKSPACE_PAGE_CONFIG,
@@ -71,23 +72,137 @@ function PlaceholderView({ config }: { config: WorkspacePageConfig }) {
   );
 }
 
+function mondayOfWeek(isoDate: string) {
+  const d = new Date(`${isoDate}T12:00:00`);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function addDaysIso(iso: string, days: number) {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+type PlannerRow = {
+  _id: string;
+  title: string;
+  subject?: string;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  studentId?: string;
+};
+
 function CalendarView({ config }: { config: WorkspacePageConfig }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [weekStart, setWeekStart] = useState(() => mondayOfWeek(today));
+  const [entries, setEntries] = useState<PlannerRow[]>([]);
+  const [roster, setRoster] = useState<StudentOption[]>([]);
+
+  const weekEnd = addDaysIso(weekStart, 6);
+
+  useEffect(() => {
+    fetch("/api/teacher/roster")
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json.students ?? []) as Array<{ studentId: string; studentName: string }>;
+        setRoster(list.map((s) => ({ studentId: s.studentId, studentName: s.studentName })));
+      })
+      .catch(() => setRoster([]));
+  }, []);
+
+  useEffect(() => {
+    workspaceFetch<{ items: PlannerRow[] }>("planner", {
+      query: { from: weekStart, to: weekEnd },
+    })
+      .then((d) => setEntries(d.items ?? []))
+      .catch(() => setEntries([]));
+  }, [weekStart, weekEnd]);
+
+  const rosterName = (id: string) =>
+    roster.find((s) => s.studentId === id)?.studentName ?? "Student";
+
+  const days = Array.from({ length: 7 }, (_, i) => addDaysIso(weekStart, i));
+
   return (
     <Shell title={config.title} description={config.description}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/teacher/calendar"
-          className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-violet-200"
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4 shadow-sm">
+        <button
+          type="button"
+          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm"
+          onClick={() => setWeekStart(addDaysIso(weekStart, -7))}
         >
-          <p className="font-semibold text-explore-charcoal">Student schedules</p>
-          <p className="mt-1 text-sm text-gray-500">View tutoring schedules for assigned students.</p>
-        </Link>
+          ← Previous week
+        </button>
+        <button
+          type="button"
+          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm"
+          onClick={() => setWeekStart(mondayOfWeek(today))}
+        >
+          This week
+        </button>
+        <button
+          type="button"
+          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm"
+          onClick={() => setWeekStart(addDaysIso(weekStart, 7))}
+        >
+          Next week →
+        </button>
+        <span className="text-sm text-gray-600">
+          {new Date(`${weekStart}T12:00:00`).toLocaleDateString()} –{" "}
+          {new Date(`${weekEnd}T12:00:00`).toLocaleDateString()}
+        </span>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-7">
+        {days.map((dayIso) => {
+          const dayEntries = entries.filter((e) => String(e.date).slice(0, 10) === dayIso);
+          return (
+            <div key={dayIso} className="rounded-xl bg-white p-3 shadow-sm min-h-[120px]">
+              <p className="text-xs font-semibold text-gray-500">
+                {new Date(`${dayIso}T12:00:00`).toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
+              <ul className="mt-2 space-y-2">
+                {dayEntries.map((e) => (
+                  <li key={e._id} className="rounded-lg bg-violet-50 px-2 py-1.5 text-xs">
+                    <span className="font-medium text-explore-charcoal">{e.title}</span>
+                    {e.subject ? <span className="text-gray-600"> · {e.subject}</span> : null}
+                    {e.startTime ? <span className="block text-gray-500">{e.startTime}</span> : null}
+                    {e.studentId ? (
+                      <span className="mt-0.5 block text-violet-800">{rosterName(String(e.studentId))}</span>
+                    ) : (
+                      <span className="mt-0.5 block text-gray-500">Teacher block</span>
+                    )}
+                  </li>
+                ))}
+                {dayEntries.length === 0 && (
+                  <li className="text-xs text-gray-400">No blocks</li>
+                )}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
         <Link
           href="/teacher/planner"
-          className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-violet-200"
+          className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
         >
-          <p className="font-semibold text-explore-charcoal">Teacher planner</p>
-          <p className="mt-1 text-sm text-gray-500">Plan lessons and blocks on your calendar.</p>
+          Teacher planner
+        </Link>
+        <Link
+          href="/teacher/student-schedules"
+          className="rounded-lg border border-violet-200 px-4 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50"
+        >
+          Student schedules
         </Link>
       </div>
     </Shell>
@@ -188,28 +303,48 @@ function ClassroomView({ config }: { config: WorkspacePageConfig }) {
 }
 
 function RecordsView({ config }: { config: WorkspacePageConfig }) {
+  const searchParams = useSearchParams();
   const recordType = config.recordType!;
   const [items, setItems] = useState<Array<{ _id: string; title?: string; body: string; eventDate: string }>>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-
-  const load = useCallback(() => {
-    workspaceFetch<{ items: typeof items }>("records", {
-      query: { recordType },
-    })
-      .then((d) => setItems(d.items ?? []))
-      .catch(() => setItems([]));
-  }, [recordType]);
+  const studentIdFromUrl = searchParams.get("studentId") ?? "";
+  const [studentIdOverride, setStudentIdOverride] = useState("");
+  const activeStudentId = studentIdFromUrl || studentIdOverride;
+  const [roster, setRoster] = useState<StudentOption[]>([]);
 
   useEffect(() => {
-    load();
+    fetch("/api/teacher/roster")
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json.students ?? []) as Array<{ studentId: string; studentName: string }>;
+        setRoster(list.map((s) => ({ studentId: s.studentId, studentName: s.studentName })));
+      })
+      .catch(() => setRoster([]));
+  }, []);
+
+  const load = useCallback(() => {
+    const query: Record<string, string> = { recordType };
+    if (activeStudentId) query.studentId = activeStudentId;
+    workspaceFetch<{ items: typeof items }>("records", { query })
+      .then((d) => setItems(d.items ?? []))
+      .catch(() => setItems([]));
+  }, [recordType, activeStudentId]);
+
+  useEffect(() => {
+    queueMicrotask(() => load());
   }, [load]);
 
   const add = async () => {
     if (!body.trim()) return;
     await workspaceFetch("records", {
       method: "POST",
-      body: JSON.stringify({ recordType, title, body }),
+      body: JSON.stringify({
+        recordType,
+        title,
+        body,
+        studentId: activeStudentId || undefined,
+      }),
     });
     setTitle("");
     setBody("");
@@ -224,6 +359,19 @@ function RecordsView({ config }: { config: WorkspacePageConfig }) {
   return (
     <Shell title={config.title} description={config.description}>
       <div className="rounded-2xl bg-white p-5 shadow-sm space-y-3">
+        {roster.length > 0 && (
+          <select
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+            value={activeStudentId}
+            onChange={(e) => setStudentIdOverride(e.target.value)}
+            disabled={!!studentIdFromUrl}
+          >
+            <option value="">Select student (optional)</option>
+            {roster.map((s) => (
+              <option key={s.studentId} value={s.studentId}>{s.studentName}</option>
+            ))}
+          </select>
+        )}
         <input
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
           placeholder="Title (optional)"
@@ -275,10 +423,12 @@ function SimpleListView({
   config,
   apiModule,
   fields,
+  formatLabel,
 }: {
   config: WorkspacePageConfig;
   apiModule: string;
   fields: { key: string; label: string; required?: boolean }[];
+  formatLabel?: (item: Record<string, unknown>) => string;
 }) {
   const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -311,8 +461,18 @@ function SimpleListView({
     load();
   };
 
-  const labelFor = (item: Record<string, unknown>) =>
-    String(item.title ?? item.tripName ?? item.itemName ?? item.fileName ?? item.standardCode ?? "Item");
+  const labelFor = (item: Record<string, unknown>) => {
+    if (formatLabel) return formatLabel(item);
+    if (item.standardCode) {
+      const label = item.standardLabel ? String(item.standardLabel) : "";
+      return label
+        ? `${item.standardCode} — ${label}`
+        : String(item.standardCode);
+    }
+    return String(
+      item.title ?? item.tripName ?? item.itemName ?? item.fileName ?? item.standardCode ?? "Item"
+    );
+  };
 
   return (
     <Shell title={config.title} description={config.description}>
@@ -508,6 +668,8 @@ function InventoryView({ config }: { config: WorkspacePageConfig }) {
 
 function FieldTripsView({ config }: { config: WorkspacePageConfig }) {
   const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
+  const [roster, setRoster] = useState<StudentOption[]>([]);
+  const [rosterByTrip, setRosterByTrip] = useState<Record<string, string[]>>({});
   const [addForm, setAddForm] = useState({
     tripName: "",
     tripDate: "",
@@ -515,14 +677,36 @@ function FieldTripsView({ config }: { config: WorkspacePageConfig }) {
     destination: "",
   });
 
+  const syncRosterFromItems = (list: Array<Record<string, unknown>>) => {
+    const next: Record<string, string[]> = {};
+    for (const item of list) {
+      const id = String(item._id);
+      const ids = Array.isArray(item.rosterStudentIds)
+        ? (item.rosterStudentIds as unknown[]).map((x) => String(x))
+        : [];
+      next[id] = ids;
+    }
+    setRosterByTrip(next);
+  };
+
   const load = useCallback(() => {
     workspaceFetch<{ items: typeof items }>("field-trips")
-      .then((d) => setItems(d.items ?? []))
+      .then((d) => {
+        const list = d.items ?? [];
+        setItems(list);
+        syncRosterFromItems(list);
+      })
       .catch(() => setItems([]));
   }, []);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => load());
+    fetch("/api/teacher/roster")
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json.students ?? []) as Array<{ studentId: string; studentName: string }>;
+        setRoster(list.map((s) => ({ studentId: s.studentId, studentName: s.studentName })));
+      });
   }, [load]);
 
   const formatTripField = (key: string, value: unknown) => {
@@ -572,6 +756,26 @@ function FieldTripsView({ config }: { config: WorkspacePageConfig }) {
 
   const remove = async (id: string) => {
     await workspaceFetch("field-trips", { method: "DELETE", query: { id } });
+    load();
+  };
+
+  const toggleTripStudent = (tripId: string, studentId: string) => {
+    setRosterByTrip((prev) => {
+      const set = new Set(prev[tripId] ?? []);
+      if (set.has(studentId)) set.delete(studentId);
+      else set.add(studentId);
+      return { ...prev, [tripId]: [...set] };
+    });
+  };
+
+  const saveTripRoster = async (tripId: string) => {
+    await workspaceFetch("field-trips", {
+      method: "PATCH",
+      body: JSON.stringify({
+        id: tripId,
+        rosterStudentIds: rosterByTrip[tripId] ?? [],
+      }),
+    });
     load();
   };
 
@@ -648,7 +852,7 @@ function FieldTripsView({ config }: { config: WorkspacePageConfig }) {
           const id = String(item._id);
           const row = { ...emptyTripRow, ...drafts[id] };
           return (
-            <li key={id} className="rounded-xl bg-white px-4 py-3 shadow-sm">
+            <li key={id} className="rounded-xl bg-white px-4 py-3 shadow-sm space-y-3">
               {fieldRow(
                 id,
                 row,
@@ -656,9 +860,358 @@ function FieldTripsView({ config }: { config: WorkspacePageConfig }) {
                   setDrafts((p) => ({ ...p, [id]: { ...row, [key]: value } })),
                 true
               )}
+              {roster.length > 0 && (
+                <div className="border-t border-gray-100 pt-3">
+                  <p className="text-xs font-medium text-gray-600">Trip roster</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {roster.map((s) => {
+                      const selected = (rosterByTrip[id] ?? []).includes(s.studentId);
+                      return (
+                        <label
+                          key={s.studentId}
+                          className="flex items-center gap-1.5 rounded-lg border border-gray-100 px-2 py-1 text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleTripStudent(id, s.studentId)}
+                          />
+                          {s.studentName}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveTripRoster(id)}
+                    className="mt-2 rounded-lg border border-violet-200 px-3 py-1 text-xs font-medium text-violet-700"
+                  >
+                    Save roster
+                  </button>
+                </div>
+              )}
             </li>
           );
         })}
+      </ul>
+    </Shell>
+  );
+}
+
+function SubstituteView({ config }: { config: WorkspacePageConfig }) {
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [classroom, setClassroom] = useState<Record<string, unknown> | null>(null);
+  const [lessons, setLessons] = useState<Array<Record<string, unknown>>>([]);
+  const [planner, setPlanner] = useState<PlannerRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const day = date;
+    queueMicrotask(() => setLoading(true));
+    Promise.all([
+      workspaceFetch<{ item: Record<string, unknown> | null }>("classroom"),
+      workspaceFetch<{ items: Array<Record<string, unknown>> }>("lesson-plans"),
+      workspaceFetch<{ items: PlannerRow[] }>("planner", { query: { from: day, to: day } }),
+    ])
+      .then(([room, plans, plan]) => {
+        setClassroom(room.item);
+        const planItems = plans.items ?? [];
+        setLessons(
+          planItems.filter((p) => String(p.date ?? "").slice(0, 10) === day)
+        );
+        setPlanner(plan.items ?? []);
+      })
+      .catch(() => {
+        setClassroom(null);
+        setLessons([]);
+        setPlanner([]);
+      })
+      .finally(() => setLoading(false));
+  }, [date]);
+
+  const room = classroom ?? {};
+
+  return (
+    <Shell title={config.title} description={config.description}>
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4 shadow-sm">
+        <label className="text-sm">
+          <span className="font-medium text-gray-700">Sub date</span>
+          <input
+            type="date"
+            className="mt-1 block rounded-lg border border-gray-200 px-3 py-2 text-sm"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+        <Link
+          href="/teacher/classroom"
+          className="text-sm text-violet-700 hover:underline"
+        >
+          Edit classroom profile
+        </Link>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-gray-500">Loading sub packet…</p>
+      ) : (
+        <div className="space-y-4">
+          <section className="rounded-2xl bg-white p-5 shadow-sm text-sm">
+            <h3 className="font-semibold text-explore-charcoal">Class overview</h3>
+            <p className="mt-2 text-gray-700">
+              {[room.className, room.grade, room.room].filter(Boolean).join(" · ") || "No classroom profile yet."}
+            </p>
+            {room.dailyRoutine ? (
+              <p className="mt-2"><strong>Routine:</strong> {String(room.dailyRoutine)}</p>
+            ) : null}
+            {room.emergencyProcedures ? (
+              <p className="mt-2"><strong>Emergency:</strong> {String(room.emergencyProcedures)}</p>
+            ) : null}
+            {room.notes ? (
+              <p className="mt-2"><strong>Notes for substitutes:</strong> {String(room.notes)}</p>
+            ) : null}
+          </section>
+
+          <section className="rounded-2xl bg-white p-5 shadow-sm text-sm">
+            <h3 className="font-semibold text-explore-charcoal">Planner blocks ({date})</h3>
+            {planner.length === 0 ? (
+              <p className="mt-2 text-gray-500">No planner blocks this day.</p>
+            ) : (
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {planner.map((b) => (
+                  <li key={b._id}>
+                    {b.startTime ? `${b.startTime} — ` : ""}
+                    {b.title}
+                    {b.subject ? ` (${b.subject})` : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="rounded-2xl bg-white p-5 shadow-sm text-sm">
+            <h3 className="font-semibold text-explore-charcoal">Lesson plans ({date})</h3>
+            {lessons.length === 0 ? (
+              <p className="mt-2 text-gray-500">No lesson plans dated this day.</p>
+            ) : (
+              <ul className="mt-2 space-y-3">
+                {lessons.map((l) => (
+                  <li key={String(l._id)} className="rounded-lg bg-gray-50 p-3">
+                    <p className="font-medium">{String(l.title)}</p>
+                    {l.subject ? <p className="text-gray-600">Subject: {String(l.subject)}</p> : null}
+                    {l.instruction ? (
+                      <p className="mt-1 text-gray-700 whitespace-pre-wrap">{String(l.instruction)}</p>
+                    ) : null}
+                    {l.materials ? (
+                      <p className="mt-1 text-gray-600"><strong>Materials:</strong> {String(l.materials)}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link href="/teacher/lesson-plans" className="mt-3 inline-block text-violet-700 hover:underline">
+              All lesson plans
+            </Link>
+          </section>
+        </div>
+      )}
+    </Shell>
+  );
+}
+
+function HelpView({ config }: { config: WorkspacePageConfig }) {
+  return (
+    <Shell title={config.title} description={config.description}>
+      <div className="space-y-4 rounded-2xl bg-white p-6 shadow-sm text-sm text-gray-700">
+        <section>
+          <h3 className="font-semibold text-explore-charcoal">Sign in</h3>
+          <p className="mt-1">
+            School teachers use the Staff Portal at{" "}
+            <Link href="/tutor/login" className="text-violet-700 hover:underline">
+              /tutor/login
+            </Link>{" "}
+            with a <strong>Teacher (School)</strong> account.
+          </p>
+        </section>
+        <section>
+          <h3 className="font-semibold text-explore-charcoal">Class roster</h3>
+          <p className="mt-1">
+            Attendance, assessments, and My Students use your administrator-assigned class roster.
+            Students are added in Admin → Users → your teacher profile → Class roster.
+          </p>
+        </section>
+        <section>
+          <h3 className="font-semibold text-explore-charcoal">Quick links</h3>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li><Link href="/teacher/planner" className="text-violet-700 hover:underline">Teacher Planner</Link></li>
+            <li><Link href="/teacher/lesson-plans" className="text-violet-700 hover:underline">Lesson Plans</Link></li>
+            <li><Link href="/teacher/students" className="text-violet-700 hover:underline">My Students</Link></li>
+            <li><Link href="/teacher/feedback" className="text-violet-700 hover:underline">Send feedback</Link></li>
+          </ul>
+        </section>
+        <section>
+          <h3 className="font-semibold text-explore-charcoal">Need help?</h3>
+          <p className="mt-1">
+            Contact Explore More Academy via{" "}
+            <Link href="/contact" className="text-violet-700 hover:underline">Contact Us</Link> or
+            colleague messages in the portal.
+          </p>
+        </section>
+      </div>
+    </Shell>
+  );
+}
+
+function AssessmentsView({ config }: { config: WorkspacePageConfig }) {
+  const searchParams = useSearchParams();
+  const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
+  const [roster, setRoster] = useState<StudentOption[]>([]);
+  const [form, setForm] = useState({
+    studentId: searchParams.get("studentId") ?? "",
+    title: "",
+    subject: "",
+    assessmentType: "",
+    eventDate: new Date().toISOString().slice(0, 10),
+    score: "",
+    maxScore: "100",
+    notes: "",
+  });
+
+  const filterStudentId = searchParams.get("studentId") ?? "";
+
+  const load = useCallback(() => {
+    const query: Record<string, string> = {};
+    if (filterStudentId) query.studentId = filterStudentId;
+    workspaceFetch<{ items: typeof items }>("assessments", { query })
+      .then((d) => setItems(d.items ?? []))
+      .catch(() => setItems([]));
+  }, [filterStudentId]);
+
+  const effectiveStudentId = filterStudentId || form.studentId;
+
+  useEffect(() => {
+    queueMicrotask(() => load());
+    fetch("/api/teacher/roster")
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json.students ?? []) as Array<{ studentId: string; studentName: string }>;
+        setRoster(list.map((s) => ({ studentId: s.studentId, studentName: s.studentName })));
+      });
+  }, [load]);
+
+  const rosterName = (id: string) =>
+    roster.find((s) => s.studentId === id)?.studentName ?? "Student";
+
+  const add = async () => {
+    if (!effectiveStudentId || !form.title.trim()) return;
+    await workspaceFetch("assessments", {
+      method: "POST",
+      body: JSON.stringify({
+        studentId: effectiveStudentId,
+        title: form.title.trim(),
+        subject: form.subject.trim() || undefined,
+        assessmentType: form.assessmentType.trim() || undefined,
+        eventDate: form.eventDate,
+        score: form.score ? Number(form.score) : undefined,
+        maxScore: Number(form.maxScore) || 100,
+        notes: form.notes.trim() || undefined,
+      }),
+    });
+    setForm((p) => ({ ...p, title: "", score: "", notes: "" }));
+    load();
+  };
+
+  const remove = async (id: string) => {
+    await workspaceFetch("assessments", { method: "DELETE", query: { id } });
+    load();
+  };
+
+  const pct = (item: Record<string, unknown>) => {
+    const score = Number(item.score);
+    const max = Number(item.maxScore) || 100;
+    if (!Number.isFinite(score) || max <= 0) return "";
+    return `${Math.round((score / max) * 100)}%`;
+  };
+
+  return (
+    <Shell title={config.title} description={config.description}>
+      <div className="flex flex-wrap gap-2 rounded-2xl bg-white p-4 shadow-sm">
+        <select
+          className="min-w-[140px] rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          value={effectiveStudentId}
+          onChange={(e) => setForm((p) => ({ ...p, studentId: e.target.value }))}
+          disabled={!!filterStudentId}
+        >
+          <option value="">Student</option>
+          {roster.map((s) => (
+            <option key={s.studentId} value={s.studentId}>{s.studentName}</option>
+          ))}
+        </select>
+        <input
+          className="min-w-[120px] flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          placeholder="Assessment title"
+          value={form.title}
+          onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+        />
+        <input
+          className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          placeholder="Subject"
+          value={form.subject}
+          onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
+        />
+        <input
+          type="date"
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          value={form.eventDate}
+          onChange={(e) => setForm((p) => ({ ...p, eventDate: e.target.value }))}
+        />
+        <input
+          className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          placeholder="Score"
+          value={form.score}
+          onChange={(e) => setForm((p) => ({ ...p, score: e.target.value }))}
+        />
+        <input
+          className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          placeholder="Max"
+          value={form.maxScore}
+          onChange={(e) => setForm((p) => ({ ...p, maxScore: e.target.value }))}
+        />
+        <button
+          type="button"
+          onClick={add}
+          className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white"
+        >
+          Add
+        </button>
+      </div>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li
+            key={String(item._id)}
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white px-4 py-3 shadow-sm text-sm"
+          >
+            <span>
+              <strong>{String(item.title)}</strong>
+              <span className="ml-2 text-gray-500">
+                {rosterName(String(item.studentId))}
+                {item.subject ? ` · ${item.subject}` : ""}
+                {item.score != null
+                  ? ` · ${item.score}/${item.maxScore ?? 100}${pct(item) ? ` (${pct(item)})` : ""}`
+                  : ""}
+                {item.eventDate
+                  ? ` · ${new Date(String(item.eventDate)).toLocaleDateString()}`
+                  : ""}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="text-xs text-red-600"
+              onClick={() => remove(String(item._id))}
+            >
+              Delete
+            </button>
+          </li>
+        ))}
       </ul>
     </Shell>
   );
@@ -672,7 +1225,18 @@ function TodosView({ config }: { config: WorkspacePageConfig }) {
       fields={[
         { key: "title", label: "Task title", required: true },
         { key: "description", label: "Description" },
+        { key: "dueDate", label: "Due date (YYYY-MM-DD)" },
+        { key: "dueTime", label: "Due time (e.g. 2:30 PM)" },
       ]}
+      formatLabel={(item) => {
+        const title = String(item.title ?? "Task");
+        const due = item.dueDate
+          ? new Date(String(item.dueDate)).toLocaleDateString()
+          : "";
+        const time = item.dueTime ? String(item.dueTime) : "";
+        const suffix = [due, time].filter(Boolean).join(" · ");
+        return suffix ? `${title} — ${suffix}` : title;
+      }}
     />
   );
 }
@@ -746,8 +1310,21 @@ function EndOfDayView({ config }: { config: WorkspacePageConfig }) {
 
 function AttendanceView({ config }: { config: WorkspacePageConfig }) {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const students: StudentOption[] = [];
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [rosterLoading, setRosterLoading] = useState(true);
   const [statusByStudent, setStatusByStudent] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/teacher/roster")
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json.students ?? []) as Array<{ studentId: string; studentName: string }>;
+        setStudents(
+          list.map((s) => ({ studentId: s.studentId, studentName: s.studentName }))
+        );
+      })
+      .finally(() => setRosterLoading(false));
+  }, []);
 
   useEffect(() => {
     workspaceFetch<{ items: Array<{ studentId: string; status: string }> }>("attendance", {
@@ -777,10 +1354,12 @@ function AttendanceView({ config }: { config: WorkspacePageConfig }) {
         value={date}
         onChange={(e) => setDate(e.target.value)}
       />
-      {students.length === 0 ? (
+      {rosterLoading ? (
+        <p className="text-sm text-gray-500">Loading class roster…</p>
+      ) : students.length === 0 ? (
         <p className="text-sm text-gray-500">
-          Attendance uses your school class roster (not Explore More tutor assignments). Ask your
-          administrator to connect your school roster, or use Teacher Notes until then.
+          No students on your class roster yet. Ask your administrator to add students under Admin →
+          Users → your teacher account → Class roster, or use Teacher Notes until then.
         </p>
       ) : (
         <ul className="space-y-2">
@@ -808,23 +1387,91 @@ function AttendanceView({ config }: { config: WorkspacePageConfig }) {
 }
 
 function GradebookView({ config }: { config: WorkspacePageConfig }) {
-  const [assignments, setAssignments] = useState<Array<{ _id: string; title: string; pointsPossible: number }>>([]);
+  const searchParams = useSearchParams();
+  const highlightStudentId = searchParams.get("studentId") ?? "";
+  const [assignments, setAssignments] = useState<
+    Array<{ _id: string; title: string; pointsPossible: number }>
+  >([]);
+  const [scores, setScores] = useState<
+    Array<{ _id?: string; assignmentId: string; studentId: string; score?: number }>
+  >([]);
+  const [roster, setRoster] = useState<StudentOption[]>([]);
   const [title, setTitle] = useState("");
+  const [pointsPossible, setPointsPossible] = useState("100");
+  const [selectedId, setSelectedId] = useState("");
+  const [pointsDraft, setPointsDraft] = useState<Record<string, string>>({});
+  const [scoreDraft, setScoreDraft] = useState<Record<string, string>>({});
 
-  const load = () => {
-    workspaceFetch<{ assignments: typeof assignments }>("gradebook").then((d) =>
-      setAssignments(d.assignments ?? [])
+  const load = useCallback(() => {
+    workspaceFetch<{ assignments: typeof assignments; scores: typeof scores }>("gradebook").then(
+      (d) => {
+        setAssignments(d.assignments ?? []);
+        setScores(d.scores ?? []);
+        setSelectedId((prev) =>
+          prev || (d.assignments?.[0]?._id ? String(d.assignments[0]._id) : "")
+        );
+      }
     );
-  };
+  }, []);
 
   useEffect(() => {
-    load();
-  }, []);
+    queueMicrotask(() => load());
+    fetch("/api/teacher/roster")
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json.students ?? []) as Array<{ studentId: string; studentName: string }>;
+        setRoster(list.map((s) => ({ studentId: s.studentId, studentName: s.studentName })));
+      });
+  }, [load]);
+
+  const selected = assignments.find((a) => a._id === selectedId);
+  const maxPts = selected?.pointsPossible ?? 100;
+
+  const scoreFor = (studentId: string) =>
+    scores.find(
+      (s) => String(s.assignmentId) === selectedId && String(s.studentId) === studentId
+    );
 
   const add = async () => {
     if (!title.trim()) return;
-    await workspaceFetch("gradebook", { method: "POST", body: JSON.stringify({ title }) });
+    await workspaceFetch("gradebook", {
+      method: "POST",
+      body: JSON.stringify({
+        title: title.trim(),
+        pointsPossible: Number(pointsPossible) || 100,
+      }),
+    });
     setTitle("");
+    load();
+  };
+
+  const saveAssignmentPoints = async (assignmentId: string) => {
+    const raw = pointsDraft[assignmentId] ?? String(assignments.find((a) => a._id === assignmentId)?.pointsPossible ?? 100);
+    await workspaceFetch("gradebook", {
+      method: "PATCH",
+      body: JSON.stringify({
+        id: assignmentId,
+        kind: "assignment",
+        pointsPossible: Number(raw) || 0,
+      }),
+    });
+    load();
+  };
+
+  const saveScore = async (studentId: string) => {
+    if (!selectedId) return;
+    const raw = scoreDraft[studentId] ?? "";
+    const score = raw === "" ? undefined : Number(raw);
+    await workspaceFetch("gradebook", {
+      method: "POST",
+      body: JSON.stringify({
+        kind: "score",
+        assignmentId: selectedId,
+        studentId,
+        score,
+        status: score == null || Number.isNaN(score) ? "missing" : "graded",
+      }),
+    });
     load();
   };
 
@@ -833,17 +1480,24 @@ function GradebookView({ config }: { config: WorkspacePageConfig }) {
       method: "DELETE",
       query: { id, kind: "assignment" },
     });
+    if (selectedId === id) setSelectedId("");
     load();
   };
 
   return (
     <Shell title={config.title} description={config.description}>
-      <div className="flex gap-2 rounded-2xl bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap gap-2 rounded-2xl bg-white p-4 shadow-sm">
         <input
-          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          className="min-w-[140px] flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
           placeholder="New assignment title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+        />
+        <input
+          className="w-24 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          placeholder="Max pts"
+          value={pointsPossible}
+          onChange={(e) => setPointsPossible(e.target.value)}
         />
         <button
           type="button"
@@ -853,22 +1507,95 @@ function GradebookView({ config }: { config: WorkspacePageConfig }) {
           Add assignment
         </button>
       </div>
-      <ul className="space-y-2">
-        {assignments.map((a) => (
-          <li
-            key={a._id}
-            className="flex justify-between rounded-xl bg-white px-4 py-3 shadow-sm text-sm"
-          >
-            <span>
-              <strong>{a.title}</strong>
-              <span className="ml-2 text-gray-500">{a.pointsPossible} pts</span>
-            </span>
-            <button type="button" className="text-xs text-red-600" onClick={() => remove(a._id)}>
-              Delete
-            </button>
-          </li>
-        ))}
-      </ul>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ul className="space-y-2">
+          {assignments.map((a) => (
+            <li
+              key={a._id}
+              className={`rounded-xl bg-white px-4 py-3 shadow-sm text-sm ${
+                selectedId === a._id ? "ring-2 ring-violet-300" : ""
+              }`}
+            >
+              <button
+                type="button"
+                className="text-left font-medium text-explore-charcoal"
+                onClick={() => setSelectedId(a._id)}
+              >
+                {a.title}
+              </button>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <input
+                  className="w-20 rounded border border-gray-200 px-2 py-1 text-xs"
+                  value={pointsDraft[a._id] ?? String(a.pointsPossible)}
+                  onChange={(e) =>
+                    setPointsDraft((p) => ({ ...p, [a._id]: e.target.value }))
+                  }
+                />
+                <span className="text-xs text-gray-500">max points</span>
+                <button
+                  type="button"
+                  className="text-xs text-violet-700"
+                  onClick={() => saveAssignmentPoints(a._id)}
+                >
+                  Save max
+                </button>
+                <button
+                  type="button"
+                  className="ml-auto text-xs text-red-600"
+                  onClick={() => remove(a._id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <h3 className="text-sm font-semibold text-explore-charcoal">
+            {selected ? `Scores — ${selected.title}` : "Select an assignment"}
+          </h3>
+          <p className="text-xs text-gray-500">Graded out of {maxPts} points</p>
+          {roster.length === 0 ? (
+            <p className="mt-3 text-sm text-gray-500">Add students to your class roster to enter scores.</p>
+          ) : !selectedId ? (
+            <p className="mt-3 text-sm text-gray-500">Create or select an assignment.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {roster.map((s) => {
+                const existing = scoreFor(s.studentId);
+                const val =
+                  scoreDraft[s.studentId] ??
+                  (existing?.score != null ? String(existing.score) : "");
+                const highlighted = highlightStudentId === s.studentId;
+                return (
+                  <li
+                    key={s.studentId}
+                    className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 ${
+                      highlighted ? "bg-violet-50" : ""
+                    }`}
+                  >
+                    <span className="text-sm">{s.studentName}</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        className="w-16 rounded border border-gray-200 px-2 py-1 text-sm"
+                        placeholder="—"
+                        value={val}
+                        onChange={(e) =>
+                          setScoreDraft((p) => ({ ...p, [s.studentId]: e.target.value }))
+                        }
+                        onBlur={() => saveScore(s.studentId)}
+                      />
+                      <span className="text-xs text-gray-400">/ {maxPts}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
     </Shell>
   );
 }
@@ -887,6 +1614,8 @@ export function WorkspaceModuleView({ pageKey }: { pageKey: string }) {
   switch (config.kind) {
     case "placeholder":
       return <PlaceholderView config={config} />;
+    case "substitute":
+      return <SubstituteView config={config} />;
     case "calendar":
       return <CalendarView config={config} />;
     case "classroom":
@@ -909,7 +1638,17 @@ export function WorkspaceModuleView({ pageKey }: { pageKey: string }) {
           fields={[
             { key: "title", label: "Lesson title", required: true },
             { key: "subject", label: "Subject" },
+            { key: "grade", label: "Grade" },
           ]}
+          formatLabel={(item) => {
+            const title = String(item.title ?? "Lesson");
+            const subject = item.subject ? String(item.subject) : "";
+            const grade = item.grade ? ` · Gr ${item.grade}` : "";
+            const date = item.date
+              ? ` · ${new Date(String(item.date)).toLocaleDateString()}`
+              : "";
+            return subject ? `${title} — ${subject}${grade}${date}` : `${title}${grade}${date}`;
+          }}
         />
       );
     case "planner":
@@ -920,7 +1659,18 @@ export function WorkspaceModuleView({ pageKey }: { pageKey: string }) {
           fields={[
             { key: "title", label: "Block title", required: true },
             { key: "subject", label: "Subject" },
+            { key: "date", label: "Date (YYYY-MM-DD)" },
+            { key: "startTime", label: "Start time" },
+            { key: "endTime", label: "End time" },
           ]}
+          formatLabel={(item) => {
+            const title = String(item.title ?? "Block");
+            const subject = item.subject ? String(item.subject) : "";
+            const date = item.date
+              ? ` · ${new Date(String(item.date)).toLocaleDateString()}`
+              : "";
+            return subject ? `${subject} — ${title}${date}` : `${title}${date}`;
+          }}
         />
       );
     case "standards":
@@ -931,10 +1681,14 @@ export function WorkspaceModuleView({ pageKey }: { pageKey: string }) {
           fields={[
             { key: "subject", label: "Subject" },
             { key: "standardCode", label: "Standard code", required: true },
-            { key: "standardLabel", label: "Label" },
+            { key: "standardLabel", label: "Description / label", required: true },
           ]}
         />
       );
+    case "assessments":
+      return <AssessmentsView config={config} />;
+    case "help":
+      return <HelpView config={config} />;
     case "inventory":
       return <InventoryView config={config} />;
     case "field-trips":

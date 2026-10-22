@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import { jsonError, jsonOk } from "@/lib/api/response";
 import { requireTeacherPortal } from "@/lib/teacher/api-auth";
 import { currentSchoolYear } from "@/lib/tutor/school-year";
+import { pickLessonPlanFields } from "@/lib/teacher/lesson-plan-fields";
 import {
   TeacherClassAttendance,
   TeacherClassroom,
@@ -12,8 +13,10 @@ import {
   TeacherFieldTrip,
   TeacherGradeAssignment,
   TeacherGradeScore,
+  TeacherAssessment,
   TeacherInventoryItem,
   TeacherLessonPlan,
+  TeacherLessonPlanRevision,
   TeacherPlannerEntry,
   TeacherStandardCoverage,
   TeacherTodo,
@@ -29,6 +32,7 @@ type WorkspaceModule =
   | "planner"
   | "attendance"
   | "gradebook"
+  | "assessments"
   | "records"
   | "todos"
   | "inventory"
@@ -44,6 +48,7 @@ function parseModule(raw: string): WorkspaceModule | null {
     "planner",
     "attendance",
     "gradebook",
+    "assessments",
     "records",
     "todos",
     "inventory",
@@ -92,20 +97,46 @@ export async function GET(
       return jsonOk({ item: doc });
     }
     case "lesson-plans": {
-      const items = await TeacherLessonPlan.find({ teacherId, schoolYear })
+      const singleId = request.nextUrl.searchParams.get("id");
+      if (singleId && mongoose.Types.ObjectId.isValid(singleId)) {
+        const item = await TeacherLessonPlan.findOne({ _id: singleId, teacherId }).lean();
+        if (!item) return jsonError("Not found", 404);
+        return jsonOk({ item });
+      }
+      const view = request.nextUrl.searchParams.get("view");
+      const filter: Record<string, unknown> = { teacherId, schoolYear };
+      if (view === "templates") {
+        filter.isTemplate = true;
+        filter.archived = { $ne: true };
+      } else if (view === "archive") {
+        filter.archived = true;
+      } else {
+        filter.archived = { $ne: true };
+        filter.isTemplate = { $ne: true };
+      }
+      const items = await TeacherLessonPlan.find(filter)
         .sort({ date: -1, updatedAt: -1 })
-        .limit(200)
+        .limit(300)
         .lean();
       return jsonOk({ items });
     }
     case "planner": {
       const from = request.nextUrl.searchParams.get("from");
       const to = request.nextUrl.searchParams.get("to");
+      const studentId = request.nextUrl.searchParams.get("studentId");
+      const scope = request.nextUrl.searchParams.get("scope");
       const filter: Record<string, unknown> = { teacherId, schoolYear };
       if (from || to) {
         filter.date = {};
         if (from) (filter.date as Record<string, Date>).$gte = new Date(from);
         if (to) (filter.date as Record<string, Date>).$lte = new Date(to);
+      }
+      if (studentId && mongoose.Types.ObjectId.isValid(studentId)) {
+        filter.studentId = studentId;
+      } else if (scope === "teacher") {
+        filter.$or = [{ studentId: { $exists: false } }, { studentId: null }];
+      } else if (scope === "students") {
+        filter.studentId = { $exists: true, $ne: null };
       }
       const items = await TeacherPlannerEntry.find(filter).sort({ date: 1, startTime: 1 }).lean();
       return jsonOk({ items });
@@ -127,10 +158,26 @@ export async function GET(
         : [];
       return jsonOk({ assignments, scores });
     }
+    case "assessments": {
+      const studentId = request.nextUrl.searchParams.get("studentId");
+      const filter: Record<string, unknown> = { teacherId, schoolYear };
+      if (studentId && mongoose.Types.ObjectId.isValid(studentId)) {
+        filter.studentId = studentId;
+      }
+      const items = await TeacherAssessment.find(filter)
+        .sort({ eventDate: -1 })
+        .limit(300)
+        .lean();
+      return jsonOk({ items });
+    }
     case "records": {
       const recordType = request.nextUrl.searchParams.get("recordType") as WorkspaceRecordType | null;
+      const studentId = request.nextUrl.searchParams.get("studentId");
       const filter: Record<string, unknown> = { teacherId, schoolYear };
       if (recordType && RECORD_TYPES.has(recordType)) filter.recordType = recordType;
+      if (studentId && mongoose.Types.ObjectId.isValid(studentId)) {
+        filter.studentId = studentId;
+      }
       const items = await TeacherWorkspaceRecord.find(filter).sort({ eventDate: -1 }).limit(300).lean();
       return jsonOk({ items });
     }
@@ -207,21 +254,28 @@ export async function POST(
       return jsonOk({ item: doc });
     }
     case "lesson-plans": {
+      const fields = pickLessonPlanFields(body as Record<string, unknown>);
       const doc = await TeacherLessonPlan.create({
         teacherId,
         schoolYear,
         title: body.title ?? "Untitled lesson",
-        ...body,
+        ...fields,
       });
       return jsonOk({ item: doc });
     }
     case "planner": {
+      const studentId = parseId(body.studentId);
       const doc = await TeacherPlannerEntry.create({
         teacherId,
         schoolYear,
+        ...(studentId ? { studentId } : {}),
         date: body.date ? new Date(body.date) : new Date(),
         title: body.title ?? "Planner entry",
-        ...body,
+        subject: body.subject,
+        startTime: body.startTime,
+        endTime: body.endTime,
+        entryType: body.entryType ?? "lesson",
+        notes: body.notes,
       });
       return jsonOk({ item: doc });
     }
@@ -265,15 +319,34 @@ export async function POST(
         );
         return jsonOk({ item: doc });
       }
+      const pointsPossible = Math.max(0, Number(body.pointsPossible) || 100);
       const doc = await TeacherGradeAssignment.create({
         teacherId,
         schoolYear,
         title: body.title ?? "Assignment",
         category: body.category ?? "Classwork",
-        pointsPossible: body.pointsPossible ?? 100,
+        pointsPossible,
         assignedDate: body.assignedDate,
         dueDate: body.dueDate,
         instructions: body.instructions,
+      });
+      return jsonOk({ item: doc });
+    }
+    case "assessments": {
+      const studentId = parseId(body.studentId);
+      if (!studentId) return jsonError("studentId required", 400);
+      const doc = await TeacherAssessment.create({
+        teacherId,
+        schoolYear,
+        studentId,
+        subject: body.subject,
+        title: body.title ?? "Assessment",
+        assessmentType: body.assessmentType,
+        gradeLevel: body.gradeLevel,
+        eventDate: body.eventDate ? new Date(body.eventDate) : new Date(),
+        score: body.score != null ? Number(body.score) : undefined,
+        maxScore: body.maxScore != null ? Number(body.maxScore) : 100,
+        notes: body.notes,
       });
       return jsonOk({ item: doc });
     }
@@ -301,6 +374,7 @@ export async function POST(
         title: body.title ?? "Task",
         description: body.description,
         dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+        dueTime: body.dueTime,
         priority: body.priority ?? "normal",
         status: "open",
       });
@@ -320,6 +394,11 @@ export async function POST(
       return jsonOk({ item: doc });
     }
     case "field-trips": {
+      const rosterStudentIds = Array.isArray(body.rosterStudentIds)
+        ? body.rosterStudentIds
+            .map((id: unknown) => parseId(String(id)))
+            .filter(Boolean)
+        : [];
       const doc = await TeacherFieldTrip.create({
         teacherId,
         schoolYear,
@@ -327,6 +406,7 @@ export async function POST(
         destination: body.destination,
         tripTime: body.tripTime,
         tripDate: body.tripDate ? new Date(body.tripDate) : undefined,
+        rosterStudentIds,
         objective: body.objective,
         schedule: body.schedule,
         notes: body.notes,
@@ -438,6 +518,48 @@ export async function PATCH(
         if (!Number.isNaN(parsed.getTime())) fields.tripDate = parsed;
         else delete fields.tripDate;
       }
+      if (fields.rosterStudentIds != null) {
+        const ids = Array.isArray(fields.rosterStudentIds)
+          ? fields.rosterStudentIds
+          : [fields.rosterStudentIds];
+        fields.rosterStudentIds = ids
+          .map((id) => parseId(String(id)))
+          .filter(Boolean);
+      }
+    }
+    if (workspaceModule === "planner") {
+      if (fields.date) {
+        const parsed = new Date(String(fields.date));
+        if (!Number.isNaN(parsed.getTime())) fields.date = parsed;
+        else delete fields.date;
+      }
+      if (fields.studentId === "" || fields.studentId === null) {
+        fields.studentId = undefined;
+      } else if (fields.studentId) {
+        const sid = parseId(String(fields.studentId));
+        if (sid) fields.studentId = sid;
+        else delete fields.studentId;
+      }
+    }
+    if (workspaceModule === "gradebook" && fields.pointsPossible != null) {
+      fields.pointsPossible = Math.max(0, Number(fields.pointsPossible) || 0);
+    }
+    if (workspaceModule === "lesson-plans") {
+      const picked = pickLessonPlanFields({ ...fields });
+      for (const k of Object.keys(fields)) {
+        if (k !== "id") delete fields[k];
+      }
+      Object.assign(fields, picked);
+      delete fields.revisionNote;
+    }
+    if (workspaceModule === "assessments") {
+      if (fields.score != null) fields.score = Number(fields.score);
+      if (fields.maxScore != null) fields.maxScore = Number(fields.maxScore);
+      if (fields.eventDate) {
+        const parsed = new Date(String(fields.eventDate));
+        if (!Number.isNaN(parsed.getTime())) fields.eventDate = parsed;
+        else delete fields.eventDate;
+      }
     }
 
     const doc = await Model.findOneAndUpdate(
@@ -450,8 +572,26 @@ export async function PATCH(
   };
 
   switch (workspaceModule) {
-    case "lesson-plans":
+    case "lesson-plans": {
+      const existing = await TeacherLessonPlan.findOne({ _id: id, teacherId }).lean();
+      if (!existing) return jsonError("Not found", 404);
+      const fields = pickLessonPlanFields(body as Record<string, unknown>);
+      await TeacherLessonPlanRevision.create({
+        lessonPlanId: id,
+        teacherId,
+        snapshot: { ...existing, _id: undefined },
+        note: typeof body.revisionNote === "string" ? body.revisionNote : undefined,
+      });
+      const revisions = await TeacherLessonPlanRevision.find({ lessonPlanId: id })
+        .sort({ createdAt: -1 })
+        .select("_id")
+        .lean();
+      if (revisions.length > 25) {
+        const toDrop = revisions.slice(25).map((r) => r._id);
+        await TeacherLessonPlanRevision.deleteMany({ _id: { $in: toDrop } });
+      }
       return updateOwned(TeacherLessonPlan);
+    }
     case "planner":
       return updateOwned(TeacherPlannerEntry);
     case "attendance":
@@ -459,6 +599,8 @@ export async function PATCH(
     case "gradebook":
       if (body.kind === "assignment") return updateOwned(TeacherGradeAssignment);
       return updateOwned(TeacherGradeScore);
+    case "assessments":
+      return updateOwned(TeacherAssessment);
     case "records":
       return updateOwned(TeacherWorkspaceRecord);
     case "todos":
@@ -505,6 +647,7 @@ export async function DELETE(
     records: TeacherWorkspaceRecord,
     todos: TeacherTodo,
     inventory: TeacherInventoryItem,
+    assessments: TeacherAssessment,
     "field-trips": TeacherFieldTrip,
     standards: TeacherStandardCoverage,
     documents: TeacherDocumentFile,

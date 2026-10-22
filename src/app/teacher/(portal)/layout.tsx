@@ -4,7 +4,7 @@ import { TEACHER_PORTAL_ROLES } from "@/lib/constants";
 import { TeacherShell } from "@/components/teacher/TeacherShell";
 import { teacherSignOut } from "@/app/teacher/(portal)/actions";
 import { getPrimarySchoolForTeacher } from "@/lib/teacher/school";
-import { SchoolTeacherConversation } from "@/models";
+import { SchoolTeacherConversation, SiteSettings } from "@/models";
 import connectDB from "@/lib/db";
 import { getUserAvatar } from "@/lib/account/get-user-avatar";
 
@@ -39,8 +39,11 @@ export default async function TeacherPortalLayout({ children }: { children: Reac
     redirect("/tutor/login");
   }
 
+  await connectDB();
   const schoolCtx = await getPrimarySchoolForTeacher(session.user.id);
   const schoolName = schoolCtx?.school.name;
+  const settings = await SiteSettings.findOne().lean();
+  const academyLogoUrl = settings?.logoUrl ?? "/uploads/settings/logo-header.png";
   const unread =
     schoolCtx
       ? await unreadColleagueCount(session.user.id, schoolCtx.school._id.toString())
@@ -58,6 +61,7 @@ export default async function TeacherPortalLayout({ children }: { children: Reac
       initialAvatar={initialAvatar}
       staffId={staffId}
       schoolName={schoolName}
+      academyLogoUrl={academyLogoUrl}
       unreadColleagueMessages={unread}
       signOutAction={teacherSignOut}
     >

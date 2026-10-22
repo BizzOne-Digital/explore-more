@@ -6,6 +6,7 @@ export type WorkspacePageKind =
   | "planner"
   | "attendance"
   | "gradebook"
+  | "assessments"
   | "records"
   | "todos"
   | "inventory"
@@ -14,7 +15,9 @@ export type WorkspacePageKind =
   | "end-of-day"
   | "documents"
   | "placeholder"
-  | "calendar";
+  | "calendar"
+  | "help"
+  | "substitute";
 
 export interface WorkspacePageConfig {
   title: string;
@@ -63,12 +66,8 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
   },
   assessments: {
     title: "Assessments",
-    description: "Formal assessments and checkpoints (Phase 1 links to assignments and gradebook).",
-    kind: "placeholder",
-    placeholderLinks: [
-      { href: "/teacher/gradebook", label: "Open gradebook" },
-      { href: "/teacher/gradebook", label: "Gradebook" },
-    ],
+    description: "Track assessments by student with scores, dates, and notes.",
+    kind: "assessments",
   },
   goals: {
     title: "Student Goals",
@@ -115,23 +114,23 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
   },
   substitute: {
     title: "Substitute Center",
-    description: "Leave sub-ready notes in your classroom profile and lesson plans.",
-    kind: "placeholder",
-    placeholderLinks: [
-      { href: "/teacher/classroom", label: "Classroom profile" },
-      { href: "/teacher/lesson-plans", label: "Lesson plans" },
-    ],
+    description: "Sub-ready classroom info, today’s planner blocks, and lesson plans in one place.",
+    kind: "substitute",
   },
   progress: {
-    title: "Progress Reports",
-    description:
-      "Student goals, gradebook summaries, and portfolio-related progress in one place.",
+    title: "Student Progress",
+    description: "Open a student profile to review goals, attendance, grades, and notes.",
     kind: "placeholder",
     placeholderLinks: [
+      { href: "/teacher/students", label: "My students" },
       { href: "/teacher/goals", label: "Student goals" },
       { href: "/teacher/gradebook", label: "Gradebook" },
-      { href: "/teacher/portfolios", label: "Student portfolios" },
     ],
+  },
+  help: {
+    title: "Help & Training",
+    description: "Portal guides, FAQs, and support for Explore More Academy teachers.",
+    kind: "help",
   },
   reports: {
     title: "Reports",

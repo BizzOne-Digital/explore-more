@@ -55,16 +55,17 @@ export function GoogleStyleSearchResults({
   const userMessages = messages.filter((m) => m.role === "user");
   const lastUser = userMessages[userMessages.length - 1];
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant" && m.id !== "welcome");
+  const [activeTab, setActiveTab] = useState<ResultsTab>("all");
+  const conversationKey = `${lastUser?.id ?? ""}:${lastAssistant?.id ?? ""}`;
+
+  useEffect(() => {
+    queueMicrotask(() => setActiveTab("all"));
+  }, [conversationKey]);
 
   if (!lastUser) return null;
 
   const overviewTitle = lastAssistant ? extractTitle(lastAssistant.content) : "Searching…";
   const quickFacts = lastAssistant ? extractQuickFacts(lastAssistant.content) : [];
-  const [activeTab, setActiveTab] = useState<ResultsTab>("all");
-
-  useEffect(() => {
-    setActiveTab("all");
-  }, [lastUser?.id, lastAssistant?.id]);
 
   function goToTab(tab: ResultsTab, targetId: string) {
     setActiveTab(tab);

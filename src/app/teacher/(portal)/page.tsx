@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { TEACHER_PORTAL_ROLES } from "@/lib/constants";
 import { getPrimarySchoolForTeacher } from "@/lib/teacher/school";
 import { getTeacherWorkspaceDashboardStats } from "@/lib/tutor/workspace-stats";
+import { getTeacherLessonPlanStats } from "@/lib/teacher/lesson-plan-stats";
 import { ClipboardList, MessageSquare, Moon, School } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +22,11 @@ export default async function TeacherDashboardPage() {
   await connectDB();
   const schoolCtx = await getPrimarySchoolForTeacher(session.user.id);
   const workspace = await getTeacherWorkspaceDashboardStats(session.user.id);
+  const lessons = await getTeacherLessonPlanStats(session.user.id);
 
   const quick = [
     { href: "/teacher/classroom", label: "My Classroom", icon: School },
+    { href: "/teacher/lesson-plans/new?mode=quick", label: "New lesson plan", icon: ClipboardList },
     { href: "/teacher/planner", label: "Teacher Planner", icon: ClipboardList },
     { href: "/teacher/todos", label: "To-Do List", icon: ClipboardList, stat: workspace.openTodos },
     { href: "/teacher/checkout", label: "End-of-Day Check-Out", icon: Moon },
@@ -56,10 +59,10 @@ export default async function TeacherDashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Open to-dos", value: workspace.openTodos },
-          { label: "Today’s planner blocks", value: workspace.todayPlanner },
-          { label: "Lesson plans (7 days)", value: workspace.lessonPlansThisWeek },
-          { label: "Checked out today", value: workspace.checkedOutToday ? 1 : 0 },
+          { label: "Total lessons", value: lessons.total },
+          { label: "Lessons this week", value: lessons.thisWeek },
+          { label: "Draft lessons", value: lessons.drafts },
+          { label: "Completed / taught", value: lessons.completed },
         ].map((item) => (
           <div key={item.label} className="rounded-2xl bg-white p-5 shadow-sm">
             <p className="text-3xl font-bold text-explore-charcoal">{item.value}</p>
@@ -92,6 +95,33 @@ export default async function TeacherDashboardPage() {
             );
           })}
         </div>
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between gap-4">
+          <h3 className="font-display text-xl font-bold text-explore-charcoal">Recent lesson plans</h3>
+          <Link href="/teacher/lesson-plans" className="text-sm text-violet-700 hover:underline">
+            View all
+          </Link>
+        </div>
+        <ul className="mt-4 space-y-2">
+          {lessons.recent.map((p) => (
+            <li key={String(p._id)}>
+              <Link
+                href={`/teacher/lesson-plans/${String(p._id)}`}
+                className="flex flex-wrap justify-between gap-2 rounded-xl bg-white px-4 py-3 shadow-sm hover:border-teal-200 border border-transparent"
+              >
+                <span className="font-medium text-explore-charcoal">{p.title}</span>
+                <span className="text-sm text-gray-500">
+                  {[p.subject, p.grade, p.status].filter(Boolean).join(" · ")}
+                </span>
+              </Link>
+            </li>
+          ))}
+          {lessons.recent.length === 0 && (
+            <li className="text-sm text-gray-500">No lesson plans yet — create one from Quick actions.</li>
+          )}
+        </ul>
       </section>
     </div>
   );

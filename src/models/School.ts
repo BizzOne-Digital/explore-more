@@ -110,8 +110,40 @@ const SchoolTeacherMessageSchema = new Schema<ISchoolTeacherMessage>(
 );
 SchoolTeacherMessageSchema.index({ conversationId: 1, createdAt: 1 });
 
+/** Students assigned to a school teacher’s class roster for attendance, grades, etc. */
+export interface ITeacherClassRoster extends Document {
+  schoolId: mongoose.Types.ObjectId;
+  teacherId: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  schoolYear: string;
+  grade?: string;
+  className?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const TeacherClassRosterSchema = new Schema<ITeacherClassRoster>(
+  {
+    schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
+    teacherId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    studentId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    schoolYear: { type: String, required: true },
+    grade: String,
+    className: String,
+  },
+  { timestamps: true }
+);
+TeacherClassRosterSchema.index(
+  { teacherId: 1, studentId: 1, schoolYear: 1 },
+  { unique: true }
+);
+
 export const School: Model<ISchool> =
   mongoose.models.School ?? mongoose.model<ISchool>("School", SchoolSchema);
+
+export const TeacherClassRoster: Model<ITeacherClassRoster> =
+  mongoose.models.TeacherClassRoster ??
+  mongoose.model<ITeacherClassRoster>("TeacherClassRoster", TeacherClassRosterSchema);
 
 export const TeacherSchoolMembership: Model<ITeacherSchoolMembership> =
   mongoose.models.TeacherSchoolMembership ??

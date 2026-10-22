@@ -50,6 +50,9 @@ export interface ITeacherLessonPlan extends Document {
   unit?: string;
   duration?: string;
   status: "draft" | "ready" | "taught" | "reteach" | "completed";
+  planMode: "quick" | "detailed";
+  isTemplate: boolean;
+  archived: boolean;
   learningObjective?: string;
   essentialQuestion?: string;
   materials?: string;
@@ -80,6 +83,9 @@ const TeacherLessonPlanSchema = new Schema<ITeacherLessonPlan>(
       enum: ["draft", "ready", "taught", "reteach", "completed"],
       default: "draft",
     },
+    planMode: { type: String, enum: ["quick", "detailed"], default: "quick" },
+    isTemplate: { type: Boolean, default: false },
+    archived: { type: Boolean, default: false },
     learningObjective: String,
     essentialQuestion: String,
     materials: String,
@@ -95,10 +101,51 @@ const TeacherLessonPlanSchema = new Schema<ITeacherLessonPlan>(
   { timestamps: true }
 );
 TeacherLessonPlanSchema.index({ teacherId: 1, schoolYear: 1, date: -1 });
+TeacherLessonPlanSchema.index({ teacherId: 1, isTemplate: 1 });
+TeacherLessonPlanSchema.index({ teacherId: 1, archived: 1 });
+
+export interface ITeacherLessonPlanRevision extends Document {
+  lessonPlanId: mongoose.Types.ObjectId;
+  teacherId: mongoose.Types.ObjectId;
+  snapshot: Record<string, unknown>;
+  note?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const TeacherLessonPlanRevisionSchema = new Schema<ITeacherLessonPlanRevision>(
+  {
+    lessonPlanId: { type: Schema.Types.ObjectId, ref: "TeacherLessonPlan", required: true },
+    teacherId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    snapshot: { type: Schema.Types.Mixed, required: true },
+    note: String,
+  },
+  { timestamps: true }
+);
+TeacherLessonPlanRevisionSchema.index({ lessonPlanId: 1, createdAt: -1 });
+
+export interface ITeacherProductFeedback extends Document {
+  teacherId: mongoose.Types.ObjectId;
+  category: string;
+  message: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const TeacherProductFeedbackSchema = new Schema<ITeacherProductFeedback>(
+  {
+    teacherId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    category: { type: String, default: "general" },
+    message: { type: String, required: true },
+  },
+  { timestamps: true }
+);
 
 export interface ITeacherPlannerEntry extends Document {
   teacherId: mongoose.Types.ObjectId;
   schoolYear: string;
+  /** When set, this block appears on that student’s schedule (class roster). */
+  studentId?: mongoose.Types.ObjectId;
   date: Date;
   startTime?: string;
   endTime?: string;
@@ -114,6 +161,7 @@ const TeacherPlannerEntrySchema = new Schema<ITeacherPlannerEntry>(
   {
     teacherId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     schoolYear: { type: String, required: true },
+    studentId: { type: Schema.Types.ObjectId, ref: "User" },
     date: { type: Date, required: true },
     startTime: String,
     endTime: String,
@@ -129,6 +177,7 @@ const TeacherPlannerEntrySchema = new Schema<ITeacherPlannerEntry>(
   { timestamps: true }
 );
 TeacherPlannerEntrySchema.index({ teacherId: 1, date: 1 });
+TeacherPlannerEntrySchema.index({ teacherId: 1, studentId: 1, date: 1 });
 
 export interface ITeacherClassAttendance extends Document {
   teacherId: mongoose.Types.ObjectId;
@@ -211,6 +260,43 @@ const TeacherGradeScoreSchema = new Schema<ITeacherGradeScore>(
 );
 TeacherGradeScoreSchema.index({ assignmentId: 1, studentId: 1 }, { unique: true });
 
+export interface ITeacherAssessment extends Document {
+  teacherId: mongoose.Types.ObjectId;
+  schoolYear: string;
+  studentId: mongoose.Types.ObjectId;
+  subject?: string;
+  title: string;
+  assessmentType?: string;
+  gradeLevel?: string;
+  eventDate: Date;
+  score?: number;
+  maxScore: number;
+  notes?: string;
+  postedToGradebook?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const TeacherAssessmentSchema = new Schema<ITeacherAssessment>(
+  {
+    teacherId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    schoolYear: { type: String, required: true },
+    studentId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    subject: String,
+    title: { type: String, required: true },
+    assessmentType: String,
+    gradeLevel: String,
+    eventDate: { type: Date, default: Date.now },
+    score: Number,
+    maxScore: { type: Number, default: 100 },
+    notes: String,
+    postedToGradebook: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+TeacherAssessmentSchema.index({ teacherId: 1, schoolYear: 1, eventDate: -1 });
+TeacherAssessmentSchema.index({ teacherId: 1, studentId: 1 });
+
 export type WorkspaceRecordType = "note" | "behavior" | "intervention" | "goal";
 
 export interface ITeacherWorkspaceRecord extends Document {
@@ -256,6 +342,7 @@ export interface ITeacherTodo extends Document {
   title: string;
   description?: string;
   dueDate?: Date;
+  dueTime?: string;
   priority: "urgent" | "important" | "normal";
   status: "open" | "completed";
   createdAt: Date;
@@ -268,6 +355,7 @@ const TeacherTodoSchema = new Schema<ITeacherTodo>(
     title: { type: String, required: true },
     description: String,
     dueDate: Date,
+    dueTime: String,
     priority: { type: String, enum: ["urgent", "important", "normal"], default: "normal" },
     status: { type: String, enum: ["open", "completed"], default: "open" },
   },
@@ -308,6 +396,7 @@ export interface ITeacherFieldTrip extends Document {
   destination?: string;
   tripTime?: string;
   tripDate?: Date;
+  rosterStudentIds: mongoose.Types.ObjectId[];
   objective?: string;
   schedule?: string;
   notes?: string;
@@ -325,6 +414,7 @@ const TeacherFieldTripSchema = new Schema<ITeacherFieldTrip>(
     destination: String,
     tripTime: String,
     tripDate: Date,
+    rosterStudentIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
     objective: String,
     schedule: String,
     notes: String,
@@ -426,6 +516,17 @@ export const TeacherLessonPlan: Model<ITeacherLessonPlan> =
   mongoose.models.TeacherLessonPlan ??
   mongoose.model<ITeacherLessonPlan>("TeacherLessonPlan", TeacherLessonPlanSchema);
 
+export const TeacherLessonPlanRevision: Model<ITeacherLessonPlanRevision> =
+  mongoose.models.TeacherLessonPlanRevision ??
+  mongoose.model<ITeacherLessonPlanRevision>(
+    "TeacherLessonPlanRevision",
+    TeacherLessonPlanRevisionSchema
+  );
+
+export const TeacherProductFeedback: Model<ITeacherProductFeedback> =
+  mongoose.models.TeacherProductFeedback ??
+  mongoose.model<ITeacherProductFeedback>("TeacherProductFeedback", TeacherProductFeedbackSchema);
+
 export const TeacherPlannerEntry: Model<ITeacherPlannerEntry> =
   mongoose.models.TeacherPlannerEntry ??
   mongoose.model<ITeacherPlannerEntry>("TeacherPlannerEntry", TeacherPlannerEntrySchema);
@@ -441,6 +542,10 @@ export const TeacherGradeAssignment: Model<ITeacherGradeAssignment> =
 export const TeacherGradeScore: Model<ITeacherGradeScore> =
   mongoose.models.TeacherGradeScore ??
   mongoose.model<ITeacherGradeScore>("TeacherGradeScore", TeacherGradeScoreSchema);
+
+export const TeacherAssessment: Model<ITeacherAssessment> =
+  mongoose.models.TeacherAssessment ??
+  mongoose.model<ITeacherAssessment>("TeacherAssessment", TeacherAssessmentSchema);
 
 export const TeacherWorkspaceRecord: Model<ITeacherWorkspaceRecord> =
   mongoose.models.TeacherWorkspaceRecord ??

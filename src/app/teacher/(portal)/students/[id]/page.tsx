@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { TEACHER_PORTAL_ROLES } from "@/lib/constants";
 import { getRosterStudentForTeacher } from "@/lib/teacher/roster";
+import { getStudentSyncHub } from "@/lib/teacher/student-sync-hub";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,8 @@ export default async function TeacherStudentProfilePage({
   const student = await getRosterStudentForTeacher(session.user.id, id);
   if (!student) notFound();
 
+  const hub = await getStudentSyncHub(session.user.id, id);
+
   return (
     <div className="space-y-6">
       <div>
@@ -47,6 +50,25 @@ export default async function TeacherStudentProfilePage({
           {student.email ? ` · ${student.email}` : ""}
         </p>
       </div>
+
+      {hub && (
+        <section className="rounded-2xl bg-white p-5 shadow-sm text-sm space-y-3">
+          <h3 className="font-semibold text-explore-charcoal">Synced overview</h3>
+          <p className="text-gray-600">
+            {hub.gradeEntries.length} grade entries · {hub.assessments.length} assessments ·{" "}
+            {hub.attendanceRecent.length} attendance marks (30 days) ·{" "}
+            {hub.scheduleBlocks.length} upcoming schedule blocks
+          </p>
+          {Object.keys(hub.records).length > 0 && (
+            <p className="text-gray-500">
+              Records:{" "}
+              {Object.entries(hub.records)
+                .map(([k, v]) => `${k} (${v})`)
+                .join(", ")}
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {LINKS.map((item) => (

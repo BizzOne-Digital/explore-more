@@ -17,7 +17,9 @@ export type WorkspacePageKind =
   | "placeholder"
   | "calendar"
   | "help"
-  | "substitute";
+  | "substitute"
+  | "student-progress"
+  | "reports-hub";
 
 export interface WorkspacePageConfig {
   title: string;
@@ -95,12 +97,8 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
   },
   portfolios: {
     title: "Student Portfolios",
-    description: "Portfolio work is collected in student progress and parent-facing reports.",
-    kind: "placeholder",
-    placeholderLinks: [
-      { href: "/teacher/progress", label: "Student progress" },
-      { href: "/teacher/students", label: "My students" },
-    ],
+    description: "Roster progress summary synced with gradebook, assessments, and records.",
+    kind: "student-progress",
   },
   inventory: {
     title: "Classroom Inventory",
@@ -120,12 +118,7 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
   progress: {
     title: "Student Progress",
     description: "Open a student profile to review goals, attendance, grades, and notes.",
-    kind: "placeholder",
-    placeholderLinks: [
-      { href: "/teacher/students", label: "My students" },
-      { href: "/teacher/goals", label: "Student goals" },
-      { href: "/teacher/gradebook", label: "Gradebook" },
-    ],
+    kind: "student-progress",
   },
   help: {
     title: "Help & Training",
@@ -135,8 +128,7 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
   reports: {
     title: "Reports",
     description: "Progress and academy reports (use Progress Reports for published cards).",
-    kind: "placeholder",
-    placeholderLinks: [{ href: "/teacher/progress", label: "Progress reports" }],
+    kind: "reports-hub",
   },
   documents: {
     title: "Teacher Documents",
@@ -163,29 +155,27 @@ export const WORKSPACE_PAGE_CONFIG: Record<string, WorkspacePageConfig> = {
   },
   archive: {
     title: "Archive",
-    description: "Archived lesson plans and records from prior years.",
+    description: "Archived lesson plans from prior terms.",
     kind: "placeholder",
-    placeholderLinks: [
-      { href: "/teacher/lesson-plans", label: "Lesson plans" },
-      { href: "/teacher/documents", label: "Documents" },
-    ],
+    placeholderLinks: [{ href: "/teacher/archive", label: "Open archive" }],
   },
   templates: {
     title: "Templates",
-    description: "Reusable lesson and planner templates (coming soon).",
+    description: "Reusable lesson plan templates.",
     kind: "placeholder",
-    placeholderLinks: [{ href: "/teacher/lesson-plans", label: "Create from lesson plans" }],
+    placeholderLinks: [{ href: "/teacher/templates", label: "Open templates" }],
   },
   "import-export": {
     title: "Import / Export",
-    description: "Bulk import and export will connect to academy data tools in a later phase.",
+    description: "Backup and restore lesson plans as JSON (skips duplicates).",
     kind: "placeholder",
+    placeholderLinks: [{ href: "/teacher/import-export", label: "Import / export" }],
   },
   feedback: {
     title: "Feedback",
     description: "Share product feedback with Explore More Academy administration.",
     kind: "placeholder",
-    placeholderLinks: [{ href: "/teacher/help", label: "Help & training" }],
+    placeholderLinks: [{ href: "/teacher/feedback", label: "Send feedback" }],
   },
   todos: {
     title: "To-Do List",

@@ -7,6 +7,11 @@ import {
   WORKSPACE_PAGE_CONFIG,
   type WorkspacePageConfig,
 } from "@/lib/tutor/workspace-pages";
+import {
+  TeacherPortfoliosOverview,
+  TeacherProgressOverview,
+  TeacherReportsHub,
+} from "@/components/teacher/TeacherStudentHubViews";
 
 type StudentOption = { studentId: string; studentName: string };
 
@@ -419,30 +424,59 @@ function RecordsView({ config }: { config: WorkspacePageConfig }) {
   );
 }
 
+function DocumentsListView({
+  config,
+  pageKey,
+}: {
+  config: WorkspacePageConfig;
+  pageKey: string;
+}) {
+  let listQuery: Record<string, string> | undefined;
+  if (pageKey === "files") listQuery = { all: "1" };
+  else if (config.documentFolder) listQuery = { folder: config.documentFolder };
+  return (
+    <SimpleListView
+      config={config}
+      apiModule="documents"
+      listQuery={listQuery}
+      fields={[
+        { key: "fileName", label: "File name", required: true },
+        { key: "filePath", label: "URL or storage path" },
+        { key: "description", label: "Description" },
+      ]}
+      formatLabel={(item) =>
+        `${item.fileName ?? "File"}${item.folder ? ` · ${item.folder}` : ""}`
+      }
+    />
+  );
+}
+
 function SimpleListView({
   config,
   apiModule,
   fields,
   formatLabel,
+  listQuery,
 }: {
   config: WorkspacePageConfig;
   apiModule: string;
   fields: { key: string; label: string; required?: boolean }[];
   formatLabel?: (item: Record<string, unknown>) => string;
+  listQuery?: Record<string, string>;
 }) {
   const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
   const [form, setForm] = useState<Record<string, string>>({});
 
   const load = useCallback(() => {
-    const query: Record<string, string> = {};
-    if (config.documentFolder) query.folder = config.documentFolder;
+    const query: Record<string, string> = { ...(listQuery ?? {}) };
+    if (!query.all && config.documentFolder) query.folder = config.documentFolder;
     workspaceFetch<{ items: typeof items }>(apiModule, { query })
       .then((d) => setItems(d.items ?? []))
       .catch(() => setItems([]));
-  }, [apiModule, config.documentFolder]);
+  }, [apiModule, config.documentFolder, listQuery]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => load());
   }, [load]);
 
   const add = async () => {
@@ -1612,6 +1646,14 @@ export function WorkspaceModuleView({ pageKey }: { pageKey: string }) {
   }
 
   switch (config.kind) {
+    case "student-progress":
+      return pageKey === "portfolios" ? (
+        <TeacherPortfoliosOverview />
+      ) : (
+        <TeacherProgressOverview />
+      );
+    case "reports-hub":
+      return <TeacherReportsHub />;
     case "placeholder":
       return <PlaceholderView config={config} />;
     case "substitute":
@@ -1695,15 +1737,7 @@ export function WorkspaceModuleView({ pageKey }: { pageKey: string }) {
       return <FieldTripsView config={config} />;
     case "documents":
       return (
-        <SimpleListView
-          config={config}
-          apiModule="documents"
-          fields={[
-            { key: "fileName", label: "File name", required: true },
-            { key: "filePath", label: "URL or storage path" },
-            { key: "description", label: "Description" },
-          ]}
-        />
+        <DocumentsListView config={config} pageKey={pageKey} />
       );
     default:
       return <PlaceholderView config={config} />;

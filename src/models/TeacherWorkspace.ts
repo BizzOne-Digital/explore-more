@@ -53,6 +53,8 @@ export interface ITeacherLessonPlan extends Document {
   planMode: "quick" | "detailed";
   isTemplate: boolean;
   archived: boolean;
+  shareEnabled: boolean;
+  shareToken?: string;
   learningObjective?: string;
   essentialQuestion?: string;
   materials?: string;
@@ -86,6 +88,8 @@ const TeacherLessonPlanSchema = new Schema<ITeacherLessonPlan>(
     planMode: { type: String, enum: ["quick", "detailed"], default: "quick" },
     isTemplate: { type: Boolean, default: false },
     archived: { type: Boolean, default: false },
+    shareEnabled: { type: Boolean, default: false },
+    shareToken: { type: String, sparse: true, unique: true },
     learningObjective: String,
     essentialQuestion: String,
     materials: String,
@@ -128,6 +132,7 @@ export interface ITeacherProductFeedback extends Document {
   teacherId: mongoose.Types.ObjectId;
   category: string;
   message: string;
+  reviewedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -137,9 +142,11 @@ const TeacherProductFeedbackSchema = new Schema<ITeacherProductFeedback>(
     teacherId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     category: { type: String, default: "general" },
     message: { type: String, required: true },
+    reviewedAt: Date,
   },
   { timestamps: true }
 );
+TeacherProductFeedbackSchema.index({ createdAt: -1 });
 
 export interface ITeacherPlannerEntry extends Document {
   teacherId: mongoose.Types.ObjectId;
@@ -152,6 +159,7 @@ export interface ITeacherPlannerEntry extends Document {
   title: string;
   subject?: string;
   entryType: "lesson" | "assignment" | "assessment" | "meeting" | "event" | "other";
+  lessonPlanId?: mongoose.Types.ObjectId;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -172,6 +180,7 @@ const TeacherPlannerEntrySchema = new Schema<ITeacherPlannerEntry>(
       enum: ["lesson", "assignment", "assessment", "meeting", "event", "other"],
       default: "lesson",
     },
+    lessonPlanId: { type: Schema.Types.ObjectId, ref: "TeacherLessonPlan" },
     notes: String,
   },
   { timestamps: true }

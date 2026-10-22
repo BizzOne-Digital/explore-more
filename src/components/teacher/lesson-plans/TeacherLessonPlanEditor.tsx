@@ -56,6 +56,7 @@ export function TeacherLessonPlanEditor({
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [revisions, setRevisions] = useState<Array<{ _id: string; createdAt: string; note?: string }>>([]);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const planMode = form.planMode === "detailed" ? "detailed" : "quick";
   const sections = planMode === "detailed" ? DETAILED_PLAN_SECTIONS : QUICK_PLAN_SECTIONS;
@@ -65,7 +66,13 @@ export function TeacherLessonPlanEditor({
     setLoading(true);
     api<{ item: Record<string, unknown> }>(`/api/teacher/workspace/lesson-plans?id=${planId}`)
       .then((d) => {
-        if (d.item) setForm(toForm(d.item));
+        if (d.item) {
+          setForm(toForm(d.item));
+          const item = d.item;
+          if (item.shareEnabled && item.shareToken) {
+            setShareUrl(`/lesson-plans/shared/${String(item.shareToken)}`);
+          }
+        }
       })
       .catch(() => setMessage("Could not load lesson plan."))
       .finally(() => setLoading(false));
@@ -134,6 +141,16 @@ export function TeacherLessonPlanEditor({
     }
   };
 
+  const enableShare = async () => {
+    if (!planId) return;
+    const res = await api<{ shareUrl: string }>(`/api/teacher/lesson-plans/${planId}/share`, {
+      method: "POST",
+      body: JSON.stringify({ enable: true }),
+    });
+    setShareUrl(res.shareUrl);
+    setMessage("Share link created — copy the URL below.");
+  };
+
   const duplicate = async () => {
     if (!planId) return;
     const res = await api<{ item: { _id: string } }>(
@@ -172,9 +189,20 @@ export function TeacherLessonPlanEditor({
             <button type="button" onClick={duplicate} className="text-sm text-violet-700 hover:underline">
               Duplicate
             </button>
+            <button type="button" onClick={enableShare} className="text-sm text-violet-700 hover:underline">
+              Create share link
+            </button>
           </>
         )}
       </div>
+      {shareUrl && (
+        <p className="text-sm text-gray-600 break-all">
+          Share:{" "}
+          <a href={shareUrl} className="text-violet-700 hover:underline" target="_blank" rel="noreferrer">
+            {shareUrl}
+          </a>
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {(["quick", "detailed"] as const).map((mode) => (

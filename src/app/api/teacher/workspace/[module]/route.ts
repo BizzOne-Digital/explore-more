@@ -5,6 +5,7 @@ import { jsonError, jsonOk } from "@/lib/api/response";
 import { requireTeacherPortal } from "@/lib/teacher/api-auth";
 import { currentSchoolYear } from "@/lib/tutor/school-year";
 import { pickLessonPlanFields } from "@/lib/teacher/lesson-plan-fields";
+import { syncLessonPlanToPlanner } from "@/lib/teacher/lesson-plan-planner-sync";
 import {
   TeacherClassAttendance,
   TeacherClassroom,
@@ -215,8 +216,9 @@ export async function GET(
     }
     case "documents": {
       const folder = request.nextUrl.searchParams.get("folder");
+      const all = request.nextUrl.searchParams.get("all") === "1";
       const filter: Record<string, unknown> = { teacherId, schoolYear };
-      if (folder) filter.folder = folder;
+      if (!all && folder) filter.folder = folder;
       const items = await TeacherDocumentFile.find(filter).sort({ updatedAt: -1 }).limit(300).lean();
       return jsonOk({ items });
     }
@@ -261,6 +263,7 @@ export async function POST(
         title: body.title ?? "Untitled lesson",
         ...fields,
       });
+      await syncLessonPlanToPlanner(doc);
       return jsonOk({ item: doc });
     }
     case "planner": {
@@ -568,6 +571,16 @@ export async function PATCH(
       { new: true, runValidators: true }
     );
     if (!doc) return jsonError("Not found", 404);
+    if (workspaceModule === "lesson-plans") {
+      await syncLessonPlanToPlanner(doc as {
+        _id: import("mongoose").Types.ObjectId;
+        teacherId: import("mongoose").Types.ObjectId;
+        title: string;
+        subject?: string;
+        date?: Date;
+        duration?: string;
+      });
+    }
     return jsonOk({ item: doc });
   };
 

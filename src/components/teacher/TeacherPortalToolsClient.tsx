@@ -118,7 +118,11 @@ export function TeacherImportExportClient() {
       setStatus(json.error ?? "Import failed");
       return;
     }
-    setStatus(`Imported ${json.imported} lesson plan(s).`);
+    const skipped = typeof json.skipped === "number" ? json.skipped : 0;
+    setStatus(
+      `Imported ${json.imported ?? 0} lesson plan(s).` +
+        (skipped > 0 ? ` Skipped ${skipped} duplicate(s).` : "")
+    );
   };
 
   return (

@@ -130,6 +130,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     items: [
       { label: "Email Campaigns", href: "/admin/email-campaigns", icon: Mail },
       { label: "Messages", href: "/admin/messages", icon: MessagesSquare },
+      { label: "Teacher feedback", href: "/admin/teacher-feedback", icon: MessageSquareQuote },
       { label: "Send Notification", href: "/admin/notifications", icon: Bell },
       { label: "Subscribers", href: "/admin/subscribers", icon: Bell },
     ],

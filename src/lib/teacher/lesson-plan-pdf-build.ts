@@ -1,15 +1,27 @@
+import type { ITeacherLessonPlan } from "@/models/TeacherWorkspace";
 import { getPrimarySchoolForTeacher } from "@/lib/teacher/school";
 import { generateLessonPlanPdf } from "@/lib/pdf/lesson-plan-pdf";
 import { DETAILED_PLAN_SECTIONS, QUICK_PLAN_SECTIONS } from "@/lib/teacher/lesson-plan-fields";
 
-export type LessonPlanLean = {
-  title: string;
-  subject?: string;
-  grade?: string;
-  date?: Date | string;
-  status?: string;
-  planMode?: string;
-} & Record<string, unknown>;
+export type LessonPlanLean = Pick<
+  ITeacherLessonPlan,
+  | "title"
+  | "subject"
+  | "grade"
+  | "date"
+  | "status"
+  | "planMode"
+  | "learningObjective"
+  | "essentialQuestion"
+  | "materials"
+  | "warmUp"
+  | "instruction"
+  | "assessment"
+  | "homework"
+  | "differentiation"
+  | "reflection"
+  | "notes"
+>;
 
 export function lessonPlanPdfFilename(title: string) {
   return `lesson-plan-${title.replace(/[^\w.-]+/g, "_").slice(0, 60)}.pdf`;
@@ -33,7 +45,7 @@ export async function buildLessonPlanPdfBytes(
     planMode: plan.planMode,
     sections: sections.map((s) => ({
       label: s.label,
-      body: String(plan[s.key] ?? ""),
+      body: String((plan as Record<string, unknown>)[s.key] ?? ""),
     })),
   });
 }

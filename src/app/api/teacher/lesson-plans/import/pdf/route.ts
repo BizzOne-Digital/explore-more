@@ -3,6 +3,7 @@ import { jsonError, jsonOk } from "@/lib/api/response";
 import { requireTeacherPortal } from "@/lib/teacher/api-auth";
 import { TeacherLessonPlan } from "@/models";
 import { currentSchoolYear } from "@/lib/tutor/school-year";
+import { pickLessonPlanFields } from "@/lib/teacher/lesson-plan-fields";
 import {
   buildExistingImportKeys,
   lessonPlanImportKey,
@@ -12,9 +13,12 @@ import {
   parseLessonPlanPdfText,
   titleFromPdfFilename,
 } from "@/lib/teacher/lesson-plan-pdf-import";
-import pdfParse from "pdf-parse";
-
 export const runtime = "nodejs";
+
+async function extractPdfText(buffer: Buffer) {
+  const pdfParse = (await import("pdf-parse")).default;
+  return pdfParse(buffer);
+}
 
 const MAX_FILES = 25;
 const MAX_BYTES = 12 * 1024 * 1024;
@@ -59,7 +63,7 @@ export async function POST(request: Request) {
   for (const file of files) {
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const parsed = await pdfParse(buffer);
+      const parsed = await extractPdfText(buffer);
       const fallbackTitle = titleFromPdfFilename(file.name);
       const extracted = parseLessonPlanPdfText(parsed.text ?? "", fallbackTitle);
 
@@ -82,19 +86,24 @@ export async function POST(request: Request) {
         batchKeys.add(key);
       }
 
+      const fields = pickLessonPlanFields({
+        title: extracted.title,
+        subject: extracted.subject,
+        grade: extracted.grade,
+        date: extracted.date,
+        planMode: extracted.planMode,
+        status: "draft",
+        ...extracted.fields,
+      });
+
       const doc = await TeacherLessonPlan.create({
         teacherId,
         schoolYear,
         title: extracted.title,
-        subject: extracted.subject,
-        grade: extracted.grade,
-        date: extracted.date ? new Date(extracted.date) : undefined,
-        planMode: extracted.planMode,
-        status: "draft",
+        ...fields,
         isTemplate: false,
         archived: false,
         shareEnabled: false,
-        ...extracted.fields,
       });
       existingKeys.add(key);
       await syncLessonPlanToPlanner(doc);

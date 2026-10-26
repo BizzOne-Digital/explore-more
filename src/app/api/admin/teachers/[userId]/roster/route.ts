@@ -6,16 +6,24 @@ import { requireRole } from "@/lib/api/auth-helpers";
 import { getPrimarySchoolForTeacher } from "@/lib/teacher/school";
 import { currentSchoolYear } from "@/lib/tutor/school-year";
 import { listTeacherRoster } from "@/lib/teacher/roster";
+import { createStudentAndAddToRoster } from "@/lib/teacher/create-roster-student";
 
 export const runtime = "nodejs";
 
 type RouteParams = { params: Promise<{ userId: string }> };
 
 const addSchema = z.object({
-  studentId: z.string().min(1),
+  studentId: z.string().min(1).optional(),
   grade: z.string().max(40).optional(),
   className: z.string().max(80).optional(),
   schoolYear: z.string().max(20).optional(),
+  createStudent: z
+    .object({
+      name: z.string().min(2).max(120),
+      email: z.string().email(),
+      password: z.string().min(8).optional(),
+    })
+    .optional(),
 });
 
 export async function GET(_request: Request, { params }: RouteParams) {
@@ -47,14 +55,35 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!isValidObjectId(userId)) return apiError(new Error("Invalid teacher id"), 400);
 
     const body = addSchema.parse(await request.json());
-    if (!isValidObjectId(body.studentId)) {
-      return apiError(new Error("Invalid student id"), 400);
-    }
 
     await connectDB();
     const teacher = await User.findById(userId).select("role").lean();
     if (!teacher || teacher.role !== "teacher") {
       return apiError(new Error("User is not a school teacher"), 400);
+    }
+
+    const schoolYear = body.schoolYear ?? currentSchoolYear();
+
+    if (body.createStudent) {
+      const result = await createStudentAndAddToRoster({
+        teacherUserId: userId,
+        name: body.createStudent.name,
+        email: body.createStudent.email,
+        password: body.createStudent.password,
+        grade: body.grade,
+        className: body.className,
+        schoolYear,
+      });
+      const row = await TeacherClassRoster.findOne({
+        teacherId: userId,
+        studentId: result.studentId,
+        schoolYear,
+      }).lean();
+      return apiSuccess({ roster: row, studentId: result.studentId, created: result.created }, 201);
+    }
+
+    if (!body.studentId || !isValidObjectId(body.studentId)) {
+      return apiError(new Error("studentId or createStudent required"), 400);
     }
 
     const student = await User.findById(body.studentId).select("role name").lean();
@@ -66,8 +95,6 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!ctx) {
       return apiError(new Error("Assign this teacher to a school before adding roster students"), 400);
     }
-
-    const schoolYear = body.schoolYear ?? currentSchoolYear();
 
     const row = await TeacherClassRoster.findOneAndUpdate(
       { teacherId: userId, studentId: body.studentId, schoolYear },

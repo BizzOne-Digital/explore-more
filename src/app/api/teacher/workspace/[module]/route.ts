@@ -268,6 +268,7 @@ export async function POST(
     }
     case "planner": {
       const studentId = parseId(body.studentId);
+      const lessonPlanId = parseId(body.lessonPlanId);
       const doc = await TeacherPlannerEntry.create({
         teacherId,
         schoolYear,
@@ -275,9 +276,11 @@ export async function POST(
         date: body.date ? new Date(body.date) : new Date(),
         title: body.title ?? "Planner entry",
         subject: body.subject,
+        classroom: body.classroom,
         startTime: body.startTime,
         endTime: body.endTime,
         entryType: body.entryType ?? "lesson",
+        ...(lessonPlanId ? { lessonPlanId } : {}),
         notes: body.notes,
       });
       return jsonOk({ item: doc });
@@ -542,6 +545,13 @@ export async function PATCH(
         const sid = parseId(String(fields.studentId));
         if (sid) fields.studentId = sid;
         else delete fields.studentId;
+      }
+      if (fields.lessonPlanId === "" || fields.lessonPlanId === null) {
+        fields.lessonPlanId = undefined;
+      } else if (fields.lessonPlanId) {
+        const lid = parseId(String(fields.lessonPlanId));
+        if (lid) fields.lessonPlanId = lid;
+        else delete fields.lessonPlanId;
       }
     }
     if (workspaceModule === "gradebook" && fields.pointsPossible != null) {

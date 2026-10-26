@@ -12,6 +12,9 @@ import {
   TeacherProgressOverview,
   TeacherReportsHub,
 } from "@/components/teacher/TeacherStudentHubViews";
+import { PlannerView } from "@/components/teacher/workspace/PlannerView";
+import { StandardsView } from "@/components/teacher/workspace/StandardsView";
+import { TodosWorkspaceView } from "@/components/teacher/workspace/TodosWorkspaceView";
 
 type StudentOption = { studentId: string; studentName: string };
 
@@ -99,6 +102,7 @@ type PlannerRow = {
   startTime?: string;
   endTime?: string;
   studentId?: string;
+  lessonPlanId?: string;
 };
 
 function CalendarView({ config }: { config: WorkspacePageConfig }) {
@@ -177,9 +181,28 @@ function CalendarView({ config }: { config: WorkspacePageConfig }) {
               <ul className="mt-2 space-y-2">
                 {dayEntries.map((e) => (
                   <li key={e._id} className="rounded-lg bg-violet-50 px-2 py-1.5 text-xs">
-                    <span className="font-medium text-explore-charcoal">{e.title}</span>
+                    {e.lessonPlanId ? (
+                      <Link
+                        href={`/teacher/lesson-plans/${e.lessonPlanId}`}
+                        className="font-medium text-violet-800 hover:underline"
+                      >
+                        {e.title}
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/teacher/planner"
+                        className="font-medium text-explore-charcoal hover:underline"
+                      >
+                        {e.title}
+                      </Link>
+                    )}
                     {e.subject ? <span className="text-gray-600"> · {e.subject}</span> : null}
-                    {e.startTime ? <span className="block text-gray-500">{e.startTime}</span> : null}
+                    {e.startTime ? (
+                      <span className="block text-gray-500">
+                        {e.startTime}
+                        {e.endTime ? ` – ${e.endTime}` : ""}
+                      </span>
+                    ) : null}
                     {e.studentId ? (
                       <span className="mt-0.5 block text-violet-800">{rosterName(String(e.studentId))}</span>
                     ) : (
@@ -317,6 +340,7 @@ function RecordsView({ config }: { config: WorkspacePageConfig }) {
   const [studentIdOverride, setStudentIdOverride] = useState("");
   const activeStudentId = studentIdFromUrl || studentIdOverride;
   const [roster, setRoster] = useState<StudentOption[]>([]);
+  const [studentSearch, setStudentSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/teacher/roster")
@@ -327,6 +351,10 @@ function RecordsView({ config }: { config: WorkspacePageConfig }) {
       })
       .catch(() => setRoster([]));
   }, []);
+
+  const filteredRoster = roster.filter((s) =>
+    s.studentName.toLowerCase().includes(studentSearch.trim().toLowerCase())
+  );
 
   const load = useCallback(() => {
     const query: Record<string, string> = { recordType };
@@ -365,17 +393,26 @@ function RecordsView({ config }: { config: WorkspacePageConfig }) {
     <Shell title={config.title} description={config.description}>
       <div className="rounded-2xl bg-white p-5 shadow-sm space-y-3">
         {roster.length > 0 && (
-          <select
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-            value={activeStudentId}
-            onChange={(e) => setStudentIdOverride(e.target.value)}
-            disabled={!!studentIdFromUrl}
-          >
-            <option value="">Select student (optional)</option>
-            {roster.map((s) => (
-              <option key={s.studentId} value={s.studentId}>{s.studentName}</option>
-            ))}
-          </select>
+          <>
+            <input
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              placeholder="Search students…"
+              value={studentSearch}
+              onChange={(e) => setStudentSearch(e.target.value)}
+              disabled={!!studentIdFromUrl}
+            />
+            <select
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              value={activeStudentId}
+              onChange={(e) => setStudentIdOverride(e.target.value)}
+              disabled={!!studentIdFromUrl}
+            >
+              <option value="">Select student</option>
+              {filteredRoster.map((s) => (
+                <option key={s.studentId} value={s.studentId}>{s.studentName}</option>
+              ))}
+            </select>
+          </>
         )}
         <input
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
@@ -1099,6 +1136,7 @@ function AssessmentsView({ config }: { config: WorkspacePageConfig }) {
   const searchParams = useSearchParams();
   const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
   const [roster, setRoster] = useState<StudentOption[]>([]);
+  const [studentSearch, setStudentSearch] = useState("");
   const [form, setForm] = useState({
     studentId: searchParams.get("studentId") ?? "",
     title: "",
@@ -1135,6 +1173,10 @@ function AssessmentsView({ config }: { config: WorkspacePageConfig }) {
   const rosterName = (id: string) =>
     roster.find((s) => s.studentId === id)?.studentName ?? "Student";
 
+  const filteredRoster = roster.filter((s) =>
+    s.studentName.toLowerCase().includes(studentSearch.trim().toLowerCase())
+  );
+
   const add = async () => {
     if (!effectiveStudentId || !form.title.trim()) return;
     await workspaceFetch("assessments", {
@@ -1169,6 +1211,13 @@ function AssessmentsView({ config }: { config: WorkspacePageConfig }) {
   return (
     <Shell title={config.title} description={config.description}>
       <div className="flex flex-wrap gap-2 rounded-2xl bg-white p-4 shadow-sm">
+        <input
+          className="min-w-[120px] rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          placeholder="Search student"
+          value={studentSearch}
+          onChange={(e) => setStudentSearch(e.target.value)}
+          disabled={!!filterStudentId}
+        />
         <select
           className="min-w-[140px] rounded-lg border border-gray-200 px-3 py-2 text-sm"
           value={effectiveStudentId}
@@ -1176,7 +1225,7 @@ function AssessmentsView({ config }: { config: WorkspacePageConfig }) {
           disabled={!!filterStudentId}
         >
           <option value="">Student</option>
-          {roster.map((s) => (
+          {filteredRoster.map((s) => (
             <option key={s.studentId} value={s.studentId}>{s.studentName}</option>
           ))}
         </select>
@@ -1252,27 +1301,7 @@ function AssessmentsView({ config }: { config: WorkspacePageConfig }) {
 }
 
 function TodosView({ config }: { config: WorkspacePageConfig }) {
-  return (
-    <SimpleListView
-      config={config}
-      apiModule="todos"
-      fields={[
-        { key: "title", label: "Task title", required: true },
-        { key: "description", label: "Description" },
-        { key: "dueDate", label: "Due date (YYYY-MM-DD)" },
-        { key: "dueTime", label: "Due time (e.g. 2:30 PM)" },
-      ]}
-      formatLabel={(item) => {
-        const title = String(item.title ?? "Task");
-        const due = item.dueDate
-          ? new Date(String(item.dueDate)).toLocaleDateString()
-          : "";
-        const time = item.dueTime ? String(item.dueTime) : "";
-        const suffix = [due, time].filter(Boolean).join(" · ");
-        return suffix ? `${title} — ${suffix}` : title;
-      }}
-    />
-  );
+  return <TodosWorkspaceView config={config} />;
 }
 
 function EndOfDayView({ config }: { config: WorkspacePageConfig }) {
@@ -1423,6 +1452,7 @@ function AttendanceView({ config }: { config: WorkspacePageConfig }) {
 function GradebookView({ config }: { config: WorkspacePageConfig }) {
   const searchParams = useSearchParams();
   const highlightStudentId = searchParams.get("studentId") ?? "";
+  const [gbTab, setGbTab] = useState<"assignments" | "grades" | "reports" | "settings">("grades");
   const [assignments, setAssignments] = useState<
     Array<{ _id: string; title: string; pointsPossible: number }>
   >([]);
@@ -1520,6 +1550,45 @@ function GradebookView({ config }: { config: WorkspacePageConfig }) {
 
   return (
     <Shell title={config.title} description={config.description}>
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ["assignments", "Assignments"],
+            ["grades", "Student grades"],
+            ["reports", "Progress reports"],
+            ["settings", "Grade settings"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setGbTab(id)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              gbTab === id ? "bg-violet-600 text-white" : "border border-gray-200 text-gray-700"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {gbTab === "reports" && (
+        <p className="rounded-2xl bg-white p-4 text-sm text-gray-600 shadow-sm">
+          Progress reports and PDF report cards are being expanded. Use{" "}
+          <Link href="/teacher/progress" className="text-violet-700 hover:underline">Progress</Link> and{" "}
+          <Link href="/teacher/reports" className="text-violet-700 hover:underline">Reports</Link> for now.
+        </p>
+      )}
+
+      {gbTab === "settings" && (
+        <p className="rounded-2xl bg-white p-4 text-sm text-gray-600 shadow-sm">
+          Weighted categories and letter-grade scales will be configured here. Assignment max points
+          can be edited per assignment below.
+        </p>
+      )}
+
+      {(gbTab === "assignments" || gbTab === "grades") && (
+      <>
       <div className="flex flex-wrap gap-2 rounded-2xl bg-white p-4 shadow-sm">
         <input
           className="min-w-[140px] flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
@@ -1586,6 +1655,7 @@ function GradebookView({ config }: { config: WorkspacePageConfig }) {
           ))}
         </ul>
 
+        {gbTab === "grades" && (
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-explore-charcoal">
             {selected ? `Scores — ${selected.title}` : "Select an assignment"}
@@ -1629,7 +1699,10 @@ function GradebookView({ config }: { config: WorkspacePageConfig }) {
             </ul>
           )}
         </div>
+        )}
       </div>
+      </>
+      )}
     </Shell>
   );
 }
@@ -1694,39 +1767,9 @@ export function WorkspaceModuleView({ pageKey }: { pageKey: string }) {
         />
       );
     case "planner":
-      return (
-        <SimpleListView
-          config={config}
-          apiModule="planner"
-          fields={[
-            { key: "title", label: "Block title", required: true },
-            { key: "subject", label: "Subject" },
-            { key: "date", label: "Date (YYYY-MM-DD)" },
-            { key: "startTime", label: "Start time" },
-            { key: "endTime", label: "End time" },
-          ]}
-          formatLabel={(item) => {
-            const title = String(item.title ?? "Block");
-            const subject = item.subject ? String(item.subject) : "";
-            const date = item.date
-              ? ` · ${new Date(String(item.date)).toLocaleDateString()}`
-              : "";
-            return subject ? `${subject} — ${title}${date}` : `${title}${date}`;
-          }}
-        />
-      );
+      return <PlannerView config={config} />;
     case "standards":
-      return (
-        <SimpleListView
-          config={config}
-          apiModule="standards"
-          fields={[
-            { key: "subject", label: "Subject" },
-            { key: "standardCode", label: "Standard code", required: true },
-            { key: "standardLabel", label: "Description / label", required: true },
-          ]}
-        />
-      );
+      return <StandardsView config={config} />;
     case "assessments":
       return <AssessmentsView config={config} />;
     case "help":

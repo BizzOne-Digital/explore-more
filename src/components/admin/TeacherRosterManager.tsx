@@ -23,6 +23,8 @@ export function TeacherRosterManager({ teacherUserId }: { teacherUserId: string 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [createMode, setCreateMode] = useState(false);
+  const [newStudent, setNewStudent] = useState({ name: "", email: "", password: "" });
 
   const loadRoster = useCallback(() => {
     fetch(`/api/admin/teachers/${teacherUserId}/roster`)
@@ -47,8 +49,12 @@ export function TeacherRosterManager({ teacherUserId }: { teacherUserId: string 
   }, [loadRoster]);
 
   async function addStudent() {
-    if (!studentId) {
-      setError("Select a student.");
+    if (!createMode && !studentId) {
+      setError("Select a student or create a new one.");
+      return;
+    }
+    if (createMode && (!newStudent.name.trim() || !newStudent.email.trim())) {
+      setError("Name and email required for new student.");
       return;
     }
     setSaving(true);
@@ -58,11 +64,23 @@ export function TeacherRosterManager({ teacherUserId }: { teacherUserId: string 
       const res = await fetch(`/api/admin/teachers/${teacherUserId}/roster`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId,
-          grade: grade.trim() || undefined,
-          className: className.trim() || undefined,
-        }),
+        body: JSON.stringify(
+          createMode
+            ? {
+                createStudent: {
+                  name: newStudent.name.trim(),
+                  email: newStudent.email.trim(),
+                  password: newStudent.password.trim() || undefined,
+                },
+                grade: grade.trim() || undefined,
+                className: className.trim() || undefined,
+              }
+            : {
+                studentId,
+                grade: grade.trim() || undefined,
+                className: className.trim() || undefined,
+              }
+        ),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Add failed");
@@ -100,18 +118,42 @@ export function TeacherRosterManager({ teacherUserId }: { teacherUserId: string 
       {message && <p className="mt-3 text-sm text-emerald-300">{message}</p>}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <select
-          value={studentId}
-          onChange={(e) => setStudentId(e.target.value)}
-          className="min-w-[200px] flex-1 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+        <button
+          type="button"
+          onClick={() => setCreateMode((v) => !v)}
+          className="rounded-lg border border-white/20 px-3 py-2 text-sm text-white"
         >
-          <option value="">Select student…</option>
-          {students.map((s) => (
-            <option key={s._id} value={s._id}>
-              {s.name} ({s.email})
-            </option>
-          ))}
-        </select>
+          {createMode ? "Pick existing student" : "Create new student"}
+        </button>
+        {createMode ? (
+          <>
+            <input
+              placeholder="Student name"
+              value={newStudent.name}
+              onChange={(e) => setNewStudent((p) => ({ ...p, name: e.target.value }))}
+              className="min-w-[140px] flex-1 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+            />
+            <input
+              placeholder="Email"
+              value={newStudent.email}
+              onChange={(e) => setNewStudent((p) => ({ ...p, email: e.target.value }))}
+              className="min-w-[140px] flex-1 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+            />
+          </>
+        ) : (
+          <select
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+            className="min-w-[200px] flex-1 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+          >
+            <option value="">Select student…</option>
+            {students.map((s) => (
+              <option key={s._id} value={s._id}>
+                {s.name} ({s.email})
+              </option>
+            ))}
+          </select>
+        )}
         <input
           placeholder="Grade"
           value={grade}

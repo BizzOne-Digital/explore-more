@@ -16,6 +16,9 @@ export function TeacherStudentsClient() {
   const [students, setStudents] = useState<RosterStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", email: "", grade: "", className: "" });
+  const [addStatus, setAddStatus] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -36,13 +39,78 @@ export function TeacherStudentsClient() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-display text-2xl font-bold text-explore-charcoal">My Students</h2>
-        <p className="mt-1 max-w-2xl text-sm text-gray-500">
-          Students on your school class roster. Select a student to view progress links, attendance,
-          and records.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-explore-charcoal">My Students</h2>
+          <p className="mt-1 max-w-2xl text-sm text-gray-500">
+            Students on your class roster. Open a profile for attendance, grades, goals, and notes.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowAdd((v) => !v)}
+          className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white"
+        >
+          Add student
+        </button>
       </div>
+
+      {showAdd && (
+        <form
+          className="space-y-3 rounded-2xl bg-white p-4 shadow-sm"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setAddStatus(null);
+            const res = await fetch("/api/teacher/roster/students", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(addForm),
+            });
+            const json = await res.json();
+            if (!res.ok) {
+              setAddStatus(json.error ?? "Could not add student");
+              return;
+            }
+            setAddForm({ name: "", email: "", grade: "", className: "" });
+            setAddStatus("Student added to your roster.");
+            load();
+          }}
+        >
+          <input
+            required
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+            placeholder="Full name"
+            value={addForm.name}
+            onChange={(e) => setAddForm((p) => ({ ...p, name: e.target.value }))}
+          />
+          <input
+            required
+            type="email"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+            placeholder="Email (login)"
+            value={addForm.email}
+            onChange={(e) => setAddForm((p) => ({ ...p, email: e.target.value }))}
+          />
+          <div className="flex gap-2">
+            <input
+              className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              placeholder="Grade"
+              value={addForm.grade}
+              onChange={(e) => setAddForm((p) => ({ ...p, grade: e.target.value }))}
+            />
+            <input
+              className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              placeholder="Class"
+              value={addForm.className}
+              onChange={(e) => setAddForm((p) => ({ ...p, className: e.target.value }))}
+            />
+          </div>
+          <button type="submit" className="rounded-lg bg-violet-600 px-4 py-2 text-sm text-white">
+            Create & add to roster
+          </button>
+          {addStatus && <p className="text-sm text-gray-600">{addStatus}</p>}
+        </form>
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

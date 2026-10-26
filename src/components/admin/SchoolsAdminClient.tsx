@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Building2, Plus } from "lucide-react";
 
@@ -156,7 +157,9 @@ export function SchoolsAdminClient() {
             {schools.map((s) => (
               <li key={s._id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                 <div>
-                  <p className="font-medium text-white">{s.name}</p>
+                  <Link href={`/admin/schools/${s._id}`} className="font-medium text-white hover:text-explore-teal">
+                    {s.name}
+                  </Link>
                   <p className="text-xs text-white/40">
                     <span className="font-mono">{s.slug}</span>
                     {s.district ? ` · ${s.district}` : ""}

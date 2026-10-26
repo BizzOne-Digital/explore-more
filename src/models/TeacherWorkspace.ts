@@ -158,6 +158,7 @@ export interface ITeacherPlannerEntry extends Document {
   endTime?: string;
   title: string;
   subject?: string;
+  classroom?: string;
   entryType: "lesson" | "assignment" | "assessment" | "meeting" | "event" | "other";
   lessonPlanId?: mongoose.Types.ObjectId;
   notes?: string;
@@ -175,6 +176,7 @@ const TeacherPlannerEntrySchema = new Schema<ITeacherPlannerEntry>(
     endTime: String,
     title: { type: String, required: true },
     subject: String,
+    classroom: String,
     entryType: {
       type: String,
       enum: ["lesson", "assignment", "assessment", "meeting", "event", "other"],
@@ -354,6 +356,8 @@ export interface ITeacherTodo extends Document {
   dueTime?: string;
   priority: "urgent" | "important" | "normal";
   status: "open" | "completed";
+  notes?: string;
+  assignedTo?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -363,6 +367,8 @@ const TeacherTodoSchema = new Schema<ITeacherTodo>(
     teacherId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true },
     description: String,
+    notes: String,
+    assignedTo: String,
     dueDate: Date,
     dueTime: String,
     priority: { type: String, enum: ["urgent", "important", "normal"], default: "normal" },

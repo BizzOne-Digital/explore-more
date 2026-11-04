@@ -172,10 +172,13 @@ export function BookForm({
       }
     }
 
-    const stayOnEdit = savedBookId && (samplePages.length > 0 || !isNew);
-    router.push(
-      stayOnEdit ? `/admin/books/${savedBookId}` : isNew && pendingDigitalFile ? `/admin/books/${savedBookId}` : "/admin/books"
-    );
+    if (action === "publish" || action === "unpublish") {
+      router.push("/admin/books");
+    } else if (isNew && savedBookId) {
+      router.push(`/admin/books/${savedBookId}`);
+    } else {
+      router.push("/admin/books");
+    }
     router.refresh();
   }
 

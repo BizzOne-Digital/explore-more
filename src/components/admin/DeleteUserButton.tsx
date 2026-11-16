@@ -24,7 +24,7 @@ export function DeleteUserButton({
 
   async function handleDelete() {
     const confirmed = confirm(
-      `Permanently delete ${userName}?\n\nThis removes the account and its profile and links. Orders and donations are kept for records. This cannot be undone.\n\nTo keep the data, use Deactivate instead.`
+      `Permanently delete ${userName}?\n\nThis removes the account and its profile and links. Orders and donations are kept for records. Any live subscription of an inactive parent is cancelled immediately. This cannot be undone.\n\nTo keep the data, use Deactivate instead.`
     );
     if (!confirmed) return;
 

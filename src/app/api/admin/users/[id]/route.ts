@@ -13,6 +13,7 @@ import { apiSuccess, apiError } from "@/lib/admin/api";
 import { auth } from "@/lib/auth";
 import { logActivity, extractChanges, getIpAddress, getUserAgent } from "@/lib/admin/audit-log";
 import { ensureTutorId } from "@/lib/tutor/tutor-id";
+import { cancelSubscription } from "@/lib/billing/subscription-management";
 import bcrypt from "bcryptjs";
 
 export async function GET(
@@ -193,7 +194,9 @@ export async function DELETE(
       return apiError(new Error("User not found"), 404);
     }
 
-    // Block deletion while a paid Stripe subscription is still live, so billing is not orphaned.
+    // A live Stripe subscription must not be orphaned (the parent would keep being billed).
+    // Active accounts are blocked. Inactive (deactivated) accounts have their subscription
+    // cancelled immediately, then are deleted. If cancelling fails, nothing is deleted.
     if (user.role === "parent") {
       const liveSubscription = await ParentSubscription.findOne({
         userId: id,
@@ -201,12 +204,23 @@ export async function DELETE(
         status: { $in: ["active", "trialing", "past_due", "paused"] },
       }).lean();
       if (liveSubscription) {
-        return apiError(
-          new Error(
-            "This parent has an active subscription. Cancel the subscription first, or deactivate the account instead."
-          ),
-          409
-        );
+        if (user.isActive !== false) {
+          return apiError(
+            new Error(
+              "This parent has an active subscription. Deactivate the account first, then delete it."
+            ),
+            409
+          );
+        }
+        try {
+          await cancelSubscription(id, false);
+        } catch (cancelError) {
+          const reason = cancelError instanceof Error ? cancelError.message : "Unknown error";
+          return apiError(
+            new Error(`Could not cancel the parent's subscription, so the account was not deleted. ${reason}`),
+            409
+          );
+        }
       }
     }
 

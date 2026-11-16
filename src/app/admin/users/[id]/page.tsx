@@ -205,7 +205,8 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         router.push("/admin/users");
         router.refresh();
       } else {
-        alert("Failed to delete user");
+        const json = await res.json().catch(() => null);
+        alert(json?.error || "Failed to delete user");
       }
     } catch (error) {
       alert("Failed to delete user");

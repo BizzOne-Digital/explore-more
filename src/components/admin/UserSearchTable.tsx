@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/admin/serialize";
 import { Search, Filter } from "lucide-react";
 import Link from "next/link";
 import { AdminUserIdLink } from "@/components/admin/AdminUserIdLink";
+import { DeleteUserButton } from "@/components/admin/DeleteUserButton";
 
 interface User {
   _id: string;
@@ -24,6 +25,7 @@ interface User {
 
 interface Props {
   users: User[];
+  currentUserId?: string;
 }
 
 /** Map common search terms to stored user roles. */
@@ -58,7 +60,7 @@ function userMatchesRoleSearch(userRole: string, term: string): boolean {
   );
 }
 
-export function UserSearchTable({ users }: Props) {
+export function UserSearchTable({ users, currentUserId }: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
 
@@ -164,12 +166,13 @@ export function UserSearchTable({ users }: Props) {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">ID</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">Status</th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-white/60">Joined</th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-white/60">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-white/40">
+                <td colSpan={8} className="px-4 py-8 text-center text-sm text-white/40">
                   No users found
                 </td>
               </tr>
@@ -206,6 +209,11 @@ export function UserSearchTable({ users }: Props) {
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-white/60">{formatDate(user.createdAt)}</td>
+                  <td className="px-4 py-3 text-right text-sm">
+                    {user._id !== currentUserId && (
+                      <DeleteUserButton userId={user._id} userName={user.name} variant="icon" />
+                    )}
+                  </td>
                 </tr>
               ))
             )}

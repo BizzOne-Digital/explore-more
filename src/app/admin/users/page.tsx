@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { User } from "@/models";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -14,7 +15,7 @@ async function getData() {
 }
 
 export default async function Page() {
-  const data = await getData();
+  const [data, session] = await Promise.all([getData(), auth()]);
 
   return (
     <div>
@@ -23,7 +24,10 @@ export default async function Page() {
         description="Search and manage all user accounts"
         action={{ label: "Create User", href: "/admin/users/new" }}
       />
-      <UserSearchTable users={data as unknown as ComponentProps<typeof UserSearchTable>["users"]} />
+      <UserSearchTable
+        users={data as unknown as ComponentProps<typeof UserSearchTable>["users"]}
+        currentUserId={session?.user?.id}
+      />
     </div>
   );
 }

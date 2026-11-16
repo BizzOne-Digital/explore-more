@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { formatCents } from "@/lib/utils";
+import { DeleteUserButton } from "@/components/admin/DeleteUserButton";
 import {
   formatInterval,
   formatPaymentMethod,
@@ -624,6 +625,7 @@ export function ParentAccountDashboard({ userId }: { userId: string }) {
             </div>
           </div>
         </div>
+        <DeleteUserButton userId={userId} userName={user.name} redirectTo="/admin/users" />
       </div>
 
       {error && (

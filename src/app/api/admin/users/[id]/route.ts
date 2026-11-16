@@ -3,6 +3,8 @@ import {
   User,
   StudentProfile,
   InstructorProfile,
+  ParentProfile,
+  ParentSubscription,
   GuardianStudentLink,
   TeacherSchoolMembership,
   School,
@@ -175,20 +177,44 @@ export async function DELETE(
     if (!session?.user?.id) {
       return apiError(new Error("Unauthorized"), 401);
     }
+    if (session.user.role !== "administrator") {
+      return apiError(new Error("Only administrators can delete users"), 403);
+    }
 
     await connectDB();
     const { id } = await params;
+
+    if (id === session.user.id) {
+      return apiError(new Error("You cannot delete your own account"), 400);
+    }
 
     const user = await User.findById(id);
     if (!user) {
       return apiError(new Error("User not found"), 404);
     }
 
+    // Block deletion while a paid Stripe subscription is still live, so billing is not orphaned.
+    if (user.role === "parent") {
+      const liveSubscription = await ParentSubscription.findOne({
+        userId: id,
+        stripeSubscriptionId: { $exists: true, $ne: null },
+        status: { $in: ["active", "trialing", "past_due", "paused"] },
+      }).lean();
+      if (liveSubscription) {
+        return apiError(
+          new Error(
+            "This parent has an active subscription. Cancel the subscription first, or deactivate the account instead."
+          ),
+          409
+        );
+      }
+    }
+
     // Store user info for logging
     const userName = user.name;
     const userEmail = user.email;
 
-    // Delete related data
+    // Delete related data (orders and donations are kept for financial records)
     if (user.role === "student") {
       await StudentProfile.deleteOne({ userId: id });
       await GuardianStudentLink.deleteMany({ studentId: id });
@@ -196,6 +222,10 @@ export async function DELETE(
       await InstructorProfile.deleteOne({ userId: id });
     } else if (user.role === "parent") {
       await GuardianStudentLink.deleteMany({ guardianId: id });
+      await ParentProfile.deleteOne({ userId: id });
+      await ParentSubscription.deleteOne({ userId: id });
+    } else if (user.role === "teacher") {
+      await TeacherSchoolMembership.deleteMany({ userId: id });
     }
 
     // Delete the user

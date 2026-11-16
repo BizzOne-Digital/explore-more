@@ -216,10 +216,16 @@ export async function DELETE(
           await cancelSubscription(id, false);
         } catch (cancelError) {
           const reason = cancelError instanceof Error ? cancelError.message : "Unknown error";
-          return apiError(
-            new Error(`Could not cancel the parent's subscription, so the account was not deleted. ${reason}`),
-            409
-          );
+          // Stripe has no such subscription (stale or removed ID): nothing left to cancel.
+          const alreadyGone =
+            (cancelError as { code?: string } | null)?.code === "resource_missing" ||
+            /^No such subscription/i.test(reason);
+          if (!alreadyGone) {
+            return apiError(
+              new Error(`Could not cancel the parent's subscription, so the account was not deleted. ${reason}`),
+              409
+            );
+          }
         }
       }
     }
